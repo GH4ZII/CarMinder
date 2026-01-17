@@ -2,9 +2,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { router } from 'expo-router';
-import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,10 +12,10 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
-  Switch,
 } from 'react-native';
 
 const REMEMBER_ME_KEY = '@remember_me';
@@ -26,7 +26,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const { signIn, signInWithGoogle } = useAuth();
 
   const borderColor = useThemeColor({}, 'text');
   const textColor = useThemeColor({}, 'text');
@@ -88,6 +89,18 @@ export default function LoginScreen() {
       Alert.alert('Feil', errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert('Feil', error.message || 'Google innlogging feilet. Prøv igjen.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -160,10 +173,33 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { borderColor }]} />
+            <ThemedText style={styles.dividerText}>eller</ThemedText>
+            <View style={[styles.divider, { borderColor }]} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.googleButton, (loading || googleLoading) && styles.buttonDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={loading || googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <ThemedText style={styles.googleButtonText}>🔍</ThemedText>
+                <ThemedText style={styles.googleButtonText}>
+                  Fortsett med Google
+                </ThemedText>
+              </>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.switchButton}
             onPress={() => router.push('/(auth)/signup')}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
             <ThemedText style={styles.switchText}>
               Har du ikke en konto? Opprett konto
@@ -239,5 +275,35 @@ const styles = StyleSheet.create({
   switchText: {
     color: '#0a7ea4',
     fontSize: 14,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    borderTopWidth: 1,
+    borderColor: '#ccc',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  googleButton: {
+    backgroundColor: '#4285F4',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    minHeight: 50,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  googleButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
