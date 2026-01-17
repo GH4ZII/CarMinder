@@ -3,8 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { router } from 'expo-router';
-import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,45 +13,22 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
-  Switch,
 } from 'react-native';
 
-const REMEMBER_ME_KEY = '@remember_me';
-const SAVED_EMAIL_KEY = '@saved_email';
-
-export default function LoginScreen() {
+export default function SignupScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
 
   const borderColor = useThemeColor({}, 'text');
   const textColor = useThemeColor({}, 'text');
   const placeholderColor = useThemeColor({}, 'text');
 
-  useEffect(() => {
-    loadRememberedCredentials();
-  }, []);
-
-  const loadRememberedCredentials = async () => {
-    try {
-      const remembered = await AsyncStorage.getItem(REMEMBER_ME_KEY);
-      if (remembered === 'true') {
-        setRememberMe(true);
-        const savedEmail = await AsyncStorage.getItem(SAVED_EMAIL_KEY);
-        if (savedEmail) {
-          setEmail(savedEmail);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading remembered credentials:', error);
-    }
-  };
-
   const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Feil', 'Vennligst fyll ut alle felt');
       return;
     }
@@ -62,28 +38,28 @@ export default function LoginScreen() {
       return;
     }
 
+    if (password !== confirmPassword) {
+      Alert.alert('Feil', 'Passordene stemmer ikke overens');
+      return;
+    }
+
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
-      
-      // Save credentials if remember me is checked
-      if (rememberMe) {
-        await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
-        await AsyncStorage.setItem(SAVED_EMAIL_KEY, email.trim());
-      } else {
-        await AsyncStorage.removeItem(REMEMBER_ME_KEY);
-        await AsyncStorage.removeItem(SAVED_EMAIL_KEY);
-      }
-      
-      router.replace('/(tabs)');
+      await signUp(email.trim(), password, name.trim());
+      Alert.alert('Suksess', 'Konto opprettet!', [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/(tabs)'),
+        },
+      ]);
     } catch (error: any) {
       let errorMessage = 'En feil oppstod';
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Bruker ikke funnet';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Feil passord';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'E-postadressen er allerede i bruk';
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Ugyldig e-postadresse';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Passordet er for svakt';
       }
       Alert.alert('Feil', errorMessage);
     } finally {
@@ -102,12 +78,23 @@ export default function LoginScreen() {
       >
         <ThemedView style={styles.content}>
           <ThemedText type="title" style={styles.title}>
-            Logg inn
+            Opprett konto
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
-            Logg inn for å fortsette
+            Opprett en ny konto for å komme i gang
           </ThemedText>
+
+          <TextInput
+            style={[styles.input, { borderColor, color: textColor }]}
+            placeholder="Navn"
+            placeholderTextColor={placeholderColor + '80'}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            autoComplete="name"
+            editable={!loading}
+          />
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
@@ -129,22 +116,21 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
-            autoComplete="password"
+            autoComplete="password-new"
             editable={!loading}
           />
 
-          <View style={styles.rememberMeContainer}>
-            <Switch
-              value={rememberMe}
-              onValueChange={setRememberMe}
-              disabled={loading}
-              trackColor={{ false: '#767577', true: '#0a7ea4' }}
-              thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
-            />
-            <ThemedText style={styles.rememberMeText}>
-              Husk meg
-            </ThemedText>
-          </View>
+          <TextInput
+            style={[styles.input, { borderColor, color: textColor }]}
+            placeholder="Bekreft passord"
+            placeholderTextColor={placeholderColor + '80'}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password-new"
+            editable={!loading}
+          />
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -155,18 +141,18 @@ export default function LoginScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <ThemedText style={styles.buttonText}>
-                Logg inn
+                Opprett konto
               </ThemedText>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.switchButton}
-            onPress={() => router.push('/(auth)/signup')}
+            onPress={() => router.push('/(auth)/login')}
             disabled={loading}
           >
             <ThemedText style={styles.switchText}>
-              Har du ikke en konto? Opprett konto
+              Har du allerede en konto? Logg inn
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>
@@ -205,15 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     minHeight: 50,
-  },
-  rememberMeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rememberMeText: {
-    marginLeft: 12,
-    fontSize: 14,
   },
   button: {
     backgroundColor: '#0a7ea4',
