@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "85293564173",
+    "project_id": "carminder-b2486",
+    "storage_bucket": "carminder-b2486.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:85293564173:android:79670263d393aa06187044",
+        "android_client_info": {
+          "package_name": "com.carminder.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBDbiaYkMhyOyIFaX6cI7ZQr6UNZzrDpA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

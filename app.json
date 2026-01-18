@@ -9,9 +9,23 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.carminder.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.85293564173-s45cv8b32c8d394nhdfpqr1sb9ebigf2"
+            ]
+          }
+        ]
+      }
     },
     "android": {
+      "package": "com.carminder.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,6 +57,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "acf90c67-6607-4433-b3a7-990766cdf1e9"
+      }
     }
   }
 }
