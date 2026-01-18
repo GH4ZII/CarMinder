@@ -1,7 +1,7 @@
 import { auth } from '@/config/firebase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
-  GoogleAuthProvider,
+  GoogleAuthProvider, // Convert Google token -> Firebase credential
   User,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
@@ -14,11 +14,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
-  webClientId: '85293564173-aaqii4vghaolclqfvdsmoor0dq093lfa.apps.googleusercontent.com',
-  iosClientId: '85293564173-s45cv8b32c8d394nhdfpqr1sb9ebigf2.apps.googleusercontent.com',
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   offlineAccess: true,
 });
 
+// Firebase Auth Context Type
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -28,25 +29,31 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+
+// Creates a Context that provides access to authentication data throughout the app
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Main component that provides authentication functionality to all child components
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
+  
+  // Listen to changes in Firebase authentication status
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+      setUser(user); 
+      setLoading(false); 
     });
 
     return unsubscribe;
   }, []);
 
+  // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
+  // Sign in with Google
   const signInWithGoogle = async () => {
     try {
       // Check if device supports Google Play Services (Android only)
@@ -74,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Sign up with email and password
   const signUp = async (email: string, password: string, name: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, {
@@ -81,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // Sign out from Google and Firebase
   const signOut = async () => {
     try {
       // Sign out from Google if signed in
@@ -95,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await firebaseSignOut(auth);
   };
 
+  // Provide the authentication context to all child components
   return (
     <AuthContext.Provider value={{ user, loading, signIn, signInWithGoogle, signUp, signOut }}>
       {children}
@@ -102,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Custom hook to access the authentication context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

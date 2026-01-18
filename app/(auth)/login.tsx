@@ -33,10 +33,12 @@ export default function LoginScreen() {
   const textColor = useThemeColor({}, 'text');
   const placeholderColor = useThemeColor({}, 'text');
 
+  // Load remembered credentials on mount
   useEffect(() => {
     loadRememberedCredentials();
   }, []);
 
+  // Load remembered credentials from AsyncStorage
   const loadRememberedCredentials = async () => {
     try {
       const remembered = await AsyncStorage.getItem(REMEMBER_ME_KEY);
