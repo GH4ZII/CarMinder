@@ -1,5 +1,4 @@
 import { auth } from '@/config/firebase';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
   GoogleAuthProvider, // Convert Google token -> Firebase credential
   User,
@@ -12,12 +11,25 @@ import {
 } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-// Configure Google Sign-In
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  offlineAccess: true,
-});
+// Lazy load Google Sign-In only when needed (not available in Expo Go)
+let GoogleSignin: any = null;
+let isGoogleSignInAvailable = false;
+
+try {
+  // Try to import GoogleSignin - this will fail in Expo Go
+  GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
+  isGoogleSignInAvailable = true;
+  // Configure Google Sign-In only if available
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    offlineAccess: true,
+  });
+} catch (error) {
+  // GoogleSignin is not available (e.g., in Expo Go)
+  console.log('Google Sign-In not available (running in Expo Go?)');
+  isGoogleSignInAvailable = false;
+}
 
 // Firebase Auth Context Type
 interface AuthContextType {
@@ -55,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign in with Google
   const signInWithGoogle = async () => {
+    if (!isGoogleSignInAvailable || !GoogleSignin) {
+      throw new Error('Google Sign-In er ikke tilgjengelig i Expo Go. Bruk en dev build for å teste Google Sign-In.');
+    }
+
     try {
       // Check if device supports Google Play Services (Android only)
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -91,14 +107,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out from Google and Firebase
   const signOut = async () => {
-    try {
-      // Sign out from Google if signed in
-      const currentUser = await GoogleSignin.getCurrentUser();
-      if (currentUser) {
-        await GoogleSignin.signOut();
+    if (isGoogleSignInAvailable && GoogleSignin) {
+      try {
+        // Sign out from Google if signed in
+        const currentUser = await GoogleSignin.getCurrentUser();
+        if (currentUser) {
+          await GoogleSignin.signOut();
+        }
+      } catch (error) {
+        console.error('Google Sign-Out Error:', error);
       }
-    } catch (error) {
-      console.error('Google Sign-Out Error:', error);
     }
     // Sign out from Firebase
     await firebaseSignOut(auth);
