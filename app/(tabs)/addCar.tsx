@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/AuthContext';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,36 +12,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-interface CarInfo {
-  registreringsnummer: string;
-  merke: string;
-  modell: string;
-  arsmodell: string;
-  farge: string;
-  kilometer: number;
-  // New fields
-  forstegangRegistrert: string;
-  chassisNummer: string;
-  drivstoff: string;
-  girkasse: string;
-  motorEffekt: number;
-  slagvolum: number;
-  co2Utslipp: number;
-  forbruk: number;
-  egenvekt: number;
-  totalvekt: number;
-  antallSeter: number;
-  antallDorer: number;
-  karosseri: string;
-  euKontrollFrist: string;
-  maksHastighet: number;
-}
+import { CarInfo, carService } from '../../backend/services/carService';
 
 export default function AddCarScreen() {
   const [regNumber, SetRegNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [carInfo, setCarInfo] = useState<CarInfo | null>(null);
+  const { user } = useAuth();
 
   const fetchCarInfo = async () => {
     if (!regNumber.trim()) {
@@ -91,7 +70,6 @@ export default function AddCarScreen() {
         arsmodell: kjoretoyData.forstegangsregistrering?.registrertForstegangNorgeDato?.substring(0, 4) || 'Unknown',
         farge: karosseri?.rFarge?.[0]?.kodeBeskrivelse || 'Not specified',
         kilometer: 0,
-        // New fields
         forstegangRegistrert: kjoretoyData.forstegangsregistrering?.registrertForstegangNorgeDato || 'Unknown',
         chassisNummer: kjoretoyData.kjoretoyId?.understellsnummer || 'Unknown',
         drivstoff: miljoData?.drivstoffKodeMiljodata?.kodeNavn || 'Unknown',
@@ -122,15 +100,28 @@ export default function AddCarScreen() {
 
   const saveCar = async () => {
     if (!carInfo) return;
+    
+    if (!user) {
+      Alert.alert("Error", "You must be logged in to save a car");
+      return;
+    }
 
+    setSaving(true);
     try {
-      console.log("Saving car:", carInfo);
-      Alert.alert("Success", "Car saved successfully!");
+      const { data, error } = await carService.saveCar(carInfo, user.uid);
+      
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert("Success", "Car saved successfully to Supabase!");
       setCarInfo(null);
       SetRegNumber('');
     } catch (error) {
       Alert.alert("Error", "Failed to save car");
       console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -210,8 +201,13 @@ export default function AddCarScreen() {
             <TouchableOpacity
               style={[styles.button, styles.saveButton]}
               onPress={saveCar}
+              disabled={saving}
             >
-              <Text style={styles.buttonText}>Save Car</Text>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Save Car to your profile</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
