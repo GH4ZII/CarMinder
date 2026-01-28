@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CarInfo, carService } from '../../backend/services/carService';
+import { api, CarInfo } from '../../frontendServices/apiCall';
 
 export default function AddCarScreen() {
   const [regNumber, SetRegNumber] = useState("");
@@ -29,65 +29,15 @@ export default function AddCarScreen() {
 
     setLoading(true);
     try {
-      const apikey = process.env.EXPO_PUBLIC_API_KEY;
-
-      if (!apikey) {
-        Alert.alert("Error", "API key not configured");
-        return;
-      }
-      const response = await fetch(
-        `https://www.vegvesen.no/ws/no/vegvesen/kjoretoy/felles/datautlevering/enkeltoppslag/kjoretoydata?kjennemerke=${regNumber.toUpperCase()}`,
-        {
-          headers: {
-            'SVV-Authorization': `Apikey ${apikey}`
-          }
-        }
-      );
-
-      if (!response.ok) {
+      // Now uses FastAPI backend instead of direct API call
+      const car = await api.lookupVehicle(regNumber);
+      
+      if (!car) {
         Alert.alert("Error", "No car was found");
         return;
       }
 
-      const data = await response.json();
-      const kjoretoyData = data.kjoretoydataListe?.[0];
-
-      if (!kjoretoyData) {
-        Alert.alert("Error", "No vehicle data found");
-        return;
-      }
-
-      const tekniskData = kjoretoyData.godkjenning?.tekniskGodkjenning?.tekniskeData;
-      const miljoData = tekniskData?.miljodata?.miljoOgdrivstoffGruppe?.[0];
-      const motorData = tekniskData?.motorOgDrivverk;
-      const vekter = tekniskData?.vekter;
-      const karosseri = tekniskData?.karosseriOgLasteplan;
-
-      const carData: CarInfo = {
-        registreringsnummer: regNumber.toUpperCase(),
-        merke: tekniskData?.generelt?.merke?.[0]?.merke || 'Unknown',
-        modell: tekniskData?.generelt?.handelsbetegnelse?.[0] || 'Unknown',
-        arsmodell: kjoretoyData.forstegangsregistrering?.registrertForstegangNorgeDato?.substring(0, 4) || 'Unknown',
-        farge: karosseri?.rFarge?.[0]?.kodeBeskrivelse || 'Not specified',
-        kilometer: 0,
-        forstegangRegistrert: kjoretoyData.forstegangsregistrering?.registrertForstegangNorgeDato || 'Unknown',
-        chassisNummer: kjoretoyData.kjoretoyId?.understellsnummer || 'Unknown',
-        drivstoff: miljoData?.drivstoffKodeMiljodata?.kodeNavn || 'Unknown',
-        girkasse: motorData?.girkassetype?.kodeNavn || 'Unknown',
-        motorEffekt: motorData?.motor?.[0]?.drivstoff?.[0]?.maksNettoEffekt || 0,
-        slagvolum: motorData?.motor?.[0]?.slagvolum || 0,
-        co2Utslipp: miljoData?.forbrukOgUtslipp?.[0]?.co2BlandetKjoring || 0,
-        forbruk: miljoData?.forbrukOgUtslipp?.[0]?.forbrukBlandetKjoring || 0,
-        egenvekt: vekter?.egenvekt || 0,
-        totalvekt: vekter?.tillattTotalvekt || 0,
-        antallSeter: tekniskData?.persontall?.sitteplasserTotalt || 0,
-        antallDorer: karosseri?.antallDorer?.[0] || 0,
-        karosseri: karosseri?.karosseritype?.kodeNavn || 'Unknown',
-        euKontrollFrist: kjoretoyData.periodiskKjoretoyKontroll?.kontrollfrist || 'Unknown',
-        maksHastighet: motorData?.maksimumHastighet?.[0] || 0,
-      };
-
-      setCarInfo(carData);
+      setCarInfo(car);
       Alert.alert("Success", "Car information fetched!");
 
     } catch (error) {
@@ -108,13 +58,10 @@ export default function AddCarScreen() {
 
     setSaving(true);
     try {
-      const { data, error } = await carService.saveCar(carInfo, user.uid);
-      
-      if (error) {
-        throw error;
-      }
+      // Now uses FastAPI backend instead of direct Supabase call
+      await api.saveCar(carInfo, user.uid);
 
-      Alert.alert("Success", "Car saved successfully to Supabase!");
+      Alert.alert("Success", "Car saved successfully!");
       setCarInfo(null);
       SetRegNumber('');
     } catch (error) {
@@ -174,20 +121,20 @@ export default function AddCarScreen() {
             <InfoRow label="Registration" value={carInfo.registreringsnummer} />
             <InfoRow label="Brand" value={carInfo.merke} />
             <InfoRow label="Model" value={carInfo.modell} />
-            <InfoRow label="First Registered" value={carInfo.forstegangRegistrert} />
+            <InfoRow label="First Registered" value={carInfo.forstegangregistrert} />
             <InfoRow label="Body Type" value={carInfo.karosseri} />
-            <InfoRow label="Doors" value={carInfo.antallDorer} />
-            <InfoRow label="Seats" value={carInfo.antallSeter} />
+            <InfoRow label="Doors" value={carInfo.antalldorer} />
+            <InfoRow label="Seats" value={carInfo.antallseter} />
 
             <SectionHeader title="Engine & Performance" />
             <InfoRow label="Fuel Type" value={carInfo.drivstoff} />
             <InfoRow label="Transmission" value={carInfo.girkasse} />
-            <InfoRow label="Engine Power" value={`${carInfo.motorEffekt} kW`} />
+            <InfoRow label="Engine Power" value={`${carInfo.motoreffekt} kW`} />
             <InfoRow label="Engine Size" value={`${carInfo.slagvolum} cc`} />
-            <InfoRow label="Max Speed" value={`${carInfo.maksHastighet} km/h`} />
+            <InfoRow label="Max Speed" value={`${carInfo.makshastighet} km/h`} />
 
             <SectionHeader title="Environment" />
-            <InfoRow label="CO₂ Emissions" value={`${carInfo.co2Utslipp} g/km`} />
+            <InfoRow label="CO₂ Emissions" value={`${carInfo.co2utslipp} g/km`} />
             <InfoRow label="Fuel Consumption" value={`${carInfo.forbruk} L/100km`} />
 
             <SectionHeader title="Weight" />
@@ -195,8 +142,8 @@ export default function AddCarScreen() {
             <InfoRow label="Max Weight" value={`${carInfo.totalvekt} kg`} />
 
             <SectionHeader title="Other" />
-            <InfoRow label="Chassis Number" value={carInfo.chassisNummer} />
-            <InfoRow label="EU Control Due" value={carInfo.euKontrollFrist} />
+            <InfoRow label="Chassis Number" value={carInfo.chassisnummer} />
+            <InfoRow label="EU Control Due" value={carInfo.eukontrollfrist} />
 
             <TouchableOpacity
               style={[styles.button, styles.saveButton]}

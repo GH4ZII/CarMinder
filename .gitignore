@@ -1,9 +1,7 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Node/Expo
 node_modules/
-
-# Expo
 .expo/
 dist/
 web-build/
@@ -21,7 +19,7 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
-# debug
+# Debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
@@ -30,14 +28,31 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Local env files
+.env*
+*.env
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 
+# Example app
 app-example
 
-# generated native folders
+# Generated native folders
 /ios
 /android
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Backend env and config
+backend-python/.env
+backend-python/__pycache__/
+backend-python/config/__pycache__/
+backend-python/models/__pycache__/
+backend-python/routers/__pycache__/
+backend-python/schemas/__pycache__/
+backend-python/services/__pycache__/
