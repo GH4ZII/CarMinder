@@ -48,3 +48,50 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+## Quick Start
+
+### Frontend
+
+```bash
+npm install
+npx expo start
+```
+
+### Backend
+
+```bash
+cd backend-python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Architecture
+
+- **Frontend:** Expo, TypeScript, API calls in `frontendServices/apiCall.ts`
+- **Backend:** FastAPI, Supabase, Firebase Admin, organized in `routers/`, `services/`, `schemas/`, `config/`
+- **Env files:** `.env` (frontend), `backend-python/.env` (backend)
+
+## How to Add New Backend Functions
+
+1. **Create a schema:** Add a Pydantic model in `backend-python/schemas/`.
+2. **Add logic:** Implement in `backend-python/services/`.
+3. **Add route:** Create an endpoint in `backend-python/routers/`.
+4. **Register router:** Import in `main.py`.
+5. **Frontend:** Add API call in `frontendServices/apiCall.ts` and use it in your React Native components.
+
+## Environment Variables
+
+- **Frontend:** `.env` (API URLs, Supabase keys, Firebase client IDs)
+- **Backend:** `backend-python/.env` (Supabase service key, API keys)
+
+## Contributing
+
+- Keep secrets out of git.
+- Follow the folder structure.
+- Use clear names and comments.
+
+##
