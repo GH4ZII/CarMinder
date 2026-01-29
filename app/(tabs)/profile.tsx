@@ -125,12 +125,20 @@ export default function ProfileScreen() {
             <ThemedText style={styles.carTitle}>
               {item.merke} {item.modell} ({item.registreringsnummer})
             </ThemedText>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleDelete(item.id!)}
-            >
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
+            <View style={styles.carCardActions}>
+              <TouchableOpacity
+                style={styles.viewButton}
+                onPress={() => router.push(`/(tabs)/car/${item.id}` as any)}
+              >
+                <Text style={styles.viewButtonText}>View timeline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDelete(item.id!)}
+              >
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         contentContainerStyle={styles.listContent}
@@ -216,6 +224,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  carCardActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  viewButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,122,255,0.15)',
+  },
+  viewButtonText: {
+    color: '#007AFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
   deleteButton: {
     alignSelf: 'flex-start',

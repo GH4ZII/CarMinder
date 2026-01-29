@@ -3,7 +3,7 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import car
+from routers import car, maintenance_event
 
 app = FastAPI(title="CarMinder API")
 
@@ -18,6 +18,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(car.router)
+app.include_router(maintenance_event.router)
+app.include_router(maintenance_event.router_meta)
 
 
 @app.get("/")
