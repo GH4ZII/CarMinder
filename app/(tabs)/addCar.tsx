@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { api, CarInfo } from '../../frontendServices/apiCall';
+import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 
 export default function AddCarScreen() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function AddCarScreen() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [carInfo, setCarInfo] = useState<CarInfo | null>(null);
-  const { user } = useAuth();
+  const { user, getToken, signOut } = useAuth();
 
   const fetchCarInfo = async () => {
     if (!regNumber.trim()) {
@@ -52,22 +52,31 @@ export default function AddCarScreen() {
 
   const saveCar = async () => {
     if (!carInfo) return;
-    
+
     if (!user) {
       Alert.alert("Error", "You must be logged in to save a car");
       return;
     }
 
+    const token = await getToken();
+    if (!token) {
+      Alert.alert("Error", "Could not get auth token. Please sign in again.");
+      return;
+    }
+
     setSaving(true);
     try {
-      // Now uses FastAPI backend instead of direct Supabase call
-      await api.saveCar(carInfo, user.uid);
-
+      await api.saveCar(carInfo, token);
       Alert.alert("Success", "Car saved successfully!");
       setCarInfo(null);
       SetRegNumber('');
       router.back();
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await signOut();
+        router.replace("/(auth)/login");
+        return;
+      }
       Alert.alert("Error", "Failed to save car");
       console.error(error);
     } finally {

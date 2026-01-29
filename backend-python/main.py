@@ -1,9 +1,12 @@
 from typing import Union
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import car
+load_dotenv()
+
+from routers import auth, car
 
 app = FastAPI(title="CarMinder API")
 
@@ -17,6 +20,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(car.router)
 
 
