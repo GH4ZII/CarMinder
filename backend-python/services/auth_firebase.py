@@ -1,7 +1,3 @@
-"""
-Firebase Auth REST API helpers for login/signup/Google.
-Used by auth router; no Firebase SDK in app.
-"""
 import os
 from typing import Any
 
@@ -12,6 +8,7 @@ from fastapi import HTTPException, status
 load_dotenv()
 
 API_KEY = os.getenv("FIREBASE_WEB_API_KEY")
+# Base URL for Firebase Auth API
 BASE = "https://identitytoolkit.googleapis.com/v1/accounts"
 
 if not API_KEY:

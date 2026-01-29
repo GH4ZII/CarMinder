@@ -1,6 +1,3 @@
-"""
-JWT create/verify for Vei B auth. Token sub = Firebase uid.
-"""
 import os
 from datetime import UTC, datetime, timedelta
 

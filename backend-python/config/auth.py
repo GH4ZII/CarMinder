@@ -1,6 +1,3 @@
-"""
-JWT-based auth dependency for protected routes. Replaces Firebase token verification.
-"""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 

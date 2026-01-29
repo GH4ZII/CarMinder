@@ -4,10 +4,13 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Load environment variables
 load_dotenv()
 
+# Import routers
 from routers import auth, car
 
+# Create FastAPI app
 app = FastAPI(title="CarMinder API")
 
 # Allow frontend to connect

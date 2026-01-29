@@ -5,14 +5,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 
@@ -23,14 +23,15 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
+  // Function to fetch the user's cars
   const fetchCars = useCallback(async () => {
     if (!user) return;
-    const token = await getToken();
+    const token = await getToken(); // Get the token from the AuthContext
     if (!token) return;
     setLoading(true);
     setFetchError(false);
     try {
-      const data = await api.getUserCars(token);
+      const data = await api.getUserCars(token); // Get the user's cars from the API
       setCars(data);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
@@ -52,12 +53,13 @@ export default function ProfileScreen() {
     }, [fetchCars])
   );
 
+  // Function to delete a car
   const handleDelete = async (carId: string) => {
     if (!user) return;
     const token = await getToken();
     if (!token) return;
     try {
-      await api.deleteCar(carId, token);
+      await api.deleteCar(carId, token); // Delete the car from the API
       setCars((prev) => prev.filter((car) => car.id !== carId));
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {

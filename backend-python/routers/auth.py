@@ -1,4 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
+
+# Import schemas
 from schemas.auth import (
     GoogleRequest,
     LoginRequest,
@@ -6,6 +8,7 @@ from schemas.auth import (
     TokenResponse,
     UserOut,
 )
+# Import services
 from services.auth_firebase import (
     login_email_password,
     login_google,
@@ -13,9 +16,12 @@ from services.auth_firebase import (
 )
 from services.jwt_auth import create_access_token
 
+
+# Prefix for all auth routes
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+# Function to login with email and password
 @router.post("/login", response_model=TokenResponse)
 def login(req: LoginRequest):
     uid, email, display_name = login_email_password(req.email, req.password)
@@ -26,6 +32,7 @@ def login(req: LoginRequest):
     )
 
 
+# Function to sign up with email and password
 @router.post("/signup", response_model=TokenResponse)
 def signup(req: SignupRequest):
     uid, email, display_name = signup_email_password(
@@ -38,6 +45,7 @@ def signup(req: SignupRequest):
     )
 
 
+# Function to sign in with Google
 @router.post("/google", response_model=TokenResponse)
 def google(req: GoogleRequest):
     if not (req.id_token or req.id_token.strip()):

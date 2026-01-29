@@ -1,5 +1,6 @@
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.129.48.163:8000';
 
+// Custom error class for API errors
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -11,18 +12,21 @@ export class ApiError extends Error {
   }
 }
 
+// Interface for the auth user
 export interface AuthUser {
   uid: string;
   email: string | null;
   displayName: string | null;
 }
 
+// Interface for the token response
 export interface TokenResponse {
   access_token: string;
   token_type: string;
   user: AuthUser;
 }
 
+// Function to parse the error detail
 async function parseErrorDetail(res: Response): Promise<string | undefined> {
   try {
     const j = await res.json();
@@ -32,6 +36,7 @@ async function parseErrorDetail(res: Response): Promise<string | undefined> {
   }
 }
 
+// Interface for the car info
 export interface CarInfo {
   id?: string;
   firebase_user_id?: string;
@@ -58,12 +63,14 @@ export interface CarInfo {
   makshastighet: number;
 }
 
+// Function to create the auth headers
 function authHeaders(token: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
   };
 }
 
+// Function to login with email and password
 export const api = {
   async authLogin(email: string, password: string): Promise<TokenResponse> {
     const res = await fetch(`${API_URL}/auth/login`, {
@@ -78,6 +85,7 @@ export const api = {
     return res.json();
   },
 
+  // Function to sign up with email and password
   async authSignup(email: string, password: string, name: string): Promise<TokenResponse> {
     const res = await fetch(`${API_URL}/auth/signup`, {
       method: 'POST',
@@ -91,6 +99,7 @@ export const api = {
     return res.json();
   },
 
+  // Function to sign in with Google
   async authGoogle(idToken: string): Promise<TokenResponse> {
     const res = await fetch(`${API_URL}/auth/google`, {
       method: 'POST',
@@ -104,6 +113,7 @@ export const api = {
     return res.json();
   },
 
+  // Function to lookup a vehicle
   async lookupVehicle(regNumber: string): Promise<CarInfo | null> {
     const res = await fetch(`${API_URL}/cars/lookup`, {
       method: 'POST',
@@ -115,6 +125,7 @@ export const api = {
     return data.success ? data.car : null;
   },
 
+  // Function to save a car
   async saveCar(car: CarInfo, token: string): Promise<CarInfo> {
     const res = await fetch(`${API_URL}/cars/`, {
       method: 'POST',
@@ -137,6 +148,7 @@ export const api = {
     return res.json();
   },
 
+  // Function to get the user's cars
   async getUserCars(token: string): Promise<CarInfo[]> {
     if (!token?.length) {
       throw new Error('getUserCars called without token');
@@ -151,6 +163,7 @@ export const api = {
     return res.json();
   },
 
+  // Function to delete a car
   async deleteCar(carId: string, token: string): Promise<void> {
     const res = await fetch(`${API_URL}/cars/${carId}`, {
       method: 'DELETE',
