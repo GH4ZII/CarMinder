@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
 import { api, CarInfo } from '../../frontendServices/apiCall';
 
 export default function AddCarScreen() {
+  const router = useRouter();
   const [regNumber, SetRegNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +66,7 @@ export default function AddCarScreen() {
       Alert.alert("Success", "Car saved successfully!");
       setCarInfo(null);
       SetRegNumber('');
+      router.back();
     } catch (error) {
       Alert.alert("Error", "Failed to save car");
       console.error(error);
@@ -88,6 +91,9 @@ export default function AddCarScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Add Your Car</Text>
 
@@ -169,11 +175,22 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
+  backButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    marginTop: 40,
+    marginTop: 16,
     textAlign: 'center',
   },
   inputContainer: {
