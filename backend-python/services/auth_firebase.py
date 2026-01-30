@@ -15,6 +15,7 @@ if not API_KEY:
     raise ValueError("FIREBASE_WEB_API_KEY must be set in backend .env")
 
 
+# Function to make a request to the Firebase Auth API
 def _firebase_req(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     url = f"{BASE}{path}?key={API_KEY}"
     r = httpx.post(url, json=payload, timeout=15.0)
@@ -37,8 +38,8 @@ def _firebase_req(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+# Function to login with email and password
 def login_email_password(email: str, password: str) -> tuple[str, str, str | None]:
-    """Returns (uid, email, display_name)."""
     data = _firebase_req(
         ":signInWithPassword",
         {"email": email, "password": password, "returnSecureToken": True},
@@ -49,8 +50,8 @@ def login_email_password(email: str, password: str) -> tuple[str, str, str | Non
     return uid, em, name
 
 
+# Function to sign up with email and password
 def signup_email_password(email: str, password: str, display_name: str) -> tuple[str, str, str]:
-    """Returns (uid, email, display_name). Sets displayName via update."""
     data = _firebase_req(
         ":signUp",
         {"email": email, "password": password, "returnSecureToken": True},
@@ -69,8 +70,8 @@ def signup_email_password(email: str, password: str, display_name: str) -> tuple
     return uid, em, name
 
 
+# Function to login with Google
 def login_google(id_token: str) -> tuple[str, str | None, str | None]:
-    """Returns (uid, email, display_name)."""
     post = f"id_token={id_token}&providerId=google.com"
     data = _firebase_req(
         ":signInWithIdp",

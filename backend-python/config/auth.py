@@ -5,7 +5,7 @@ from services.jwt_auth import verify_token
 
 _http_bearer = HTTPBearer(auto_error=False)
 
-
+# Function to get the current user UID
 def get_current_user_uid(
     cred: HTTPAuthorizationCredentials | None = Depends(_http_bearer),
 ) -> str:
