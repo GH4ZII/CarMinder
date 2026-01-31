@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from schemas.car import (
     CarCreate, 
@@ -8,6 +8,7 @@ from schemas.car import (
     VehicleLookupRequest,
     VehicleLookupResponse
 )
+from config.auth import get_current_user_uid
 from config.database import get_supabase
 from services.CarService import lookup_vehicle
 
@@ -33,7 +34,7 @@ async def lookup_vehicle_info(request: VehicleLookupRequest):
 # ============ CRUD Operations ============
 
 @router.post("/", response_model=CarResponse)
-def create_car(car: CarCreate, firebase_user_id: str = Header(..., alias="firebase-user-id")):
+def create_car(car: CarCreate, uid: str = Depends(get_current_user_uid)):
     """
     Save a new car for a user
     """
@@ -41,7 +42,7 @@ def create_car(car: CarCreate, firebase_user_id: str = Header(..., alias="fireba
     
     # Check if car already exists for this user
     existing = supabase.table("cars").select("id").eq(
-        "firebase_user_id", firebase_user_id
+        "firebase_user_id", uid
     ).eq(
         "registreringsnummer", car.registreringsnummer
     ).execute()
@@ -50,7 +51,7 @@ def create_car(car: CarCreate, firebase_user_id: str = Header(..., alias="fireba
         raise HTTPException(status_code=400, detail="Car already registered to this user")
     
     car_data = car.model_dump()
-    car_data["firebase_user_id"] = firebase_user_id
+    car_data["firebase_user_id"] = uid
     
     result = supabase.table("cars").insert(car_data).execute()
     
@@ -61,28 +62,28 @@ def create_car(car: CarCreate, firebase_user_id: str = Header(..., alias="fireba
 
 
 @router.get("/", response_model=List[CarResponse])
-def get_user_cars(firebase_user_id: str = Header(..., alias="firebase-user-id")):
+def get_user_cars(uid: str = Depends(get_current_user_uid)):
     """
     Get all cars for the authenticated user
     """
     supabase = get_supabase()
     
     result = supabase.table("cars").select("*").eq(
-        "firebase_user_id", firebase_user_id
+        "firebase_user_id", uid
     ).order("created_at", desc=True).execute()
     
     return result.data
 
 
 @router.get("/{car_id}", response_model=CarResponse)
-def get_car_by_id(car_id: str, firebase_user_id: str = Header(..., alias="firebase-user-id")):
+def get_car_by_id(car_id: str, uid: str = Depends(get_current_user_uid)):
     """
     Get a specific car by ID
     """
     supabase = get_supabase()
     
     result = supabase.table("cars").select("*").eq("id", car_id).eq(
-        "firebase_user_id", firebase_user_id
+        "firebase_user_id", uid
     ).single().execute()
     
     if not result.data:
@@ -95,7 +96,7 @@ def get_car_by_id(car_id: str, firebase_user_id: str = Header(..., alias="fireba
 def update_car(
     car_id: str, 
     updates: CarUpdate, 
-    firebase_user_id: str = Header(..., alias="firebase-user-id")
+    uid: str = Depends(get_current_user_uid)
 ):
     """
     Update car details
@@ -104,7 +105,7 @@ def update_car(
     
     # Verify ownership
     existing = supabase.table("cars").select("id").eq("id", car_id).eq(
-        "firebase_user_id", firebase_user_id
+        "firebase_user_id", uid
     ).single().execute()
     
     if not existing.data:
@@ -127,7 +128,7 @@ def update_car(
 def update_kilometer(
     car_id: str, 
     data: KilometerUpdate,
-    firebase_user_id: str = Header(..., alias="firebase-user-id")
+    uid: str = Depends(get_current_user_uid)
 ):
     """
     Update car kilometer reading
@@ -136,7 +137,7 @@ def update_kilometer(
     
     # Verify ownership
     existing = supabase.table("cars").select("id", "kilometer").eq("id", car_id).eq(
-        "firebase_user_id", firebase_user_id
+        "firebase_user_id", uid
     ).single().execute()
     
     if not existing.data:
@@ -154,7 +155,7 @@ def update_kilometer(
 
 
 @router.delete("/{car_id}")
-def delete_car(car_id: str, firebase_user_id: str = Header(..., alias="firebase-user-id")):
+def delete_car(car_id: str, uid: str = Depends(get_current_user_uid)):
     """
     Delete a car
     """
@@ -162,7 +163,7 @@ def delete_car(car_id: str, firebase_user_id: str = Header(..., alias="firebase-
     
     # Verify ownership
     existing = supabase.table("cars").select("id").eq("id", car_id).eq(
-        "firebase_user_id", firebase_user_id
+        "firebase_user_id", uid
     ).single().execute()
     
     if not existing.data:

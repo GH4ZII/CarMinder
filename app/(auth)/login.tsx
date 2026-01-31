@@ -1,21 +1,22 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
+import { ApiError } from '@/frontendServices/apiCall';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const REMEMBER_ME_KEY = '@remember_me';
@@ -81,12 +82,15 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (error: any) {
       let errorMessage = 'En feil oppstod';
-      if (error.code === 'auth/user-not-found') {
+      const d = error?.detail ?? error?.message ?? '';
+      if (d.includes('EMAIL_NOT_FOUND') || d.includes('INVALID_LOGIN')) {
         errorMessage = 'Bruker ikke funnet';
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (d.includes('INVALID_PASSWORD')) {
         errorMessage = 'Feil passord';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (d.includes('INVALID_EMAIL') || d.includes('invalid') && d.includes('email')) {
         errorMessage = 'Ugyldig e-postadresse';
+      } else if (typeof d === 'string' && d.length) {
+        errorMessage = d;
       }
       Alert.alert('Feil', errorMessage);
     } finally {
@@ -100,7 +104,16 @@ export default function LoginScreen() {
       await signInWithGoogle();
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Feil', error.message || 'Google innlogging feilet. Prøv igjen.');
+      let errorMessage = 'Google innlogging feilet. Prøv igjen.';
+      const d = error instanceof ApiError ? error.detail : error?.message ?? '';
+      if (typeof d === 'string' && (d.includes('INVALID_IDP_RESPONSE') || d.includes('INVALID_CREDENTIAL'))) {
+        errorMessage = 'Google-innlogging feilet. Prøv igjen eller bruk e-post.';
+      } else if (typeof d === 'string' && d.length && !d.includes('avbrutt') && !d.includes('pågår') && !d.includes('Play Services')) {
+        errorMessage = d;
+      } else if (error?.message && typeof error.message === 'string') {
+        errorMessage = error.message;
+      }
+      Alert.alert('Feil', errorMessage);
     } finally {
       setGoogleLoading(false);
     }

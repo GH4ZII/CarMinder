@@ -5,14 +5,14 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
 } from 'react-native';
 
 export default function SignupScreen() {
@@ -54,12 +54,15 @@ export default function SignupScreen() {
       ]);
     } catch (error: any) {
       let errorMessage = 'En feil oppstod';
-      if (error.code === 'auth/email-already-in-use') {
+      const d = error?.detail ?? error?.message ?? '';
+      if (d.includes('EMAIL_EXISTS')) {
         errorMessage = 'E-postadressen er allerede i bruk';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (d.includes('INVALID_EMAIL') || (d.includes('invalid') && d.includes('email'))) {
         errorMessage = 'Ugyldig e-postadresse';
-      } else if (error.code === 'auth/weak-password') {
+      } else if (d.includes('WEAK_PASSWORD')) {
         errorMessage = 'Passordet er for svakt';
+      } else if (typeof d === 'string' && d.length) {
+        errorMessage = d;
       }
       Alert.alert('Feil', errorMessage);
     } finally {
