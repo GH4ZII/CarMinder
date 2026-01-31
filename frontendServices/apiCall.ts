@@ -63,6 +63,38 @@ export interface CarInfo {
   makshastighet: number;
 }
 
+/** Server-defined; thin client fetches via getEventTypes(). */
+export type MaintenanceEventType =
+  | 'oil_change'
+  | 'brake_service'
+  | 'tire_change'
+  | 'inspection'
+  | 'repair'
+  | 'other';
+
+export interface MaintenanceEvent {
+  id: string;
+  car_id: string;
+  event_type: string;
+  event_date: string;
+  mileage: number | null;
+  cost_cents: number | null;
+  vendor: string | null;
+  notes: string | null;
+  receipt_image_url: string | null;
+  created_at: string;
+}
+
+/** Minimal create payload; server validates and normalizes. */
+export interface MaintenanceEventCreate {
+  event_type: string;
+  event_date: string;
+  mileage?: number | null;
+  cost?: number | null;
+  vendor?: string | null;
+  notes?: string | null;
+}
+
 // Function to create the auth headers
 function authHeaders(token: string): Record<string, string> {
   return {
@@ -174,4 +206,51 @@ export const api = {
       throw new Error('Failed to delete car');
     }
   },
+
+  async getCar(carId: string, userId: string): Promise<CarInfo> {
+    const res = await fetch(`${API_URL}/cars/${carId}`, {
+      headers: { 'firebase-user-id': userId },
+    });
+    if (!res.ok) throw new Error('Failed to fetch car');
+    return res.json();
+  },
+
+  async getEventTypes(): Promise<string[]> {
+    const res = await fetch(`${API_URL}/maintenance/event-types`);
+    if (!res.ok) throw new Error('Failed to fetch event types');
+    const data = await res.json();
+    return data.event_types ?? [];
+  },
+
+  async getMaintenanceEvents(carId: string, userId: string): Promise<MaintenanceEvent[]> {
+    const res = await fetch(`${API_URL}/cars/${carId}/events`, {
+      headers: { 'firebase-user-id': userId },
+    });
+    if (!res.ok) throw new Error('Failed to fetch maintenance events');
+    return res.json();
+  },
+
+  async createMaintenanceEvent(
+    carId: string,
+    userId: string,
+    payload: MaintenanceEventCreate
+  ): Promise<MaintenanceEvent> {
+    const res = await fetch(`${API_URL}/cars/${carId}/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'firebase-user-id': userId,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = Array.isArray(err.detail)
+        ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
+        : (typeof err.detail === 'string' ? err.detail : res.statusText);
+      throw new Error(msg || 'Failed to create maintenance event');
+    }
+    return res.json();
+  },
+};
 };

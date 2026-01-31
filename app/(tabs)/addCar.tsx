@@ -40,7 +40,7 @@ export default function AddCarScreen() {
       }
 
       setCarInfo(car);
-      Alert.alert("Success", "Car information fetched!");
+
 
     } catch (error) {
       Alert.alert("Error", "Could not fetch the car info");
@@ -130,7 +130,7 @@ export default function AddCarScreen() {
 
         {carInfo && (
           <View style={styles.carInfoContainer}>
-            <Text style={styles.infoTitle}>🚗 {carInfo.merke} {carInfo.modell}</Text>
+            <Text style={styles.infoTitle}>{carInfo.merke} {carInfo.modell}</Text>
 
             <SectionHeader title="Basic Information" />
             <InfoRow label="Registration" value={carInfo.registreringsnummer} />

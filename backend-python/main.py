@@ -25,6 +25,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(car.router)
+app.include_router(maintenance_event.router)
+app.include_router(maintenance_event.router_meta)
 
 
 @app.get("/")

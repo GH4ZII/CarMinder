@@ -35,6 +35,18 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="car/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="car/[id]/add-event"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
