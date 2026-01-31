@@ -1,4 +1,4 @@
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.129.48.163:8000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Custom error class for API errors
 export class ApiError extends Error {
@@ -253,4 +253,4 @@ export const api = {
     return res.json();
   },
 };
-};
+

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 # Import routers
-from routers import auth, car
+from routers import auth, car, maintenance_event
 
 # Create FastAPI app
 app = FastAPI(title="CarMinder API")
@@ -26,7 +26,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(car.router)
 app.include_router(maintenance_event.router)
-app.include_router(maintenance_event.router_meta)
 
 
 @app.get("/")
