@@ -65,9 +65,25 @@ npx expo start
 cd backend-python
 python3 -m venv .venv
 source .venv/bin/activate
+(For Windows) .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### Web (Vite)
+
+Web-versjonen av appen kjører i `web/` med Vite:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Åpne deretter nettleseren på adressen som vises (vanligvis `http://localhost:5173`).
+
+- **Bygg for produksjon:** `npm run build`
+- **Forhåndsvis bygg:** `npm run preview`
 
 ## Architecture
 
