@@ -66,13 +66,22 @@ def get_user_cars(uid: str = Depends(get_current_user_uid)):
     """
     Get all cars for the authenticated user
     """
-    supabase = get_supabase()
-    
-    result = supabase.table("cars").select("*").eq(
-        "firebase_user_id", uid
-    ).order("created_at", desc=True).execute()
-    
-    return result.data
+    print(f"🔍 get_user_cars called for uid: {uid}")
+    try:
+        supabase = get_supabase()
+        print(f"✅ Supabase client created")
+        
+        result = supabase.table("cars").select("*").eq(
+            "firebase_user_id", uid
+        ).order("created_at", desc=True).execute()
+        
+        print(f"✅ Query executed, found {len(result.data)} cars")
+        return result.data
+    except Exception as e:
+        print(f"❌ Error in get_user_cars: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 @router.get("/{car_id}", response_model=CarResponse)
