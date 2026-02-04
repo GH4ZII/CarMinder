@@ -9,8 +9,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ActionSheetIOS,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -77,6 +80,8 @@ export default function AddMaintenanceEventScreen() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDateIOSModal, setShowDateIOSModal] = useState(false);
+  const [showTimeIOSModal, setShowTimeIOSModal] = useState(false);
 
   const [mileage, setMileage] = useState('');
   const [cost, setCost] = useState('');
@@ -85,18 +90,18 @@ export default function AddMaintenanceEventScreen() {
 
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
-  const iosVersion =
-    typeof Platform.Version === 'string'
-      ? parseInt(Platform.Version, 10)
-      : Platform.Version;
-  const iosDateDisplay = iosVersion >= 14 ? 'inline' : 'spinner';
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const types = await api.getEventTypes();
-        if (!cancelled) setEventTypes(types);
+        if (!cancelled) {
+          setEventTypes(types);
+          if (!eventType && types.length) {
+            setEventType(types[0]);
+          }
+        }
       } catch {
         if (!cancelled) Alert.alert('Error', 'Failed to load event types.');
       } finally {
@@ -106,7 +111,7 @@ export default function AddMaintenanceEventScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [eventType]);
 
   const openDatePicker = useCallback(() => {
     const now = new Date();
@@ -117,8 +122,12 @@ export default function AddMaintenanceEventScreen() {
     } else {
       setPickerDate(now);
     }
-    setShowDatePicker(true);
-  }, [eventDate]);
+    if (isIOS) {
+      setShowDateIOSModal(true);
+    } else {
+      setShowDatePicker(true);
+    }
+  }, [eventDate, isIOS]);
 
   const openTimePicker = useCallback(() => {
     const base = new Date();
@@ -128,8 +137,12 @@ export default function AddMaintenanceEventScreen() {
     base.setSeconds(0);
     base.setMilliseconds(0);
     setPickerTime(base);
-    setShowTimePicker(true);
-  }, [eventTime]);
+    if (isIOS) {
+      setShowTimeIOSModal(true);
+    } else {
+      setShowTimePicker(true);
+    }
+  }, [eventTime, isIOS]);
 
   const handleDateChange = useCallback(
     (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -234,53 +247,75 @@ export default function AddMaintenanceEventScreen() {
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
       >
-        <ThemedText type="title" style={styles.title}>
-          Add maintenance event
-        </ThemedText>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <ThemedText type="title" style={styles.title}>
+            Add maintenance event
+          </ThemedText>
 
         {loadingTypes ? (
           <ActivityIndicator style={styles.loader} />
         ) : (
           <>
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Event type</ThemedText>
-            <View style={styles.typeRow}>
-              {eventTypes.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[
-                    styles.typeChip,
-                    { backgroundColor: colors.chip },
-                    eventType === t && { backgroundColor: colors.primary },
-                  ]}
-                  onPress={() => setEventType(t)}
-                >
-                  <Text
-                    style={[
-                      styles.typeChipText,
-                      { color: colors.text },
-                      eventType === t && { color: '#fff' },
-                    ]}
-                  >
-                    {EVENT_LABELS[t] ?? t}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Date</ThemedText>
+            <ThemedText style={[styles.label, { color: colors.subtext }]}>
+              Event type <Text style={styles.required}>*</Text>
+            </ThemedText>
             {isIOS ? (
-              <View style={styles.pickerBlock}>
-                <DateTimePicker
-                  value={pickerDate}
-                  mode="date"
-                  display={iosDateDisplay}
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                  themeVariant={scheme === 'dark' ? 'dark' : 'light'}
-                />
+              <Pressable
+                style={[
+                  styles.selectButton,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+                onPress={() => {
+                  if (!eventTypes.length) return;
+                  ActionSheetIOS.showActionSheetWithOptions(
+                    {
+                      options: [...eventTypes.map((t) => EVENT_LABELS[t] ?? t), 'Cancel'],
+                      cancelButtonIndex: eventTypes.length,
+                      title: 'Select event type',
+                    },
+                    (idx) => {
+                      if (idx === undefined || idx === eventTypes.length) return;
+                      setEventType(eventTypes[idx]);
+                    }
+                  );
+                }}
+              >
+                <Text style={[styles.selectButtonText, { color: colors.text }]}>
+                  {eventType ? EVENT_LABELS[eventType] ?? eventType : 'Select event type'}
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={styles.typeRow}>
+                {eventTypes.map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[
+                      styles.typeChip,
+                      { backgroundColor: colors.chip },
+                      eventType === t && { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() => setEventType(t)}
+                  >
+                    <Text
+                      style={[
+                        styles.typeChipText,
+                        { color: colors.text },
+                        eventType === t && { color: '#fff' },
+                      ]}
+                    >
+                      {EVENT_LABELS[t] ?? t}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            ) : isWeb ? (
+            )}
+
+            <ThemedText style={[styles.label, { color: colors.subtext }]}>
+              Date <Text style={styles.required}>*</Text>
+            </ThemedText>
+            {isWeb ? (
               <TextInput
                 style={[
                   styles.input,
@@ -301,7 +336,9 @@ export default function AddMaintenanceEventScreen() {
                   ]}
                   onPress={openDatePicker}
                 >
-                  <Text style={[styles.selectButtonText, { color: colors.text }]}>{eventDate}</Text>
+                  <Text style={[styles.selectButtonText, { color: colors.text }]}>
+                    {eventDate}
+                  </Text>
                 </TouchableOpacity>
                 {showDatePicker && (
                   <DateTimePicker
@@ -312,21 +349,34 @@ export default function AddMaintenanceEventScreen() {
                     maximumDate={new Date()}
                   />
                 )}
+                {isIOS && (
+                  <Modal visible={showDateIOSModal} transparent animationType="slide">
+                    <View style={styles.modalOverlay}>
+                      <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                        <DateTimePicker
+                          value={pickerDate}
+                          mode="date"
+                          display="spinner"
+                          onChange={handleDateChange}
+                          maximumDate={new Date()}
+                          themeVariant={scheme === 'dark' ? 'dark' : 'light'}
+                          style={styles.iosPicker}
+                        />
+                        <TouchableOpacity
+                          style={[styles.modalDone, { backgroundColor: colors.primary }]}
+                          onPress={() => setShowDateIOSModal(false)}
+                        >
+                          <Text style={styles.modalDoneText}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </Modal>
+                )}
               </>
             )}
 
             <ThemedText style={[styles.label, { color: colors.subtext }]}>Time</ThemedText>
-            {isIOS ? (
-              <View style={styles.pickerBlock}>
-                <DateTimePicker
-                  value={pickerTime}
-                  mode="time"
-                  display="spinner"
-                  onChange={handleTimeChange}
-                  themeVariant={scheme === 'dark' ? 'dark' : 'light'}
-                />
-              </View>
-            ) : isWeb ? (
+            {isWeb ? (
               <TextInput
                 style={[
                   styles.input,
@@ -356,6 +406,28 @@ export default function AddMaintenanceEventScreen() {
                     display="default"
                     onChange={handleTimeChange}
                   />
+                )}
+                {isIOS && (
+                  <Modal visible={showTimeIOSModal} transparent animationType="slide">
+                    <View style={styles.modalOverlay}>
+                      <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                        <DateTimePicker
+                          value={pickerTime}
+                          mode="time"
+                          display="spinner"
+                          onChange={handleTimeChange}
+                          themeVariant={scheme === 'dark' ? 'dark' : 'light'}
+                          style={styles.iosPicker}
+                        />
+                        <TouchableOpacity
+                          style={[styles.modalDone, { backgroundColor: colors.primary }]}
+                          onPress={() => setShowTimeIOSModal(false)}
+                        >
+                          <Text style={styles.modalDoneText}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </Modal>
                 )}
               </>
             )}
@@ -430,13 +502,14 @@ export default function AddMaintenanceEventScreen() {
             </TouchableOpacity>
           </>
         )}
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 6 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -446,9 +519,21 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 8, paddingHorizontal: 0, marginBottom: 16 },
   backBtnText: { fontSize: 17, fontWeight: '500' },
   scroll: { flex: 1 },
-  title: { marginBottom: 24 },
+  scrollContent: { paddingBottom: 32 },
+  card: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  title: { marginBottom: 24, lineHeight: 32 },
   loader: { marginVertical: 24 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  required: { color: '#FF3B30', fontWeight: '700' },
 
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   typeChip: {
@@ -467,6 +552,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   selectButtonText: { fontSize: 16 },
+  iosPicker: { alignSelf: 'stretch' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#2A2A35',
+  },
+  modalDone: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalDoneText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
   input: {
     borderWidth: 1,

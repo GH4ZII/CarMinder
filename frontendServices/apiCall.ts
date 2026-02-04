@@ -1,4 +1,7 @@
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://carminder-production.up.railway.app';
+
+console.log('🌐 API_URL initialized:', API_URL);
+console.log('🌐 EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
 
 // Custom error class for API errors
 export class ApiError extends Error {
@@ -185,14 +188,32 @@ export const api = {
     if (!token?.length) {
       throw new Error('getUserCars called without token');
     }
-    const res = await fetch(`${API_URL}/cars/`, {
-      headers: authHeaders(token),
-    });
-    if (!res.ok) {
-      if (res.status === 401) throw new ApiError('Unauthorized', 401);
-      throw new Error('Failed to fetch cars');
+    console.log('🔍 Fetching cars from:', `${API_URL}/cars/`);
+    console.log('🔍 Token available:', !!token, 'length:', token?.length);
+    
+    try {
+      const res = await fetch(`${API_URL}/cars/`, {
+        headers: authHeaders(token),
+      });
+      
+      console.log('📡 Response status:', res.status);
+      console.log('📡 Response ok:', res.ok);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ Error response:', errorText);
+        
+        if (res.status === 401) throw new ApiError('Unauthorized', 401);
+        throw new Error(`Failed to fetch cars: ${res.status} ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('✅ Cars fetched successfully:', data.length, 'cars');
+      return data;
+    } catch (error) {
+      console.error('💥 Fetch error:', error);
+      throw error;
     }
-    return res.json();
   },
 
   // Function to delete a car
@@ -208,11 +229,26 @@ export const api = {
   },
 
   async getCar(carId: string, userId: string): Promise<CarInfo> {
-    const res = await fetch(`${API_URL}/cars/${carId}`, {
-      headers: { 'firebase-user-id': userId },
-    });
-    if (!res.ok) throw new Error('Failed to fetch car');
-    return res.json();
+    console.log('🚗 Fetching car:', carId, 'for user:', userId);
+    try {
+      const res = await fetch(`${API_URL}/cars/${carId}`, {
+        headers: { 'firebase-user-id': userId },
+      });
+      console.log('📡 getCar response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ getCar error:', errorText);
+        throw new Error(`Failed to fetch car: ${res.status} ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('✅ Car fetched:', data);
+      return data;
+    } catch (error) {
+      console.error('💥 getCar error:', error);
+      throw error;
+    }
   },
 
   async getEventTypes(): Promise<string[]> {

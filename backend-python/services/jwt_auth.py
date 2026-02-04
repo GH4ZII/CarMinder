@@ -34,16 +34,20 @@ def create_access_token(uid: str, email: str | None, display_name: str | None) -
 def verify_token(token: str) -> dict:
     if not SECRET:
         raise ValueError("JWT_SECRET must be set")
+    print(f"🔐 Verifying token with secret (first 10 chars): {SECRET[:10]}...")
     try:
         payload = jwt.decode(token, SECRET, algorithms=[ALG])
+        print(f"✅ Token decoded successfully, sub: {payload.get('sub')}")
         return payload
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as e:
+        print(f"❌ Token expired: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
+        print(f"❌ Invalid token: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
