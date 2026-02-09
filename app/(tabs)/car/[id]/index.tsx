@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { api, CarInfo, MaintenanceEvent } from '../../../../frontendServices/apiCall';
+import { api, CarInfo, CarServiceStatus, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 
 function formatDate(s: string) {
   try {
@@ -42,12 +42,65 @@ function eventTypeLabel(t: string): string {
   return map[t] ?? t;
 }
 
+const URGENCY_CONFIG = {
+  overdue: { bg: 'rgba(255,59,48,0.15)', text: '#FF3B30', icon: '⚠️', label: 'Overdue' },
+  soon: { bg: 'rgba(255,149,0,0.15)', text: '#FF9500', icon: '🔔', label: 'Due Soon' },
+  unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: '❓', label: 'No Data' },
+  ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: '✓', label: 'OK' },
+};
+
+function ServiceStatusCard({ status }: { status: ServiceDueStatus }) {
+  const config = URGENCY_CONFIG[status.urgency];
+  return (
+    <View style={[styles.serviceCard, { backgroundColor: config.bg }]}>
+      <View style={styles.serviceHeader}>
+        <ThemedText style={styles.serviceType}>{eventTypeLabel(status.event_type)}</ThemedText>
+        <Text style={[styles.serviceUrgency, { color: config.text }]}>
+          {config.icon} {config.label}
+        </Text>
+      </View>
+      <View style={styles.serviceDetails}>
+        {status.due_date && (
+          <ThemedText style={styles.serviceMeta}>
+            Due: {formatDate(status.due_date)}
+            {status.days_until_due !== null && (
+              <Text style={{ color: status.days_until_due < 0 ? '#FF3B30' : undefined }}>
+                {' '}({status.days_until_due < 0 ? `${Math.abs(status.days_until_due)} days overdue` : `${status.days_until_due} days left`})
+              </Text>
+            )}
+          </ThemedText>
+        )}
+        {status.due_mileage !== null && (
+          <ThemedText style={styles.serviceMeta}>
+            Due at: {status.due_mileage.toLocaleString()} km
+            {status.km_until_due !== null && (
+              <Text style={{ color: status.km_until_due < 0 ? '#FF3B30' : undefined }}>
+                {' '}({status.km_until_due < 0 ? `${Math.abs(status.km_until_due).toLocaleString()} km overdue` : `${status.km_until_due.toLocaleString()} km left`})
+              </Text>
+            )}
+          </ThemedText>
+        )}
+        {status.last_date && (
+          <ThemedText style={styles.serviceLastDone}>
+            Last: {formatDate(status.last_date)}
+            {status.last_mileage !== null && ` at ${status.last_mileage.toLocaleString()} km`}
+          </ThemedText>
+        )}
+        {!status.last_date && status.urgency === 'unknown' && (
+          <ThemedText style={styles.serviceLastDone}>No record of this service</ThemedText>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function CarTimelineScreen() {
   const router = useRouter();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const { user, getToken } = useAuth(); // Add getToken
+  const { user, getToken } = useAuth();
   const [car, setCar] = useState<CarInfo | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
+  const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -62,16 +115,19 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const [carData, eventsData] = await Promise.all([
+      const [carData, eventsData, statusData] = await Promise.all([
         api.getCar(carId, token),
         api.getMaintenanceEvents(carId, token),
+        api.getCarServiceStatus(carId, token),
       ]);
       setCar(carData);
       setEvents(eventsData);
+      setServiceStatus(statusData);
     } catch {
       setError(true);
       setCar(null);
       setEvents([]);
+      setServiceStatus(null);
       Alert.alert('Error', 'Failed to load. Pull down to retry.');
     } finally {
       setLoading(false);
@@ -119,6 +175,26 @@ export default function CarTimelineScreen() {
           {car.registreringsnummer} · {car.kilometer?.toLocaleString() ?? '—'} km
         </ThemedText>
       ) : null}
+
+      {/* Alert banner for urgent services */}
+      {serviceStatus?.next_service && (
+        <View style={[styles.alertBanner, { backgroundColor: URGENCY_CONFIG[serviceStatus.next_service.urgency].bg }]}>
+          <Text style={[styles.alertText, { color: URGENCY_CONFIG[serviceStatus.next_service.urgency].text }]}>
+            {URGENCY_CONFIG[serviceStatus.next_service.urgency].icon}{' '}
+            {eventTypeLabel(serviceStatus.next_service.event_type)}{' '}
+            {serviceStatus.next_service.is_overdue ? 'is overdue!' : 'is due soon'}
+          </Text>
+        </View>
+      )}
+
+      {/* Service Status Section */}
+      <ThemedText type="subtitle" style={styles.sectionTitle}>
+        Service Status
+      </ThemedText>
+      {serviceStatus?.services.map((s) => (
+        <ServiceStatusCard key={s.event_type} status={s} />
+      ))}
+
       <View style={styles.sectionRow}>
         <ThemedText type="subtitle" style={styles.section}>
           Maintenance timeline
@@ -191,12 +267,36 @@ const styles = StyleSheet.create({
   header: { padding: 20, paddingBottom: 16 },
   title: { marginBottom: 4 },
   subtitle: { fontSize: 14, opacity: 0.8, marginBottom: 16 },
+  sectionTitle: { marginTop: 8, marginBottom: 12 },
+  alertBanner: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  alertText: { fontWeight: '600', textAlign: 'center', fontSize: 14 },
+  serviceCard: {
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  serviceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  serviceType: { fontSize: 15, fontWeight: '600' },
+  serviceUrgency: { fontSize: 13, fontWeight: '600' },
+  serviceDetails: { gap: 4 },
+  serviceMeta: { fontSize: 13, opacity: 0.9 },
+  serviceLastDone: { fontSize: 12, opacity: 0.7, marginTop: 4 },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 16,
   },
   section: { marginBottom: 0 },
   addBtn: {

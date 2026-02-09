@@ -98,6 +98,37 @@ export interface MaintenanceEventCreate {
   notes?: string | null;
 }
 
+/** Service due status computed by backend */
+export interface ServiceDueStatus {
+  event_type: string;
+  last_date: string | null;
+  last_mileage: number | null;
+  due_date: string | null;
+  due_mileage: number | null;
+  is_overdue: boolean;
+  days_until_due: number | null;
+  km_until_due: number | null;
+  urgency: 'ok' | 'soon' | 'overdue' | 'unknown';
+}
+
+/** Service status for a single car */
+export interface CarServiceStatus {
+  car_id: string;
+  car_name: string;
+  registration: string;
+  current_mileage: number;
+  services: ServiceDueStatus[];
+  next_service: ServiceDueStatus | null;
+}
+
+/** Overview of all cars' service status */
+export interface AllCarsServiceStatus {
+  cars: CarServiceStatus[];
+  urgent_count: number;
+  overdue_count: number;
+  soon_count: number;
+}
+
 // Function to create the auth headers
 function authHeaders(token: string): Record<string, string> {
   return {
@@ -290,6 +321,30 @@ export const api = {
         ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
         : (typeof err.detail === 'string' ? err.detail : res.statusText);
       throw new Error(msg || 'Failed to create maintenance event');
+    }
+    return res.json();
+  },
+
+  /** Get service status for a specific car */
+  async getCarServiceStatus(carId: string, token: string): Promise<CarServiceStatus> {
+    const res = await fetch(`${API_URL}/cars/${carId}/service-status`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch service status');
+    }
+    return res.json();
+  },
+
+  /** Get service status overview for all user's cars */
+  async getAllServiceStatus(token: string): Promise<AllCarsServiceStatus> {
+    const res = await fetch(`${API_URL}/service-status`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch service status');
     }
     return res.json();
   },
