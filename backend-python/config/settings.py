@@ -14,4 +14,5 @@ def get_settings() -> dict[str, str | None]:
         "JWT_SECRET_KEY": os.getenv("JWT_SECRET_KEY"),
         "FIREBASE_WEB_API_KEY": os.getenv("FIREBASE_WEB_API_KEY"),
         "VEHICLE_API_KEY": os.getenv("VEHICLE_API_KEY"),
+        "CRON_SECRET": os.getenv("CRON_SECRET"),
     }
