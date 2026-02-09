@@ -7,9 +7,9 @@ import DateTimePicker, {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
-  ActionSheetIOS,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -49,7 +49,7 @@ function toHHMM(d: Date): string {
 export default function AddMaintenanceEventScreen() {
   const router = useRouter();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();  // Add getToken here
   const scheme = useColorScheme();
 
   const colors = useMemo(() => {
@@ -72,11 +72,14 @@ export default function AddMaintenanceEventScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [eventType, setEventType] = useState<string | null>(null);
 
-  const [eventDate, setEventDate] = useState(() => toYYYYMMDD(new Date()));
-  const [eventTime, setEventTime] = useState(() => toHHMM(new Date()));
+  const [eventDate, setEventDate] = useState<string>(() => toYYYYMMDD(new Date()));
+  const [eventTime, setEventTime] = useState<string>(() => toHHMM(new Date()));
 
   const [pickerDate, setPickerDate] = useState(() => new Date());
   const [pickerTime, setPickerTime] = useState(() => new Date());
+
+  // Memoize maximumDate to prevent spinner jumping
+  const maximumDate = useMemo(() => new Date(), []);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -149,13 +152,16 @@ export default function AddMaintenanceEventScreen() {
       if (Platform.OS === 'android') {
         setShowDatePicker(false);
         if (event.type === 'set' && selectedDate) {
+          setPickerDate(selectedDate);
           setEventDate(toYYYYMMDD(selectedDate));
         }
         return;
       }
-      if (selectedDate) {
-        setPickerDate(selectedDate);
-        setEventDate(toYYYYMMDD(selectedDate));
+      // iOS - use event.nativeEvent.timestamp for v8.x compatibility
+      const date = selectedDate ?? (event.nativeEvent.timestamp ? new Date(event.nativeEvent.timestamp) : null);
+      if (date) {
+        setPickerDate(date);
+        setEventDate(toYYYYMMDD(date));
       }
     },
     []
@@ -166,13 +172,16 @@ export default function AddMaintenanceEventScreen() {
       if (Platform.OS === 'android') {
         setShowTimePicker(false);
         if (event.type === 'set' && selectedTime) {
+          setPickerTime(selectedTime);
           setEventTime(toHHMM(selectedTime));
         }
         return;
       }
-      if (selectedTime) {
-        setPickerTime(selectedTime);
-        setEventTime(toHHMM(selectedTime));
+      // iOS - use event.nativeEvent.timestamp for v8.x compatibility
+      const time = selectedTime ?? (event.nativeEvent.timestamp ? new Date(event.nativeEvent.timestamp) : null);
+      if (time) {
+        setPickerTime(time);
+        setEventTime(toHHMM(time));
       }
     },
     []
@@ -191,6 +200,13 @@ export default function AddMaintenanceEventScreen() {
 
     setSubmitting(true);
     try {
+      const token = await getToken();  // Use getToken() instead of user.getIdToken()
+      
+      if (!token) {
+        Alert.alert('Error', 'Could not get auth token. Please sign in again.');
+        return;
+      }
+      
       const payload: MaintenanceEventCreate = {
         event_type: eventType,
         event_date: eventDate.trim(),
@@ -213,7 +229,7 @@ export default function AddMaintenanceEventScreen() {
       if (vendor.trim()) payload.vendor = vendor.trim();
       if (notes.trim()) payload.notes = notes.trim();
 
-      await api.createMaintenanceEvent(carId, user.uid, payload);
+      await api.createMaintenanceEvent(carId, token, payload);
       router.back();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to create event.';
@@ -346,7 +362,7 @@ export default function AddMaintenanceEventScreen() {
                     mode="date"
                     display="default"
                     onChange={handleDateChange}
-                    maximumDate={new Date()}
+                    maximumDate={maximumDate}
                   />
                 )}
                 {isIOS && (
@@ -358,7 +374,7 @@ export default function AddMaintenanceEventScreen() {
                           mode="date"
                           display="spinner"
                           onChange={handleDateChange}
-                          maximumDate={new Date()}
+                          maximumDate={maximumDate}
                           themeVariant={scheme === 'dark' ? 'dark' : 'light'}
                           style={styles.iosPicker}
                         />

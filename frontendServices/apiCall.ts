@@ -228,17 +228,18 @@ export const api = {
     }
   },
 
-  async getCar(carId: string, userId: string): Promise<CarInfo> {
-    console.log('🚗 Fetching car:', carId, 'for user:', userId);
+  async getCar(carId: string, token: string): Promise<CarInfo> {
+    console.log('🚗 Fetching car:', carId);
     try {
       const res = await fetch(`${API_URL}/cars/${carId}`, {
-        headers: { 'firebase-user-id': userId },
+        headers: authHeaders(token),
       });
       console.log('📡 getCar response status:', res.status);
       
       if (!res.ok) {
         const errorText = await res.text();
         console.error('❌ getCar error:', errorText);
+        if (res.status === 401) throw new ApiError('Unauthorized', 401);
         throw new Error(`Failed to fetch car: ${res.status} ${errorText}`);
       }
       
@@ -258,28 +259,32 @@ export const api = {
     return data.event_types ?? [];
   },
 
-  async getMaintenanceEvents(carId: string, userId: string): Promise<MaintenanceEvent[]> {
+  async getMaintenanceEvents(carId: string, token: string): Promise<MaintenanceEvent[]> {
     const res = await fetch(`${API_URL}/cars/${carId}/events`, {
-      headers: { 'firebase-user-id': userId },
+      headers: authHeaders(token),
     });
-    if (!res.ok) throw new Error('Failed to fetch maintenance events');
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch maintenance events');
+    }
     return res.json();
   },
 
   async createMaintenanceEvent(
     carId: string,
-    userId: string,
+    token: string,
     payload: MaintenanceEventCreate
   ): Promise<MaintenanceEvent> {
     const res = await fetch(`${API_URL}/cars/${carId}/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'firebase-user-id': userId,
+        ...authHeaders(token),
       },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
       const err = await res.json().catch(() => ({}));
       const msg = Array.isArray(err.detail)
         ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText

@@ -1,8 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -45,7 +45,7 @@ function eventTypeLabel(t: string): string {
 export default function CarTimelineScreen() {
   const router = useRouter();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, getToken } = useAuth(); // Add getToken
   const [car, setCar] = useState<CarInfo | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,9 +56,15 @@ export default function CarTimelineScreen() {
     setLoading(true);
     setError(false);
     try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Could not get auth token. Please sign in again.');
+        return;
+      }
+
       const [carData, eventsData] = await Promise.all([
-        api.getCar(carId, user.uid),
-        api.getMaintenanceEvents(carId, user.uid),
+        api.getCar(carId, token),
+        api.getMaintenanceEvents(carId, token),
       ]);
       setCar(carData);
       setEvents(eventsData);
@@ -70,7 +76,7 @@ export default function CarTimelineScreen() {
     } finally {
       setLoading(false);
     }
-  }, [carId, user]);
+  }, [carId, user, getToken]);
 
   useFocusEffect(
     useCallback(() => {
