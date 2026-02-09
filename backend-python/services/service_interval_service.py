@@ -17,6 +17,40 @@ from schemas.service_interval import (
 )
 
 
+def _calculate_eu_control_status(
+    last_event: Optional[dict[str, Any]],
+    eukontrollfrist_str: str,
+) -> ServiceDueStatus:
+    """
+    Compute EU control status from the authoritative deadline date
+    stored on the car record (from Vegvesen API), NOT from maintenance events.
+    """
+    today = date.today()
+    status = ServiceDueStatus(event_type="inspection")
+
+    if last_event:
+        status.last_date = date.fromisoformat(last_event["event_date"])
+        status.last_mileage = last_event.get("mileage")
+
+    try:
+        status.due_date = date.fromisoformat(eukontrollfrist_str)
+    except (ValueError, TypeError):
+        status.urgency = "unknown"
+        return status
+
+    status.days_until_due = (status.due_date - today).days
+
+    if status.days_until_due < 0:
+        status.is_overdue = True
+        status.urgency = "overdue"
+    elif status.days_until_due <= 30:
+        status.urgency = "soon"
+    else:
+        status.urgency = "ok"
+
+    return status
+
+
 def _calculate_due_status(
     event_type: str,
     last_event: Optional[dict[str, Any]],
@@ -86,6 +120,7 @@ def get_car_service_status(uid: str, car_id: str) -> CarServiceStatus:
     current_mileage = car.get("kilometer", 0) or 0
     car_name = f"{car.get('merke', '')} {car.get('modell', '')}".strip() or "Unknown"
     registration = car.get("registreringsnummer", "")
+    eukontrollfrist_str = car.get("eukontrollfrist")
 
     # Get all maintenance events for this car
     events = maintenance_repository.list_events_for_car(car_id)
@@ -108,13 +143,20 @@ def get_car_service_status(uid: str, car_id: str) -> CarServiceStatus:
     for event_type in trackable_types:
         intervals = DEFAULT_INTERVALS.get(event_type, {})
         last_event = latest_by_type.get(event_type)
-        status = _calculate_due_status(
-            event_type=event_type,
-            last_event=last_event,
-            current_mileage=current_mileage,
-            interval_km=intervals.get("km"),
-            interval_months=intervals.get("months"),
-        )
+
+        if event_type == "inspection" and eukontrollfrist_str and eukontrollfrist_str != "Unknown":
+            status = _calculate_eu_control_status(
+                last_event=last_event,
+                eukontrollfrist_str=eukontrollfrist_str,
+            )
+        else:
+            status = _calculate_due_status(
+                event_type=event_type,
+                last_event=last_event,
+                current_mileage=current_mileage,
+                interval_km=intervals.get("km"),
+                interval_months=intervals.get("months"),
+            )
         services.append(status)
 
     # Sort by urgency (overdue first, then soon, then unknown, then ok)

@@ -1,8 +1,13 @@
 // API client and auth types used for login/signup and token handling
 import { api, AuthUser, TokenResponse } from '@/frontendServices/apiCall';
+import {
+  registerForPushNotifications,
+  removePushTokenFromBackend,
+  sendPushTokenToBackend,
+} from '@/frontendServices/notifications';
 // Persistent storage for keeping the user logged in across app restarts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 // Keys used in AsyncStorage to store the JWT and user object
 const AUTH_TOKEN_KEY = '@auth_token';
@@ -53,6 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pushTokenRef = useRef<string | null>(null);
+
+  // Register for push notifications and send token to backend
+  const setupPushNotifications = useCallback(async (authToken: string) => {
+    const expoPushToken = await registerForPushNotifications();
+    if (expoPushToken) {
+      pushTokenRef.current = expoPushToken;
+      await sendPushTokenToBackend(expoPushToken, authToken);
+    }
+  }, []);
 
   // Function to check if the user is logged in
   const hydrate = useCallback(async () => {
@@ -64,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (t && u) {
         setToken(t);
         setUser(JSON.parse(u) as AuthUser);
+        setupPushNotifications(t);
       } else {
         setToken(null);
         setUser(null);
@@ -74,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setupPushNotifications]);
 
   useEffect(() => {
     hydrate();
@@ -86,7 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.access_token);
     setUser(data.user);
     await persistAuth(data);
-  }, []);
+    setupPushNotifications(data.access_token);
+  }, [setupPushNotifications]);
 
   // Function to sign up with email and password
   const signUp = useCallback(async (email: string, password: string, name: string) => {
@@ -94,7 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.access_token);
     setUser(data.user);
     await persistAuth(data);
-  }, []);
+    setupPushNotifications(data.access_token);
+  }, [setupPushNotifications]);
 
   // Function to sign in with Google
   const signInWithGoogle = useCallback(async () => {
@@ -110,15 +128,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.access_token);
       setUser(data.user);
       await persistAuth(data);
+      setupPushNotifications(data.access_token);
     } catch (e: any) {
       if (e?.code === 'sign_in_cancelled') throw new Error('Google Sign-In avbrutt');
       if (e?.code === 'in_progress') throw new Error('Google Sign-In pågår allerede');
       if (e?.code === 'play_services_not_available') throw new Error('Google Play Services ikke tilgjengelig');
       throw e;
     }
-  }, []);
+  }, [setupPushNotifications]);
 
   const signOut = useCallback(async () => {
+    // Remove push token from backend before clearing auth
+    if (pushTokenRef.current && token) {
+      await removePushTokenFromBackend(pushTokenRef.current, token);
+      pushTokenRef.current = null;
+    }
     if (isGoogleSignInAvailable && GoogleSignin) {
       try {
         const cur = await GoogleSignin.getCurrentUser();
@@ -128,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     await clearPersistedAuth();
-  }, []);
+  }, [token]);
 
   const getToken = useCallback((): Promise<string | null> => {
     return Promise.resolve(token);
