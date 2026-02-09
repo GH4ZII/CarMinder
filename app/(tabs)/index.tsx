@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
   AllCarsServiceStatus,
   api,
@@ -30,17 +31,17 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 const URGENCY_CONFIG = {
-  overdue: { bg: 'rgba(255,59,48,0.15)', text: '#FF3B30', icon: '⚠️', label: 'Overdue' },
-  soon: { bg: 'rgba(255,149,0,0.15)', text: '#FF9500', icon: '🔔', label: 'Due Soon' },
-  unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: '❓', label: 'No Data' },
-  ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: '✓', label: 'OK' },
+  overdue: { bg: 'rgba(255,59,48,0.15)', text: '#FF3B30', icon: 'warning' as const, label: 'Overdue' },
+  soon: { bg: 'rgba(255,149,0,0.15)', text: '#FF9500', icon: 'notifications-active' as const, label: 'Due Soon' },
+  unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: 'help-outline' as const, label: 'No Data' },
+  ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: 'check-circle' as const, label: 'OK' },
 };
 
 function ServiceBadge({ status }: { status: ServiceDueStatus }) {
   const config = URGENCY_CONFIG[status.urgency];
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>
-      <Text style={styles.badgeIcon}>{config.icon}</Text>
+      <MaterialIcons name={config.icon} size={16} color={config.text} style={styles.badgeIcon} />
       <View style={styles.badgeContent}>
         <ThemedText style={styles.badgeType}>
           {SERVICE_LABELS[status.event_type] ?? status.event_type}
@@ -93,9 +94,11 @@ function CarServiceCard({
 
       {car.next_service && (
         <View style={styles.nextServiceBanner}>
-          <Text style={styles.nextServiceIcon}>
-            {URGENCY_CONFIG[car.next_service.urgency].icon}
-          </Text>
+          <MaterialIcons
+            name={URGENCY_CONFIG[car.next_service.urgency].icon}
+            size={18}
+            color={URGENCY_CONFIG[car.next_service.urgency].text}
+          />
           <View style={{ flex: 1 }}>
             <Text
               style={[
@@ -192,7 +195,7 @@ export default function HomeScreen() {
         <View style={styles.summaryBanner}>
           {status.urgent_count > 0 ? (
             <>
-              <Text style={styles.summaryIcon}>⚠️</Text>
+              <MaterialIcons name="warning" size={28} color="#FF3B30" />
               <View>
                 <ThemedText style={styles.summaryText}>
                   {status.overdue_count > 0 && (
@@ -214,7 +217,7 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.summaryIcon}>✅</Text>
+              <MaterialIcons name="check-circle" size={28} color="#34C759" />
               <View>
                 <ThemedText style={styles.summaryText}>All services up to date</ThemedText>
                 <ThemedText style={styles.summarySubtext}>
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
-  summaryIcon: { fontSize: 28 },
+  summaryIcon: {},
   summaryText: { fontSize: 16, fontWeight: '600' },
   summarySubtext: { fontSize: 14, opacity: 0.7, marginTop: 2 },
 
@@ -353,7 +356,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  nextServiceIcon: { fontSize: 18 },
+  nextServiceIcon: {},
   nextServiceText: { fontSize: 14, fontWeight: '600' },
 
   // Services Grid
@@ -373,7 +376,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 8,
   },
-  badgeIcon: { fontSize: 16, marginTop: 2 },
+  badgeIcon: { marginTop: 2 },
   badgeContent: { flex: 1 },
   badgeType: { fontSize: 13, fontWeight: '600' },
   badgeStatus: { fontSize: 12, fontWeight: '500', marginTop: 2 },

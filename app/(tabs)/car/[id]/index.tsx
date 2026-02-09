@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { api, CarInfo, CarServiceStatus, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 
 function formatDate(s: string) {
@@ -43,10 +44,10 @@ function eventTypeLabel(t: string): string {
 }
 
 const URGENCY_CONFIG = {
-  overdue: { bg: 'rgba(255,59,48,0.15)', text: '#FF3B30', icon: '⚠️', label: 'Overdue' },
-  soon: { bg: 'rgba(255,149,0,0.15)', text: '#FF9500', icon: '🔔', label: 'Due Soon' },
-  unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: '❓', label: 'No Data' },
-  ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: '✓', label: 'OK' },
+  overdue: { bg: 'rgba(255,59,48,0.15)', text: '#FF3B30', icon: 'warning' as const, label: 'Overdue' },
+  soon: { bg: 'rgba(255,149,0,0.15)', text: '#FF9500', icon: 'notifications-active' as const, label: 'Due Soon' },
+  unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: 'help-outline' as const, label: 'No Data' },
+  ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: 'check-circle' as const, label: 'OK' },
 };
 
 function ServiceStatusCard({ status }: { status: ServiceDueStatus }) {
@@ -55,9 +56,12 @@ function ServiceStatusCard({ status }: { status: ServiceDueStatus }) {
     <View style={[styles.serviceCard, { backgroundColor: config.bg }]}>
       <View style={styles.serviceHeader}>
         <ThemedText style={styles.serviceType}>{eventTypeLabel(status.event_type)}</ThemedText>
-        <Text style={[styles.serviceUrgency, { color: config.text }]}>
-          {config.icon} {config.label}
-        </Text>
+        <View style={styles.serviceUrgencyRow}>
+          <MaterialIcons name={config.icon} size={14} color={config.text} />
+          <Text style={[styles.serviceUrgency, { color: config.text }]}>
+            {config.label}
+          </Text>
+        </View>
       </View>
       <View style={styles.serviceDetails}>
         {status.due_date && (
@@ -286,6 +290,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   serviceType: { fontSize: 15, fontWeight: '600' },
+  serviceUrgencyRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   serviceUrgency: { fontSize: 13, fontWeight: '600' },
   serviceDetails: { gap: 4 },
   serviceMeta: { fontSize: 13, opacity: 0.9 },
