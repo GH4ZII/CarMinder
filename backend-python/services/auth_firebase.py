@@ -1,44 +1,46 @@
-import os
 from typing import Any
 
 import httpx
-from dotenv import load_dotenv
-from fastapi import HTTPException, status
 
-load_dotenv()
+from config.settings import get_settings
+from exceptions import AuthenticationError, ValidationError
 
-API_KEY = os.getenv("FIREBASE_WEB_API_KEY")
-# Base URL for Firebase Auth API
 BASE = "https://identitytoolkit.googleapis.com/v1/accounts"
 
-if not API_KEY:
-    raise ValueError("FIREBASE_WEB_API_KEY must be set in backend .env")
+
+def _get_api_key() -> str:
+    key = get_settings()["FIREBASE_WEB_API_KEY"]
+    if not key:
+        raise ValueError("FIREBASE_WEB_API_KEY must be set in backend .env")
+    return key
 
 
-# Function to make a request to the Firebase Auth API
 def _firebase_req(path: str, payload: dict[str, Any]) -> dict[str, Any]:
-    url = f"{BASE}{path}?key={API_KEY}"
+    url = f"{BASE}{path}?key={_get_api_key()}"
     r = httpx.post(url, json=payload, timeout=15.0)
-    data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+    data = (
+        r.json()
+        if r.headers.get("content-type", "").startswith("application/json")
+        else {}
+    )
     if not r.is_success:
         msg = (data.get("error") or {}).get("message", "Firebase auth failed")
         if "EMAIL_NOT_FOUND" in msg or "INVALID_LOGIN_CREDENTIALS" in msg:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="EMAIL_NOT_FOUND")
+            raise AuthenticationError("EMAIL_NOT_FOUND")
         if "INVALID_PASSWORD" in msg:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="INVALID_PASSWORD")
+            raise AuthenticationError("INVALID_PASSWORD")
         if "EMAIL_EXISTS" in msg:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="EMAIL_EXISTS")
+            raise ValidationError("EMAIL_EXISTS")
         if "INVALID_IDP_RESPONSE" in msg or "INVALID_CREDENTIAL" in msg:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="INVALID_IDP_RESPONSE")
+            raise AuthenticationError("INVALID_IDP_RESPONSE")
         if "WEAK_PASSWORD" in msg or "weak" in msg.lower():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="WEAK_PASSWORD")
+            raise ValidationError("WEAK_PASSWORD")
         if "OPERATION_NOT_ALLOWED" in msg:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OPERATION_NOT_ALLOWED")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+            raise ValidationError("OPERATION_NOT_ALLOWED")
+        raise ValidationError(msg)
     return data
 
 
-# Function to login with email and password
 def login_email_password(email: str, password: str) -> tuple[str, str, str | None]:
     data = _firebase_req(
         ":signInWithPassword",
@@ -50,8 +52,9 @@ def login_email_password(email: str, password: str) -> tuple[str, str, str | Non
     return uid, em, name
 
 
-# Function to sign up with email and password
-def signup_email_password(email: str, password: str, display_name: str) -> tuple[str, str, str]:
+def signup_email_password(
+    email: str, password: str, display_name: str
+) -> tuple[str, str, str]:
     data = _firebase_req(
         ":signUp",
         {"email": email, "password": password, "returnSecureToken": True},
@@ -62,7 +65,11 @@ def signup_email_password(email: str, password: str, display_name: str) -> tuple
     if token and display_name:
         up = _firebase_req(
             ":update",
-            {"idToken": token, "displayName": display_name, "returnSecureToken": True},
+            {
+                "idToken": token,
+                "displayName": display_name,
+                "returnSecureToken": True,
+            },
         )
         name = up.get("displayName") or display_name
     else:
@@ -70,7 +77,6 @@ def signup_email_password(email: str, password: str, display_name: str) -> tuple
     return uid, em, name
 
 
-# Function to login with Google
 def login_google(id_token: str) -> tuple[str, str | None, str | None]:
     post = f"id_token={id_token}&providerId=google.com"
     data = _firebase_req(
