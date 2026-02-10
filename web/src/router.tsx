@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
+import Profile from '@/pages/Profile';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 const router = createBrowserRouter([
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Home /> },
+      { path: 'profile', element: <Profile /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
