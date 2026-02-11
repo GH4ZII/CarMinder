@@ -35,7 +35,7 @@ export default function Login() {
           ? err.detail ?? err.message
           : err instanceof Error
             ? err.message
-            : 'Innlogging feilet'
+            : 'Login failed'
       );
     } finally {
       setSubmitting(false);
@@ -44,34 +44,40 @@ export default function Login() {
 
   return (
     <div className="page page--auth">
-      <h1>Logg inn</h1>
-      <form onSubmit={handleSubmit} className="form">
-        <Input
-          label="E-post"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={submitting}
-        />
-        <Input
-          label="Passord"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          disabled={submitting}
-        />
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <Button type="submit" disabled={submitting}>
-          {submitting ? 'Logger inn…' : 'Logg inn'}
-        </Button>
-      </form>
-      <p className="auth-footer">
-        Har du ikke konto? <Link to="/signup">Registrer deg</Link>
-      </p>
+      <div className="auth-card">
+        <h1>Sign In</h1>
+        <form onSubmit={handleSubmit} className="form">
+          <Input
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={submitting}
+          />
+          <Input
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={submitting}
+          />
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" disabled={submitting}>
+            {submitting ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </form>
+        <p className="auth-footer">
+          Don't have an account? <Link to="/signup">Create account</Link>
+        </p>
+      </div>
     </div>
   );
 }
