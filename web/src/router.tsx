@@ -9,9 +9,14 @@ import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
 import Signup from '@/pages/Signup';
+import Welcome from '@/pages/Welcome';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 const router = createBrowserRouter([
+  {
+    path: '/welcome',
+    element: <Welcome />,
+  },
   {
     path: '/login',
     element: <Login />,
@@ -36,7 +41,7 @@ const router = createBrowserRouter([
       { path: 'car/:id/add-event', element: <AddEvent /> },
     ],
   },
-  { path: '*', element: <Navigate to="/" replace /> },
+  { path: '*', element: <Navigate to="/welcome" replace /> },
 ]);
 
 export default function AppRouter() {
