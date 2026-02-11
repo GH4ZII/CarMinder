@@ -6,6 +6,28 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_KEY = 'auth_user';
 
+let googleScriptLoading: Promise<void> | null = null;
+
+async function loadGoogleScript() {
+  if (typeof window === 'undefined') return;
+  const w = window as any;
+  if (w.google?.accounts?.id) return;
+
+  if (!googleScriptLoading) {
+    googleScriptLoading = new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Kunne ikke laste Google Sign-In skriptet'));
+      document.head.appendChild(script);
+    });
+  }
+
+  await googleScriptLoading;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -64,7 +86,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const idToken = await getGoogleCredential();
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('Google-klient-ID mangler. Sett VITE_GOOGLE_CLIENT_ID i .env for web.');
+    }
+
+    await loadGoogleScript();
+
+    const w = window as any;
+    if (!w.google?.accounts?.id) {
+      throw new Error('Google Sign-In er ikke tilgjengelig i denne nettleseren.');
+    }
+
+    const idToken = await new Promise<string>((resolve, reject) => {
+      let resolved = false;
+
+      w.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response: any) => {
+          if (response?.credential) {
+            resolved = true;
+            resolve(response.credential as string);
+          } else {
+            reject(new Error('Google-innlogging feilet: ingen legitimasjon mottatt.'));
+          }
+        },
+      });
+
+      w.google.accounts.id.prompt((notification: any) => {
+        if (!resolved && (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.())) {
+          reject(new Error('Google-innlogging ble avbrutt.'));
+        }
+      });
+    });
+
     const data = await authApi.authGoogle(idToken);
     setToken(data.access_token);
     setUser(data.user);

@@ -12,8 +12,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
-  const { signIn, user, loading } = useAuth();
+  const { signIn, signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/';
@@ -43,49 +44,66 @@ export default function Login() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setError(null);
+    setGoogleSubmitting(true);
+    try {
+      await signInWithGoogle();
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.detail ?? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Google-innlogging feilet'
+      );
+    } finally {
+      setGoogleSubmitting(false);
+    }
+  }
+
   return (
     <div className="page page--auth">
-      <div className="auth-card">
-        <h1>Sign In</h1>
-        <form onSubmit={handleSubmit} className="form">
-          <Input
-            label="Email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={submitting}
-          />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={submitting}
-          />
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign In'}
-          </Button>
-        </form>
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
-        <GoogleSignInButton
-          redirectTo={from}
-          onError={(msg) => setError(msg)}
+      <h1>Logg inn</h1>
+      <form onSubmit={handleSubmit} className="form">
+        <Input
+          label="E-post"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          disabled={submitting || googleSubmitting}
         />
-        <p className="auth-footer">
-          Don't have an account? <Link to="/signup">Create account</Link>
-        </p>
-      </div>
+        <Input
+          label="Passord"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          disabled={submitting || googleSubmitting}
+        />
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <Button type="submit" disabled={submitting || googleSubmitting}>
+          {submitting ? 'Logger inn…' : 'Logg inn'}
+        </Button>
+        <div className="form-divider">
+          <span>eller</span>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleGoogleSignIn}
+          disabled={submitting || googleSubmitting}
+        >
+          {googleSubmitting ? 'Logger inn med Google…' : 'Fortsett med Google'}
+        </Button>
+      </form>
+      <p className="auth-footer">
+        Har du ikke konto? <Link to="/signup">Registrer deg</Link>
+      </p>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
 import Signup from '@/pages/Signup';
-import Welcome from '@/pages/Welcome';
+import Profile from '@/pages/Profile';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 const router = createBrowserRouter([
@@ -34,11 +34,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Home /> },
-      { path: 'calendar', element: <Calendar /> },
       { path: 'profile', element: <Profile /> },
-      { path: 'add-car', element: <AddCar /> },
-      { path: 'car/:id', element: <CarDetail /> },
-      { path: 'car/:id/add-event', element: <AddEvent /> },
     ],
   },
   { path: '*', element: <Navigate to="/welcome" replace /> },

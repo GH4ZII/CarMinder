@@ -1,118 +1,156 @@
-import * as carsApi from '@/api/cars';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import type { CarInfo } from '@/types/car';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as carApi from '@/api/cars';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import { ApiError } from '@/api/client';
 
 export default function Profile() {
-  const { user, signOut, getToken } = useAuth();
+  const { user, getToken, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const [cars, setCars] = useState<CarInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cars, setCars] = useState<carApi.CarInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const token = await getToken();
-      if (!token) return;
-      const userCars = await carsApi.getUserCars(token);
-      setCars(userCars);
-    } catch (err) {
-      if (err instanceof Error && 'status' in err && (err as { status: number }).status === 401) {
-        signOut();
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken, signOut]);
+  const [regNumber, setRegNumber] = useState('');
+  const [carInfo, setCarInfo] = useState<carApi.CarInfo | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
 
   useEffect(() => {
-    load();
-  }, [load]);
-
-  async function handleDelete(carId: string) {
-    if (!window.confirm('Are you sure you want to delete this car?')) return;
-    try {
+    async function fetchCars() {
+      if (!user) return;
       const token = await getToken();
       if (!token) return;
-      await carsApi.deleteCar(carId, token);
-      setCars((prev) => prev.filter((c) => c.id !== carId));
-    } catch {
-      alert('Failed to delete car');
+
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await carApi.getUserCars(token);
+        setCars(data);
+      } catch (e: any) {
+        setError(e?.message ?? 'Kunne ikke hente biler');
+      } finally {
+        setLoading(false);
+      }
     }
+
+    fetchCars();
+  }, [user, getToken]);
+
+async function handleLookup() {
+  if (!regNumber.trim()) {
+    setError('Skriv inn registreringsnummer');
+    return;
+  }
+  setError(null);
+  setLookupLoading(true);
+  try {
+    const car = await carApi.lookupVehicle(regNumber.trim());
+    if (!car) {
+      setError('Fant ingen bil med dette registreringsnummeret');
+      setCarInfo(null);
+      return;
+    }
+    setCarInfo(car);
+  } catch (e: any) {
+    setError(e?.message ?? 'Kunne ikke hente bilinfo');
+  } finally {
+    setLookupLoading(false);
+  }
+}
+
+async function handleSaveCar() {
+  if (!carInfo) return;
+  const token = await getToken();
+  if (!token) {
+    setError('Fikk ikke tak i innloggingstoken. Logg inn på nytt.');
+    return;
   }
 
-  async function handleSignOut() {
-    await signOut();
-    navigate('/login', { replace: true });
+  setSaving(true);
+  setError(null);
+  try {
+    const saved = await carApi.saveCar(carInfo, token);
+    setCars((prev) => [...prev, saved]);
+    setCarInfo(null);
+    setRegNumber('');
+  } catch (e: any) {
+    if (e instanceof ApiError && e.status === 401) {
+      await signOut();
+      navigate('/login', { replace: true });
+      return;
+    }
+    setError(e?.message ?? 'Kunne ikke lagre bil');
+  } finally {
+    setSaving(false);
   }
+}
+
+  
 
   return (
-    <div className="page">
-      <h1>Profile</h1>
+<main className="page profile-page">
+  <header className="page-header">
+    <h1>Profil</h1>
+    <p>Innlogget som {user?.email}</p>
+  </header>
 
-      <Card className="profile-info-card">
-        <div className="profile-info">
-          <div className="profile-avatar">
-            {(user?.displayName?.[0] ?? user?.email?.[0] ?? 'U').toUpperCase()}
-          </div>
-          <div>
-            {user?.displayName && <h3>{user.displayName}</h3>}
-            {user?.email && <p className="text-muted">{user.email}</p>}
-          </div>
-        </div>
-        <Button variant="secondary" onClick={handleSignOut}>
-          Sign Out
+  <section className="card">
+    <h2>Legg til bil</h2>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void handleLookup();
+      }}
+      className="form"
+    >
+      <Input
+        label="Registreringsnummer"
+        value={regNumber}
+        onChange={(e) => setRegNumber(e.target.value.toUpperCase())}
+        maxLength={7}
+        disabled={lookupLoading || saving}
+      />
+      <Button type="submit" disabled={lookupLoading || saving}>
+        {lookupLoading ? 'Søker…' : 'Hent bilinfo'}
+      </Button>
+    </form>
+
+    {carInfo && (
+      <div className="profile-car-preview">
+        <h3>
+          {carInfo.merke} {carInfo.modell} ({carInfo.registreringsnummer})
+        </h3>
+        {/* vis et lite sammendrag, ikke alt om du vil */}
+        <Button onClick={handleSaveCar} disabled={saving}>
+          {saving ? 'Lagrer…' : 'Lagre bil på profil'}
         </Button>
-      </Card>
+      </div>
+    )}
 
-      <section className="section">
-        <div className="section-header">
-          <h2>Your Cars</h2>
-          <button className="button button--primary" onClick={() => navigate('/add-car')}>
-            + Add Car
-          </button>
-        </div>
+    {error && <p className="form-error">{error}</p>}
+  </section>
 
-        {loading ? (
-          <div className="loading-spinner" />
-        ) : cars.length === 0 ? (
-          <p className="text-muted">No cars added yet.</p>
-        ) : (
-          <div className="car-list">
-            {cars.map((car) => (
-              <Card key={car.id} className="profile-car-card">
-                <div className="profile-car-card__info">
-                  <h3>
-                    {car.merke} {car.modell}
-                  </h3>
-                  <p className="text-muted">
-                    {car.registreringsnummer} &middot; {car.arsmodell} &middot;{' '}
-                    {car.kilometer.toLocaleString()} km
-                  </p>
-                </div>
-                <div className="profile-car-card__actions">
-                  <button
-                    className="button button--secondary button--sm"
-                    onClick={() => navigate(`/car/${car.id}`)}
-                  >
-                    View Timeline
-                  </button>
-                  <button
-                    className="button button--danger button--sm"
-                    onClick={() => car.id && handleDelete(car.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+  <section className="card">
+    <h2>Dine biler</h2>
+    {loading ? (
+      <p>Laster biler…</p>
+    ) : cars.length === 0 ? (
+      <p>Du har ikke lagt til noen biler enda.</p>
+    ) : (
+      <ul className="profile-car-list">
+        {cars.map((car) => (
+          <li key={car.id}>
+            {car.merke} {car.modell} ({car.registreringsnummer})
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+</main>
   );
 }
+
