@@ -10,6 +10,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   if (loading) return <div className="loading">Laster…</div>;
-  if (!user) return <Navigate to="/welcome" state={{ from: location }} replace />;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return <>{children}</>;
 }

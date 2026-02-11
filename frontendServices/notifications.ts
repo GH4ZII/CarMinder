@@ -1,32 +1,24 @@
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { API_URL } from './apiCall';
 
-// Lazy-load native modules — they crash if not compiled into the dev build
-let Device: any = null;
-let Notifications: any = null;
-try {
-  Device = require('expo-device');
-  Notifications = require('expo-notifications');
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-} catch {
-  console.log('expo-notifications native module not available — push notifications disabled');
-}
+// Configure how notifications appear when the app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 /**
  * Register for push notifications and return the Expo push token.
- * Returns null if permissions are denied, on simulator, or native modules unavailable.
+ * Returns null if permissions are denied or on simulator.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
-  if (!Device || !Notifications) return null;
-
   if (!Device.isDevice) {
     console.log('Push notifications require a physical device');
     return null;

@@ -1,6 +1,5 @@
 import { ApiError } from '@/api/client';
 import Button from '@/components/ui/Button';
-import GoogleSignInButton from '@/components/ui/GoogleSignInButton';
 import Input from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import type { FormEvent } from 'react';
@@ -37,7 +36,7 @@ export default function Login() {
           ? err.detail ?? err.message
           : err instanceof Error
             ? err.message
-            : 'Login failed'
+            : 'Innlogging feilet'
       );
     } finally {
       setSubmitting(false);
