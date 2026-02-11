@@ -1,5 +1,6 @@
 import { ApiError } from '@/api/client';
 import Button from '@/components/ui/Button';
+import GoogleSignInButton from '@/components/ui/GoogleSignInButton';
 import Input from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import type { FormEvent } from 'react';
@@ -74,6 +75,13 @@ export default function Login() {
             {submitting ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+        <GoogleSignInButton
+          redirectTo={from}
+          onError={(msg) => setError(msg)}
+        />
         <p className="auth-footer">
           Don't have an account? <Link to="/signup">Create account</Link>
         </p>

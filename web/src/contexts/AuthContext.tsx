@@ -1,4 +1,5 @@
 import * as authApi from '@/api/auth';
+import { getGoogleCredential } from '@/api/google';
 import type { AuthUser, TokenResponse } from '@/types/auth';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -63,8 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    // TODO: integrate Firebase Auth / Google Sign-In for web
-    throw new Error('Google Sign-In for web not yet implemented');
+    const idToken = await getGoogleCredential();
+    const data = await authApi.authGoogle(idToken);
+    setToken(data.access_token);
+    setUser(data.user);
+    persistAuth(data);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
