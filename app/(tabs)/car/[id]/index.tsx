@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { api, CarInfo, CarServiceStatus, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import { api, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 
 function formatDate(s: string) {
   try {
@@ -48,6 +48,18 @@ const URGENCY_CONFIG = {
   soon: { bg: 'rgba(255,149,0,0.15)', text: '#FF9500', icon: 'notifications-active' as const, label: 'Due Soon' },
   unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: 'help-outline' as const, label: 'No Data' },
   ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: 'check-circle' as const, label: 'OK' },
+};
+
+const SEVERITY_COLORS: Record<string, string> = {
+  minor: '#007AFF',
+  moderate: '#FF9500',
+  severe: '#FF3B30',
+};
+
+const REPAIR_STATUS_LABELS: Record<string, string> = {
+  not_repaired: 'Not repaired',
+  partially_repaired: 'Partially repaired',
+  fully_repaired: 'Fully repaired',
 };
 
 function ServiceStatusCard({ status }: { status: ServiceDueStatus }) {
@@ -104,6 +116,7 @@ export default function CarTimelineScreen() {
   const { user, getToken } = useAuth();
   const [car, setCar] = useState<CarInfo | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
+  const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -119,18 +132,21 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const [carData, eventsData, statusData] = await Promise.all([
+      const [carData, eventsData, incidentsData, statusData] = await Promise.all([
         api.getCar(carId, token),
         api.getMaintenanceEvents(carId, token),
+        api.getIncidents(carId, token),
         api.getCarServiceStatus(carId, token),
       ]);
       setCar(carData);
       setEvents(eventsData);
+      setIncidents(incidentsData);
       setServiceStatus(statusData);
     } catch {
       setError(true);
       setCar(null);
       setEvents([]);
+      setIncidents([]);
       setServiceStatus(null);
       Alert.alert('Error', 'Failed to load. Pull down to retry.');
     } finally {
@@ -198,6 +214,46 @@ export default function CarTimelineScreen() {
       {serviceStatus?.services.map((s) => (
         <ServiceStatusCard key={s.event_type} status={s} />
       ))}
+
+      {/* Incidents section */}
+      <View style={styles.sectionRow}>
+        <ThemedText type="subtitle" style={styles.section}>
+          Incidents ({incidents.length})
+        </ThemedText>
+        <TouchableOpacity
+          style={[styles.addBtn, { backgroundColor: '#FF9500' }]}
+          onPress={() => router.push(`/(tabs)/car/${carId}/add-incident` as any)}
+        >
+          <Text style={styles.addBtnText}>Report incident</Text>
+        </TouchableOpacity>
+      </View>
+      {incidents.length === 0 ? (
+        <ThemedText style={styles.noIncidents}>No incidents reported.</ThemedText>
+      ) : (
+        incidents.map((inc) => (
+          <View key={inc.id} style={styles.incidentCard}>
+            <View style={styles.incidentHeader}>
+              <View style={[styles.severityBadge, { backgroundColor: SEVERITY_COLORS[inc.severity] ?? '#8E8E93' }]}>
+                <Text style={styles.severityText}>{inc.severity.toUpperCase()}</Text>
+              </View>
+              <ThemedText style={styles.cardDate}>{formatDate(inc.incident_date)}</ThemedText>
+            </View>
+            <ThemedText style={styles.incidentDesc}>{inc.description}</ThemedText>
+            {inc.damage_description && (
+              <ThemedText style={styles.incidentMeta}>Damage: {inc.damage_description}</ThemedText>
+            )}
+            <ThemedText style={styles.incidentMeta}>
+              Repair: {REPAIR_STATUS_LABELS[inc.repair_status] ?? inc.repair_status}
+            </ThemedText>
+            {inc.mileage != null && (
+              <ThemedText style={styles.incidentMeta}>{inc.mileage.toLocaleString()} km</ThemedText>
+            )}
+            {inc.insurance_claim && (
+              <ThemedText style={styles.incidentMeta}>Insurance claim filed</ThemedText>
+            )}
+          </View>
+        ))
+      )}
 
       <View style={styles.sectionRow}>
         <ThemedText type="subtitle" style={styles.section}>
@@ -326,4 +382,21 @@ const styles = StyleSheet.create({
   notes: { fontSize: 14, opacity: 0.8, fontStyle: 'italic', marginTop: 4 },
   empty: { minHeight: 120, justifyContent: 'center', alignItems: 'center', paddingVertical: 24 },
   emptyText: { fontSize: 16, textAlign: 'center', opacity: 0.8 },
+  incidentCard: {
+    backgroundColor: 'rgba(255,149,0,0.08)',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  incidentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  severityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  severityText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  incidentDesc: { fontSize: 14, marginBottom: 4 },
+  incidentMeta: { fontSize: 13, opacity: 0.7, marginBottom: 2 },
+  noIncidents: { fontSize: 14, opacity: 0.6, marginBottom: 8 },
 });

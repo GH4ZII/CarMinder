@@ -24,6 +24,7 @@ class CarBase(BaseModel):
     karosseri: str
     eukontrollfrist: str
     makshastighet: int
+    public_history: bool = False
 
 class CarCreate(CarBase):
     pass
@@ -32,6 +33,7 @@ class CarUpdate(BaseModel):
     kilometer: Optional[int] = None
     farge: Optional[str] = None
     eukontrollfrist: Optional[str] = None
+    public_history: Optional[bool] = None
 
 class CarResponse(CarBase):
     id: str

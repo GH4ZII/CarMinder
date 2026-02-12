@@ -30,6 +30,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="lookup"
+        options={{
+          title: 'Lookup',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -43,13 +50,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="car/[id]"
+        name="car/[id]/index"
         options={{
           href: null,
         }}
       />
       <Tabs.Screen
         name="car/[id]/add-event"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="car/[id]/add-incident"
         options={{
           href: null,
         }}

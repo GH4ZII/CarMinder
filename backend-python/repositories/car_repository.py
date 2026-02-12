@@ -60,3 +60,16 @@ def update_car(car_id: str, update_data: dict[str, Any]) -> dict[str, Any] | Non
 
 def delete_car(car_id: str) -> None:
     get_supabase().table("cars").delete().eq("id", car_id).execute()
+
+
+def get_public_car_by_registration(registration_number: str) -> dict[str, Any] | None:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("*")
+        .eq("registreringsnummer", registration_number)
+        .eq("public_history", True)
+        .execute()
+    )
+    data = cast(list[dict[str, Any]], result.data)
+    return data[0] if data else None

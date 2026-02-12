@@ -10,6 +10,7 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -52,6 +53,23 @@ export default function ProfileScreen() {
       fetchCars();
     }, [fetchCars])
   );
+
+  const handleTogglePublic = async (carId: string, value: boolean) => {
+    if (!user) return;
+    const token = await getToken();
+    if (!token) return;
+    try {
+      const updated = await api.updateCar(carId, token, { public_history: value } as any);
+      setCars((prev) => prev.map((c) => (c.id === carId ? updated : c)));
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        await signOut();
+        router.replace('/(auth)/login');
+        return;
+      }
+      Alert.alert('Error', 'Failed to update visibility setting.');
+    }
+  };
 
   // Function to delete a car
   const handleDelete = async (carId: string) => {
@@ -141,6 +159,13 @@ export default function ProfileScreen() {
             <ThemedText style={styles.carTitle}>
               {item.merke} {item.modell} ({item.registreringsnummer})
             </ThemedText>
+            <View style={styles.publicToggleRow}>
+              <ThemedText style={styles.publicToggleLabel}>Public history</ThemedText>
+              <Switch
+                value={item.public_history ?? false}
+                onValueChange={(val) => handleTogglePublic(item.id!, val)}
+              />
+            </View>
             <View style={styles.carCardActions}>
               <TouchableOpacity
                 style={styles.viewButton}
@@ -240,6 +265,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  publicToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  publicToggleLabel: {
+    fontSize: 14,
+    opacity: 0.8,
   },
   carCardActions: {
     flexDirection: 'row',
