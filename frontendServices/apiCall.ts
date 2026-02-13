@@ -64,6 +64,7 @@ export interface CarInfo {
   karosseri: string;
   eukontrollfrist: string;
   makshastighet: number;
+  public_history?: boolean;
 }
 
 /** Server-defined; thin client fetches via getEventTypes(). */
@@ -348,5 +349,130 @@ export const api = {
     }
     return res.json();
   },
+
+  /** Update a car (e.g. toggle public_history) */
+  async updateCar(carId: string, token: string, updates: Partial<CarInfo>): Promise<CarInfo> {
+    const res = await fetch(`${API_URL}/cars/${carId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to update car');
+    }
+    return res.json();
+  },
+
+  /** Get incident type metadata */
+  async getIncidentTypes(): Promise<{ severity_levels: string[]; repair_statuses: string[] }> {
+    const res = await fetch(`${API_URL}/incidents/types`);
+    if (!res.ok) throw new Error('Failed to fetch incident types');
+    return res.json();
+  },
+
+  /** List incidents for a car */
+  async getIncidents(carId: string, token: string): Promise<IncidentReport[]> {
+    const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch incidents');
+    }
+    return res.json();
+  },
+
+  /** Create an incident report */
+  async createIncident(carId: string, token: string, payload: IncidentReportCreate): Promise<IncidentReport> {
+    const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const err = await res.json().catch(() => ({}));
+      const msg = Array.isArray(err.detail)
+        ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
+        : (typeof err.detail === 'string' ? err.detail : res.statusText);
+      throw new Error(msg || 'Failed to create incident');
+    }
+    return res.json();
+  },
+
+  /** Lookup public car history by registration number (no auth) */
+  async getPublicHistory(regNumber: string): Promise<PublicCarHistory | null> {
+    const res = await fetch(`${API_URL}/public/history/${encodeURIComponent(regNumber.trim().toUpperCase())}`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('Failed to fetch public history');
+    return res.json();
+  },
 };
+
+// Incident report interfaces
+export interface IncidentReport {
+  id: string;
+  car_id: string;
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description: string | null;
+  repair_status: string;
+  repair_cost_cents: number | null;
+  repair_vendor: string | null;
+  insurance_claim: boolean;
+  mileage: number | null;
+  created_at: string;
+}
+
+export interface IncidentReportCreate {
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description?: string | null;
+  repair_status: string;
+  repair_cost?: number | null;
+  repair_vendor?: string | null;
+  insurance_claim: boolean;
+  mileage?: number | null;
+}
+
+// Public history interfaces
+export interface PublicCarInfo {
+  registreringsnummer: string;
+  merke: string;
+  modell: string;
+  arsmodell: string;
+  farge: string;
+  kilometer: number;
+}
+
+export interface PublicMaintenanceEvent {
+  event_type: string;
+  event_date: string;
+  mileage: number | null;
+  vendor: string | null;
+}
+
+export interface PublicIncidentReport {
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description: string | null;
+  repair_status: string;
+  mileage: number | null;
+}
+
+export interface PublicCarHistory {
+  car: PublicCarInfo;
+  maintenance_events: PublicMaintenanceEvent[];
+  incident_reports: PublicIncidentReport[];
+}
 
