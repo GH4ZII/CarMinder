@@ -91,3 +91,18 @@ def login_google(id_token: str) -> tuple[str, str | None, str | None]:
     em = data.get("email")
     name = data.get("displayName") or data.get("fullName")
     return uid, em, name
+
+
+def send_password_reset_email(email: str) -> None:
+    """Trigger Firebase password reset email for given address.
+
+    Uses PASSWORD_RESET OOB code flow; Firebase handles the email contents
+    and reset UI based on project configuration.
+    """
+    _firebase_req(
+        ":sendOobCode",
+        {
+            "requestType": "PASSWORD_RESET",
+            "email": email,
+        },
+    )

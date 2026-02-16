@@ -43,3 +43,16 @@ export async function authGoogle(idToken: string): Promise<TokenResponse> {
   }
   return res.json();
 }
+
+export async function authForgotPassword(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const detail = await parseErrorDetail(res);
+    throw new ApiError('Password reset failed', res.status, detail);
+  }
+}
+

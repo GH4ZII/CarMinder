@@ -66,6 +66,9 @@ export default function Login() {
             required
             disabled={submitting}
           />
+          <p className="auth-footer auth-footer--small">
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
           {error && (
             <p className="form-error" role="alert">
               {error}
