@@ -161,6 +161,14 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
+          <TouchableOpacity
+            style={styles.forgotPasswordButton}
+            onPress={() => router.push('/(auth)/forgot-password')}
+            disabled={loading}
+          >
+            <ThemedText style={styles.forgotPasswordText}>Glemt passord?</ThemedText>
+          </TouchableOpacity>
+
           <View style={styles.rememberMeContainer}>
             <Switch
               value={rememberMe}
@@ -288,6 +296,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
+    color: '#0a7ea4',
+    fontSize: 14,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 8,
+  },
+  forgotPasswordText: {
     color: '#0a7ea4',
     fontSize: 14,
   },

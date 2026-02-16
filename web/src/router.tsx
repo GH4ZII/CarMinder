@@ -5,6 +5,7 @@ import AddCar from '@/pages/AddCar';
 import AddEvent from '@/pages/AddEvent';
 import Calendar from '@/pages/Calendar';
 import CarDetail from '@/pages/CarDetail';
+import ForgotPassword from '@/pages/ForgotPassword';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
@@ -24,6 +25,10 @@ const router = createBrowserRouter([
   {
     path: '/signup',
     element: <Signup />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
   },
   {
     path: '/',

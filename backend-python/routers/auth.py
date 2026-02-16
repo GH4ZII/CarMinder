@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
+import logging
 
 from exceptions import AuthenticationError, ValidationError
 from schemas.auth import (
+    ForgotPasswordRequest,
     GoogleRequest,
     LoginRequest,
     SignupRequest,
@@ -11,9 +13,12 @@ from schemas.auth import (
 from services.auth_firebase import (
     login_email_password,
     login_google,
+    send_password_reset_email,
     signup_email_password,
 )
 from services.jwt_auth import create_access_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -64,3 +69,24 @@ def google(req: GoogleRequest):
         access_token=token,
         user=UserOut(uid=uid, email=email, displayName=display_name),
     )
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(req: ForgotPasswordRequest):
+    """Trigger password reset email via Firebase.
+
+    Always returns 200 with a generic message to avoid leaking whether
+    the email exists in the system.
+    """
+    logger.info("Forgot password requested for email=%s", req.email)
+    try:
+        send_password_reset_email(req.email)
+        logger.info("Password reset email successfully triggered for %s", req.email)
+    except (AuthenticationError, ValidationError) as e:
+        # For security, do not reveal whether the email exists or not.
+        # We still return success so the client shows a generic message.
+        logger.warning(
+            "Password reset failed for %s: %s (%s)", req.email, e, type(e).__name__
+        )
+        pass
+    return {"detail": "If that email exists, a reset link has been sent"}

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -14,6 +14,10 @@ class SignupRequest(BaseModel):
 
 class GoogleRequest(BaseModel):
     id_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
 
 
 class UserOut(BaseModel):

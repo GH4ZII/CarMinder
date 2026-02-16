@@ -14,6 +14,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string | null>;
+  forgotPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,9 +89,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return Promise.resolve(token);
   }, [token]);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    await authApi.authForgotPassword(email);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, signIn, signInWithGoogle, signUp, signOut, getToken }}
+      value={{
+        user,
+        loading,
+        signIn,
+        signInWithGoogle,
+        signUp,
+        signOut,
+        getToken,
+        forgotPassword,
+      }}
     >
       {children}
     </AuthContext.Provider>
