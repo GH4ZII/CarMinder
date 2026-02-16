@@ -180,6 +180,19 @@ export const api = {
     return res.json();
   },
 
+  // Function to trigger password reset email
+  async authForgotPassword(email: string): Promise<void> {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Password reset failed', res.status, detail);
+    }
+  },
+
   // Function to lookup a vehicle
   async lookupVehicle(regNumber: string): Promise<CarInfo | null> {
     const res = await fetch(`${API_URL}/cars/lookup`, {
