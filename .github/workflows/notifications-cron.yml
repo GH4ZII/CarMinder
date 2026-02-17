@@ -1,0 +1,18 @@
+name: Send EU-control notifications
+
+on:
+  schedule:
+    # Kjør hver dag kl. 07:00 UTC
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  call-notification-endpoint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call /notifications/check-deadlines
+        run: |
+          curl -X POST \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BACKEND_BASE_URL }}/notifications/check-deadlines"
