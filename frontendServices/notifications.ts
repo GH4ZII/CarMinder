@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { API_URL } from './apiCall';
+import { API_URL } from './apiConfig';
 
 // Lazy-load native modules — they crash if not compiled into the dev build
 let Device: any = null;
