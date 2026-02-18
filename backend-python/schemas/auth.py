@@ -16,6 +16,12 @@ class GoogleRequest(BaseModel):
     id_token: str
 
 
+class AppleRequest(BaseModel):
+    identity_token: str
+    email: EmailStr | None = None
+    full_name: str | None = None
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 

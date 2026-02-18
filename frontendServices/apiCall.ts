@@ -1,71 +1,504 @@
-/**
- * Barrel re-export — preserves backwards-compatibility for all existing imports.
- *
- * Prefer importing directly from the focused modules:
- *   import { authApi }        from './authApi';
- *   import { carApi }         from './carApi';
- *   import { maintenanceApi } from './maintenanceApi';
- *   import { incidentApi }    from './incidentApi';
- *   import { serviceStatusApi } from './serviceStatusApi';
- *   import { publicApi }      from './publicApi';
- *   import { API_URL, ApiError } from './apiConfig';
- *   import type { CarInfo, … } from './types';
- */
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://carminder-production.up.railway.app';
 
-export { API_URL, ApiError } from './apiConfig';
-export type { AuthUser, TokenResponse } from './types';
-export type {
-  CarInfo,
-  MaintenanceEventType,
-  MaintenanceEvent,
-  MaintenanceEventCreate,
-  ServiceDueStatus,
-  CarServiceStatus,
-  AllCarsServiceStatus,
-  IncidentReport,
-  IncidentReportCreate,
-  PublicCarInfo,
-  PublicMaintenanceEvent,
-  PublicIncidentReport,
-  PublicCarHistory,
-} from './types';
+console.log('🌐 API_URL initialized:', API_URL);
+console.log('🌐 EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
 
-import { authApi } from './authApi';
-import { carApi } from './carApi';
-import { maintenanceApi } from './maintenanceApi';
-import { incidentApi } from './incidentApi';
-import { serviceStatusApi } from './serviceStatusApi';
-import { publicApi } from './publicApi';
+// Custom error class for API errors
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public detail?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
+// Interface for the auth user
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
+
+// Interface for the token response
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+}
+
+// Function to parse the error detail
+async function parseErrorDetail(res: Response): Promise<string | undefined> {
+  try {
+    const j = await res.json();
+    return typeof j?.detail === 'string' ? j.detail : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Interface for the car info
+export interface CarInfo {
+  id?: string;
+  firebase_user_id?: string;
+  registreringsnummer: string;
+  merke: string;
+  modell: string;
+  arsmodell: string;
+  farge: string;
+  kilometer: number;
+  forstegangregistrert: string;
+  chassisnummer: string;
+  drivstoff: string;
+  girkasse: string;
+  motoreffekt: number;
+  slagvolum: number;
+  co2utslipp: number;
+  forbruk: number;
+  egenvekt: number;
+  totalvekt: number;
+  antallseter: number;
+  antalldorer: number;
+  karosseri: string;
+  eukontrollfrist: string;
+  makshastighet: number;
+  public_history?: boolean;
+}
+
+/** Server-defined; thin client fetches via getEventTypes(). */
+export type MaintenanceEventType =
+  | 'oil_change'
+  | 'brake_service'
+  | 'tire_change'
+  | 'inspection'
+  | 'repair'
+  | 'other';
+
+export interface MaintenanceEvent {
+  id: string;
+  car_id: string;
+  event_type: string;
+  event_date: string;
+  mileage: number | null;
+  cost_cents: number | null;
+  vendor: string | null;
+  notes: string | null;
+  receipt_image_url: string | null;
+  created_at: string;
+}
+
+/** Minimal create payload; server validates and normalizes. */
+export interface MaintenanceEventCreate {
+  event_type: string;
+  event_date: string;
+  mileage?: number | null;
+  cost?: number | null;
+  vendor?: string | null;
+  notes?: string | null;
+}
+
+/** Service due status computed by backend */
+export interface ServiceDueStatus {
+  event_type: string;
+  last_date: string | null;
+  last_mileage: number | null;
+  due_date: string | null;
+  due_mileage: number | null;
+  is_overdue: boolean;
+  days_until_due: number | null;
+  km_until_due: number | null;
+  urgency: 'ok' | 'soon' | 'overdue' | 'unknown';
+}
+
+/** Service status for a single car */
+export interface CarServiceStatus {
+  car_id: string;
+  car_name: string;
+  registration: string;
+  current_mileage: number;
+  services: ServiceDueStatus[];
+  next_service: ServiceDueStatus | null;
+}
+
+/** Overview of all cars' service status */
+export interface AllCarsServiceStatus {
+  cars: CarServiceStatus[];
+  urgent_count: number;
+  overdue_count: number;
+  soon_count: number;
+}
+
+// Function to create the auth headers
+function authHeaders(token: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+// Function to login with email and password
 export const api = {
-  // Auth
-  authLogin: authApi.login.bind(authApi),
-  authSignup: authApi.signup.bind(authApi),
-  authGoogle: authApi.google.bind(authApi),
-  authForgotPassword: authApi.forgotPassword.bind(authApi),
+  async authLogin(email: string, password: string): Promise<TokenResponse> {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Login failed', res.status, detail);
+    }
+    return res.json();
+  },
 
-  // Cars
-  lookupVehicle: carApi.lookupVehicle.bind(carApi),
-  saveCar: carApi.saveCar.bind(carApi),
-  getUserCars: carApi.getUserCars.bind(carApi),
-  deleteCar: carApi.deleteCar.bind(carApi),
-  getCar: carApi.getCar.bind(carApi),
-  updateCar: carApi.updateCar.bind(carApi),
+  // Function to sign up with email and password
+  async authSignup(email: string, password: string, name: string): Promise<TokenResponse> {
+    const res = await fetch(`${API_URL}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Signup failed', res.status, detail);
+    }
+    return res.json();
+  },
 
-  // Maintenance
-  getEventTypes: maintenanceApi.getEventTypes.bind(maintenanceApi),
-  getMaintenanceEvents: maintenanceApi.getMaintenanceEvents.bind(maintenanceApi),
-  createMaintenanceEvent: maintenanceApi.createMaintenanceEvent.bind(maintenanceApi),
+  // Function to sign in with Google
+  async authGoogle(idToken: string): Promise<TokenResponse> {
+    const res = await fetch(`${API_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: idToken }),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Google login failed', res.status, detail);
+    }
+    return res.json();
+  },
 
-  // Service status
-  getCarServiceStatus: serviceStatusApi.getCarServiceStatus.bind(serviceStatusApi),
-  getAllServiceStatus: serviceStatusApi.getAllServiceStatus.bind(serviceStatusApi),
+  async authApple(payload: { identity_token: string; email?: string | null; full_name?: string | null }): Promise<TokenResponse> {
+    const res = await fetch(`${API_URL}/auth/apple`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Apple login failed', res.status, detail);
+    }
+    return res.json();
+  },
 
-  // Incidents
-  getIncidentTypes: incidentApi.getIncidentTypes.bind(incidentApi),
-  getIncidents: incidentApi.getIncidents.bind(incidentApi),
-  createIncident: incidentApi.createIncident.bind(incidentApi),
+  // Function to trigger password reset email
+  async authForgotPassword(email: string): Promise<void> {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Password reset failed', res.status, detail);
+    }
+  },
 
-  // Public
-  getPublicHistory: publicApi.getPublicHistory.bind(publicApi),
+  // Function to lookup a vehicle
+  async lookupVehicle(regNumber: string): Promise<CarInfo | null> {
+    const res = await fetch(`${API_URL}/cars/lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registration_number: regNumber }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.success ? data.car : null;
+  },
+
+  // Function to save a car
+  async saveCar(car: CarInfo, token: string): Promise<CarInfo> {
+    const res = await fetch(`${API_URL}/cars/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(car),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      if (res.status === 401) {
+        throw new ApiError('Unauthorized', 401);
+      }
+      if (res.status === 400 && errorText.includes('Car already registered to this user')) {
+        throw new Error('This car is already saved to your profile.');
+      }
+      throw new Error(`Failed to save car: ${errorText}`);
+    }
+    return res.json();
+  },
+
+  // Function to get the user's cars
+  async getUserCars(token: string): Promise<CarInfo[]> {
+    if (!token?.length) {
+      throw new Error('getUserCars called without token');
+    }
+    console.log('🔍 Fetching cars from:', `${API_URL}/cars/`);
+    console.log('🔍 Token available:', !!token, 'length:', token?.length);
+    
+    try {
+      const res = await fetch(`${API_URL}/cars/`, {
+        headers: authHeaders(token),
+      });
+      
+      console.log('📡 Response status:', res.status);
+      console.log('📡 Response ok:', res.ok);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ Error response:', errorText);
+        
+        if (res.status === 401) throw new ApiError('Unauthorized', 401);
+        throw new Error(`Failed to fetch cars: ${res.status} ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('✅ Cars fetched successfully:', data.length, 'cars');
+      return data;
+    } catch (error) {
+      console.error('💥 Fetch error:', error);
+      throw error;
+    }
+  },
+
+  // Function to delete a car
+  async deleteCar(carId: string, token: string): Promise<void> {
+    const res = await fetch(`${API_URL}/cars/${carId}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to delete car');
+    }
+  },
+
+  async getCar(carId: string, token: string): Promise<CarInfo> {
+    console.log('🚗 Fetching car:', carId);
+    try {
+      const res = await fetch(`${API_URL}/cars/${carId}`, {
+        headers: authHeaders(token),
+      });
+      console.log('📡 getCar response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ getCar error:', errorText);
+        if (res.status === 401) throw new ApiError('Unauthorized', 401);
+        throw new Error(`Failed to fetch car: ${res.status} ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('✅ Car fetched:', data);
+      return data;
+    } catch (error) {
+      console.error('💥 getCar error:', error);
+      throw error;
+    }
+  },
+
+  async getEventTypes(): Promise<string[]> {
+    const res = await fetch(`${API_URL}/maintenance/event-types`);
+    if (!res.ok) throw new Error('Failed to fetch event types');
+    const data = await res.json();
+    return data.event_types ?? [];
+  },
+
+  async getMaintenanceEvents(carId: string, token: string): Promise<MaintenanceEvent[]> {
+    const res = await fetch(`${API_URL}/cars/${carId}/events`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch maintenance events');
+    }
+    return res.json();
+  },
+
+  async createMaintenanceEvent(
+    carId: string,
+    token: string,
+    payload: MaintenanceEventCreate
+  ): Promise<MaintenanceEvent> {
+    const res = await fetch(`${API_URL}/cars/${carId}/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const err = await res.json().catch(() => ({}));
+      const msg = Array.isArray(err.detail)
+        ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
+        : (typeof err.detail === 'string' ? err.detail : res.statusText);
+      throw new Error(msg || 'Failed to create maintenance event');
+    }
+    return res.json();
+  },
+
+  /** Get service status for a specific car */
+  async getCarServiceStatus(carId: string, token: string): Promise<CarServiceStatus> {
+    const res = await fetch(`${API_URL}/cars/${carId}/service-status`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch service status');
+    }
+    return res.json();
+  },
+
+  /** Get service status overview for all user's cars */
+  async getAllServiceStatus(token: string): Promise<AllCarsServiceStatus> {
+    const res = await fetch(`${API_URL}/service-status`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch service status');
+    }
+    return res.json();
+  },
+
+  /** Update a car (e.g. toggle public_history) */
+  async updateCar(carId: string, token: string, updates: Partial<CarInfo>): Promise<CarInfo> {
+    const res = await fetch(`${API_URL}/cars/${carId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to update car');
+    }
+    return res.json();
+  },
+
+  /** Get incident type metadata */
+  async getIncidentTypes(): Promise<{ severity_levels: string[]; repair_statuses: string[] }> {
+    const res = await fetch(`${API_URL}/incidents/types`);
+    if (!res.ok) throw new Error('Failed to fetch incident types');
+    return res.json();
+  },
+
+  /** List incidents for a car */
+  async getIncidents(carId: string, token: string): Promise<IncidentReport[]> {
+    const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch incidents');
+    }
+    return res.json();
+  },
+
+  /** Create an incident report */
+  async createIncident(carId: string, token: string, payload: IncidentReportCreate): Promise<IncidentReport> {
+    const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const err = await res.json().catch(() => ({}));
+      const msg = Array.isArray(err.detail)
+        ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
+        : (typeof err.detail === 'string' ? err.detail : res.statusText);
+      throw new Error(msg || 'Failed to create incident');
+    }
+    return res.json();
+  },
+
+  /** Lookup public car history by registration number (no auth) */
+  async getPublicHistory(regNumber: string): Promise<PublicCarHistory | null> {
+    const res = await fetch(`${API_URL}/public/history/${encodeURIComponent(regNumber.trim().toUpperCase())}`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('Failed to fetch public history');
+    return res.json();
+  },
 };
+
+// Incident report interfaces
+export interface IncidentReport {
+  id: string;
+  car_id: string;
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description: string | null;
+  repair_status: string;
+  repair_cost_cents: number | null;
+  repair_vendor: string | null;
+  insurance_claim: boolean;
+  mileage: number | null;
+  created_at: string;
+}
+
+export interface IncidentReportCreate {
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description?: string | null;
+  repair_status: string;
+  repair_cost?: number | null;
+  repair_vendor?: string | null;
+  insurance_claim: boolean;
+  mileage?: number | null;
+}
+
+// Public history interfaces
+export interface PublicCarInfo {
+  registreringsnummer: string;
+  merke: string;
+  modell: string;
+  arsmodell: string;
+  farge: string;
+  kilometer: number;
+}
+
+export interface PublicMaintenanceEvent {
+  event_type: string;
+  event_date: string;
+  mileage: number | null;
+  vendor: string | null;
+}
+
+export interface PublicIncidentReport {
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description: string | null;
+  repair_status: string;
+  mileage: number | null;
+}
+
+export interface PublicCarHistory {
+  car: PublicCarInfo;
+  maintenance_events: PublicMaintenanceEvent[];
+  incident_reports: PublicIncidentReport[];
+}
+

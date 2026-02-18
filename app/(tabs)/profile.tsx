@@ -2,8 +2,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +25,25 @@ export default function ProfileScreen() {
   const [cars, setCars] = useState<CarInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [biometricsSupported, setBiometricsSupported] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+
+  const BIOMETRICS_ENABLED_KEY = '@use_biometrics';
+
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricsSupported(hasHardware && isEnrolled);
+
+      if (hasHardware && isEnrolled) {
+        const stored = await SecureStore.getItemAsync(BIOMETRICS_ENABLED_KEY);
+        setBiometricsEnabled(stored === 'true');
+      }
+    };
+
+    checkBiometrics();
+  }, []);
 
   // Function to fetch the user's cars
   const fetchCars = useCallback(async () => {
@@ -71,6 +92,27 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleToggleBiometrics = async (value: boolean) => {
+    if (!biometricsSupported) {
+      Alert.alert('Ikke tilgjengelig', 'Biometrisk innlogging er ikke tilgjengelig på denne enheten.');
+      return;
+    }
+    if (value) {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Feil', 'Kunne ikke aktivere biometri uten gyldig innlogging.');
+        return;
+      }
+      await SecureStore.setItemAsync('@auth_token', token);
+      await SecureStore.setItemAsync(BIOMETRICS_ENABLED_KEY, 'true');
+      setBiometricsEnabled(true);
+    } else {
+      await SecureStore.deleteItemAsync('@auth_token');
+      await SecureStore.deleteItemAsync(BIOMETRICS_ENABLED_KEY);
+      setBiometricsEnabled(false);
+    }
+  };
+
   // Function to delete a car
   const handleDelete = async (carId: string) => {
     if (!user) return;
@@ -114,6 +156,15 @@ export default function ProfileScreen() {
       {user.displayName ? (
         <ThemedText style={styles.info}>Name: {user.displayName}</ThemedText>
       ) : null}
+      {biometricsSupported && (
+        <View style={styles.biometricRow}>
+          <ThemedText style={styles.biometricLabel}>Bruk FaceID/biometri for rask innlogging</ThemedText>
+          <Switch
+            value={biometricsEnabled}
+            onValueChange={handleToggleBiometrics}
+          />
+        </View>
+      )}
       <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>

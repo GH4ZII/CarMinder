@@ -7,11 +7,16 @@ import {
 } from '@/frontendServices/notifications';
 // Persistent storage for keeping the user logged in across app restarts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 // Keys used in AsyncStorage to store the JWT and user object
 const AUTH_TOKEN_KEY = '@auth_token';
 const AUTH_USER_KEY = '@auth_user';
+const BIOMETRICS_ENABLED_KEY = '@use_biometrics';
 
 // Google Sign-In is optional: only available in dev/build, not in Expo Go.
 // Dynamically require and configure so the app still runs if the package is missing.
@@ -35,6 +40,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string | null>;
@@ -48,11 +54,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 async function persistAuth(data: TokenResponse) {
   await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
   await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+  await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.access_token);
 }
 
 // Clear the user and token from AsyncStorage
 async function clearPersistedAuth() {
   await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, AUTH_USER_KEY]);
+  await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -73,14 +81,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to check if the user is logged in
   const hydrate = useCallback(async () => {
     try {
-      const [t, u] = await Promise.all([
+      const [t, u, secureToken, biometricsFlag] = await Promise.all([
         AsyncStorage.getItem(AUTH_TOKEN_KEY),
         AsyncStorage.getItem(AUTH_USER_KEY),
+        SecureStore.getItemAsync(AUTH_TOKEN_KEY),
+        AsyncStorage.getItem(BIOMETRICS_ENABLED_KEY),
       ]);
-      if (t && u) {
-        setToken(t);
+      const shouldUseBiometrics = biometricsFlag === 'true';
+      const effectiveToken = shouldUseBiometrics && secureToken ? secureToken : t;
+      if (effectiveToken && u) {
+        setToken(effectiveToken);
         setUser(JSON.parse(u) as AuthUser);
-        setupPushNotifications(t);
+        setupPushNotifications(effectiveToken);
       } else {
         setToken(null);
         setUser(null);
@@ -138,6 +150,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setupPushNotifications]);
 
+  const signInWithApple = useCallback(async () => {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Apple-innlogging er bare tilgjengelig på iOS.');
+    }
+
+    try {
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        throw new Error('Apple-innlogging er ikke tilgjengelig på denne enheten.');
+      }
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error('Apple-innlogging avbrutt');
+      }
+
+      const fullName =
+        credential.fullName
+          ? `${credential.fullName.givenName ?? ''} ${credential.fullName.familyName ?? ''}`.trim() || null
+          : null;
+
+      const data = await api.authApple({
+        identity_token: credential.identityToken,
+        email: credential.email ?? null,
+        full_name: fullName,
+      });
+
+      setToken(data.access_token);
+      setUser(data.user);
+      await persistAuth(data);
+      setupPushNotifications(data.access_token);
+    } catch (e: any) {
+      if (e?.code === 'ERR_CANCELED') {
+        throw new Error('Apple-innlogging avbrutt');
+      }
+      throw e;
+    }
+  }, [setupPushNotifications]);
+
   const signOut = useCallback(async () => {
     // Remove push token from backend before clearing auth
     if (pushTokenRef.current && token) {
@@ -152,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setToken(null);
     setUser(null);
+    await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
     await clearPersistedAuth();
   }, [token]);
 
@@ -170,6 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signIn,
         signInWithGoogle,
+        signInWithApple,
         signUp,
         signOut,
         getToken,

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ApiError } from '@/frontendServices/apiCall';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -28,7 +29,10 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, signInWithGoogle } = useAuth();
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleCheckError, setAppleCheckError] = useState<string | null>(null);
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
 
   const borderColor = useThemeColor({}, 'text');
   const textColor = useThemeColor({}, 'text');
@@ -37,6 +41,35 @@ export default function LoginScreen() {
   // Load remembered credentials on mount
   useEffect(() => {
     loadRememberedCredentials();
+  }, []);
+
+  // Check if Apple Sign-In is actually available on this device/build
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        console.log('LoginScreen: Platform.OS =', Platform.OS);
+        const isAvailable = await AppleAuthentication.isAvailableAsync();
+        console.log('LoginScreen: AppleAuthentication.isAvailableAsync() =', isAvailable);
+        if (mounted) {
+          setAppleAvailable(isAvailable);
+          setAppleCheckError(null);
+        }
+      } catch (e: any) {
+        console.log('LoginScreen: AppleAuthentication.isAvailableAsync() error', e);
+        if (mounted) {
+          setAppleAvailable(false);
+          setAppleCheckError(
+            typeof e?.message === 'string'
+              ? e.message
+              : 'Apple-innlogging er ikke tilgjengelig i denne builden/enheten.',
+          );
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Load remembered credentials from AsyncStorage
@@ -116,6 +149,27 @@ export default function LoginScreen() {
       Alert.alert('Feil', errorMessage);
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      let errorMessage = 'Apple-innlogging feilet. Prøv igjen.';
+      const d = error instanceof ApiError ? error.detail : error?.message ?? '';
+      if (typeof d === 'string' && (d.includes('INVALID_IDP_RESPONSE') || d.includes('INVALID_CREDENTIAL'))) {
+        errorMessage = 'Apple-innlogging feilet. Prøv igjen eller bruk e-post.';
+      } else if (typeof d === 'string' && d.length && !d.includes('avbrutt')) {
+        errorMessage = d;
+      } else if (error?.message && typeof error.message === 'string') {
+        errorMessage = error.message;
+      }
+      Alert.alert('Feil', errorMessage);
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -202,6 +256,12 @@ export default function LoginScreen() {
             <View style={[styles.divider, { borderColor }]} />
           </View>
 
+          {!appleAvailable && appleCheckError && (
+            <ThemedText style={styles.appleDebugText}>
+              Apple-innlogging utilgjengelig: {appleCheckError}
+            </ThemedText>
+          )}
+
           <TouchableOpacity
             style={[styles.googleButton, (loading || googleLoading) && styles.buttonDisabled]}
             onPress={handleGoogleSignIn}
@@ -218,6 +278,23 @@ export default function LoginScreen() {
               </>
             )}
           </TouchableOpacity>
+
+          {appleAvailable && (
+            <View style={styles.appleButtonContainer}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={8}
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+              />
+              {appleLoading && (
+                <View style={styles.appleLoadingOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity
             style={styles.switchButton}
@@ -336,5 +413,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  appleButtonContainer: {
+    marginTop: 12,
+    marginBottom: 4,
+    position: 'relative',
+  },
+  appleButton: {
+    width: '100%',
+    height: 50,
+    borderRadius: 8,
+  },
+  appleLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appleDebugText: {
+    marginBottom: 12,
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: 'center',
   },
 });
