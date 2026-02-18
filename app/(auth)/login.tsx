@@ -30,6 +30,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleCheckError, setAppleCheckError] = useState<string | null>(null);
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
 
   const borderColor = useThemeColor({}, 'text');
@@ -39,6 +41,35 @@ export default function LoginScreen() {
   // Load remembered credentials on mount
   useEffect(() => {
     loadRememberedCredentials();
+  }, []);
+
+  // Check if Apple Sign-In is actually available on this device/build
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        console.log('LoginScreen: Platform.OS =', Platform.OS);
+        const isAvailable = await AppleAuthentication.isAvailableAsync();
+        console.log('LoginScreen: AppleAuthentication.isAvailableAsync() =', isAvailable);
+        if (mounted) {
+          setAppleAvailable(isAvailable);
+          setAppleCheckError(null);
+        }
+      } catch (e: any) {
+        console.log('LoginScreen: AppleAuthentication.isAvailableAsync() error', e);
+        if (mounted) {
+          setAppleAvailable(false);
+          setAppleCheckError(
+            typeof e?.message === 'string'
+              ? e.message
+              : 'Apple-innlogging er ikke tilgjengelig i denne builden/enheten.',
+          );
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Load remembered credentials from AsyncStorage
@@ -225,6 +256,12 @@ export default function LoginScreen() {
             <View style={[styles.divider, { borderColor }]} />
           </View>
 
+          {!appleAvailable && appleCheckError && (
+            <ThemedText style={styles.appleDebugText}>
+              Apple-innlogging utilgjengelig: {appleCheckError}
+            </ThemedText>
+          )}
+
           <TouchableOpacity
             style={[styles.googleButton, (loading || googleLoading) && styles.buttonDisabled]}
             onPress={handleGoogleSignIn}
@@ -242,7 +279,7 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {Platform.OS === 'ios' && (
+          {appleAvailable && (
             <View style={styles.appleButtonContainer}>
               <AppleAuthentication.AppleAuthenticationButton
                 buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -376,5 +413,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  appleButtonContainer: {
+    marginTop: 12,
+    marginBottom: 4,
+    position: 'relative',
+  },
+  appleButton: {
+    width: '100%',
+    height: 50,
+    borderRadius: 8,
+  },
+  appleLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appleDebugText: {
+    marginBottom: 12,
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: 'center',
   },
 });
