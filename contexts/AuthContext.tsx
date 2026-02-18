@@ -13,10 +13,11 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-// Keys used in AsyncStorage to store the JWT and user object
+// Keys used in storage; SecureStore requires alphanumeric + ".", "-", "_"
 const AUTH_TOKEN_KEY = '@auth_token';
 const AUTH_USER_KEY = '@auth_user';
 const BIOMETRICS_ENABLED_KEY = '@use_biometrics';
+const SECURE_AUTH_TOKEN_KEY = 'auth_token_secure';
 
 // Google Sign-In is optional: only available in dev/build, not in Expo Go.
 // Dynamically require and configure so the app still runs if the package is missing.
@@ -50,17 +51,17 @@ interface AuthContextType {
 // React context that will hold auth state and methods; undefined when used outside AuthProvider
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Remember the user and token in AsyncStorage
+// Remember the user and token in AsyncStorage + SecureStore (for biometrics)
 async function persistAuth(data: TokenResponse) {
   await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
   await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
-  await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.access_token);
+  await SecureStore.setItemAsync(SECURE_AUTH_TOKEN_KEY, data.access_token);
 }
 
 // Clear the user and token from AsyncStorage
 async function clearPersistedAuth() {
   await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, AUTH_USER_KEY]);
-  await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+  await SecureStore.deleteItemAsync(SECURE_AUTH_TOKEN_KEY);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const [t, u, secureToken, biometricsFlag] = await Promise.all([
         AsyncStorage.getItem(AUTH_TOKEN_KEY),
         AsyncStorage.getItem(AUTH_USER_KEY),
-        SecureStore.getItemAsync(AUTH_TOKEN_KEY),
+        SecureStore.getItemAsync(SECURE_AUTH_TOKEN_KEY),
         AsyncStorage.getItem(BIOMETRICS_ENABLED_KEY),
       ]);
       const shouldUseBiometrics = biometricsFlag === 'true';
