@@ -29,6 +29,8 @@ export default function ProfileScreen() {
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
 
   const BIOMETRICS_ENABLED_KEY = '@use_biometrics';
+  const SECURE_AUTH_TOKEN_KEY = 'auth_token_secure';
+  const SECURE_BIOMETRICS_ENABLED_KEY = 'use_biometrics_flag';
 
   useEffect(() => {
     const checkBiometrics = async () => {
@@ -37,7 +39,7 @@ export default function ProfileScreen() {
       setBiometricsSupported(hasHardware && isEnrolled);
 
       if (hasHardware && isEnrolled) {
-        const stored = await SecureStore.getItemAsync(BIOMETRICS_ENABLED_KEY);
+        const stored = await SecureStore.getItemAsync(SECURE_BIOMETRICS_ENABLED_KEY);
         setBiometricsEnabled(stored === 'true');
       }
     };
@@ -103,12 +105,12 @@ export default function ProfileScreen() {
         Alert.alert('Feil', 'Kunne ikke aktivere biometri uten gyldig innlogging.');
         return;
       }
-      await SecureStore.setItemAsync('@auth_token', token);
-      await SecureStore.setItemAsync(BIOMETRICS_ENABLED_KEY, 'true');
+      await SecureStore.setItemAsync(SECURE_AUTH_TOKEN_KEY, token);
+      await SecureStore.setItemAsync(SECURE_BIOMETRICS_ENABLED_KEY, 'true');
       setBiometricsEnabled(true);
     } else {
-      await SecureStore.deleteItemAsync('@auth_token');
-      await SecureStore.deleteItemAsync(BIOMETRICS_ENABLED_KEY);
+      await SecureStore.deleteItemAsync(SECURE_AUTH_TOKEN_KEY);
+      await SecureStore.deleteItemAsync(SECURE_BIOMETRICS_ENABLED_KEY);
       setBiometricsEnabled(false);
     }
   };
