@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ApiError } from '@/frontendServices/apiCall';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -28,7 +29,8 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, signInWithGoogle } = useAuth();
+  const [appleLoading, setAppleLoading] = useState(false);
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
 
   const borderColor = useThemeColor({}, 'text');
   const textColor = useThemeColor({}, 'text');
@@ -116,6 +118,27 @@ export default function LoginScreen() {
       Alert.alert('Feil', errorMessage);
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      let errorMessage = 'Apple-innlogging feilet. Prøv igjen.';
+      const d = error instanceof ApiError ? error.detail : error?.message ?? '';
+      if (typeof d === 'string' && (d.includes('INVALID_IDP_RESPONSE') || d.includes('INVALID_CREDENTIAL'))) {
+        errorMessage = 'Apple-innlogging feilet. Prøv igjen eller bruk e-post.';
+      } else if (typeof d === 'string' && d.length && !d.includes('avbrutt')) {
+        errorMessage = d;
+      } else if (error?.message && typeof error.message === 'string') {
+        errorMessage = error.message;
+      }
+      Alert.alert('Feil', errorMessage);
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -218,6 +241,23 @@ export default function LoginScreen() {
               </>
             )}
           </TouchableOpacity>
+
+          {Platform.OS === 'ios' && (
+            <View style={styles.appleButtonContainer}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={8}
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+              />
+              {appleLoading && (
+                <View style={styles.appleLoadingOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity
             style={styles.switchButton}

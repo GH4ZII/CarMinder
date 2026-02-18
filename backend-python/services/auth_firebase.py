@@ -93,6 +93,24 @@ def login_google(id_token: str) -> tuple[str, str | None, str | None]:
     return uid, em, name
 
 
+def login_apple(
+    id_token: str,
+) -> tuple[str, str | None, str | None]:
+    post = f"id_token={id_token}&providerId=apple.com"
+    data = _firebase_req(
+        ":signInWithIdp",
+        {
+            "postBody": post,
+            "requestUri": "http://localhost",
+            "returnSecureToken": True,
+        },
+    )
+    uid = data.get("localId") or data.get("userId") or ""
+    em = data.get("email")
+    name = data.get("displayName") or data.get("fullName")
+    return uid, em, name
+
+
 def send_password_reset_email(email: str) -> None:
     """Trigger Firebase password reset email for given address.
 

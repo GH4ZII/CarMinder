@@ -180,6 +180,19 @@ export const api = {
     return res.json();
   },
 
+  async authApple(payload: { identity_token: string; email?: string | null; full_name?: string | null }): Promise<TokenResponse> {
+    const res = await fetch(`${API_URL}/auth/apple`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const detail = await parseErrorDetail(res);
+      throw new ApiError('Apple login failed', res.status, detail);
+    }
+    return res.json();
+  },
+
   // Function to trigger password reset email
   async authForgotPassword(email: string): Promise<void> {
     const res = await fetch(`${API_URL}/auth/forgot-password`, {

@@ -3,6 +3,7 @@ import logging
 
 from exceptions import AuthenticationError, ValidationError
 from schemas.auth import (
+    AppleRequest,
     ForgotPasswordRequest,
     GoogleRequest,
     LoginRequest,
@@ -13,6 +14,7 @@ from schemas.auth import (
 from services.auth_firebase import (
     login_email_password,
     login_google,
+    login_apple,
     send_password_reset_email,
     signup_email_password,
 )
@@ -68,6 +70,24 @@ def google(req: GoogleRequest):
     return TokenResponse(
         access_token=token,
         user=UserOut(uid=uid, email=email, displayName=display_name),
+    )
+
+
+@router.post("/apple", response_model=TokenResponse)
+def apple(req: AppleRequest):
+    if not req.identity_token or not req.identity_token.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="identity_token required",
+        )
+    try:
+        uid, email, display_name = login_apple(req.identity_token.strip())
+    except AuthenticationError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e.message)
+    token = create_access_token(uid, email or req.email, display_name or req.full_name)
+    return TokenResponse(
+        access_token=token,
+        user=UserOut(uid=uid, email=email or req.email, displayName=display_name or req.full_name),
     )
 
 
