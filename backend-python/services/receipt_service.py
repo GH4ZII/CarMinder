@@ -19,8 +19,15 @@ import uuid
 from datetime import date
 from typing import Any
 
+import shutil
+
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
+
+# Locate the tesseract binary — works in both Nix (Railway) and standard installs
+_tesseract_bin = shutil.which("tesseract")
+if _tesseract_bin:
+    pytesseract.pytesseract.tesseract_cmd = _tesseract_bin
 
 from config.database import get_supabase
 from config.settings import get_settings
