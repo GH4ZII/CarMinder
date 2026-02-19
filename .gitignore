@@ -56,3 +56,5 @@ backend-python/models/__pycache__/
 backend-python/routers/__pycache__/
 backend-python/schemas/__pycache__/
 backend-python/services/__pycache__/
+
+package-lock.json

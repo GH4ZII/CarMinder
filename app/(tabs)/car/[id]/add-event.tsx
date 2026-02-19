@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -22,7 +24,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { api, MaintenanceEventCreate } from '../../../../frontendServices/apiCall';
+import { api, MaintenanceEventCreate, ScanReceiptResponse } from '../../../../frontendServices/apiCall';
 
 const EVENT_LABELS: Record<string, string> = {
   oil_change: 'Oil change',
@@ -49,7 +51,7 @@ function toHHMM(d: Date): string {
 export default function AddMaintenanceEventScreen() {
   const router = useRouter();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const { user, getToken } = useAuth();  // Add getToken here
+  const { user, getToken } = useAuth();
   const scheme = useColorScheme();
 
   const colors = useMemo(() => {
@@ -64,6 +66,9 @@ export default function AddMaintenanceEventScreen() {
       chip: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
       primary: '#007AFF',
       success: '#34C759',
+      scanBg: dark ? 'rgba(0,122,255,0.12)' : 'rgba(0,122,255,0.07)',
+      scanBorder: dark ? 'rgba(0,122,255,0.45)' : 'rgba(0,122,255,0.3)',
+      receiptBg: dark ? '#1A1A24' : '#F0F4FF',
     };
   }, [scheme]);
 
@@ -78,7 +83,6 @@ export default function AddMaintenanceEventScreen() {
   const [pickerDate, setPickerDate] = useState(() => new Date());
   const [pickerTime, setPickerTime] = useState(() => new Date());
 
-  // Memoize maximumDate to prevent spinner jumping
   const maximumDate = useMemo(() => new Date(), []);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -90,6 +94,12 @@ export default function AddMaintenanceEventScreen() {
   const [cost, setCost] = useState('');
   const [vendor, setVendor] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Receipt scanning state
+  const [scanning, setScanning] = useState(false);
+  const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(null);
+  const [receiptLocalUri, setReceiptLocalUri] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<ScanReceiptResponse | null>(null);
 
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
@@ -115,6 +125,121 @@ export default function AddMaintenanceEventScreen() {
       cancelled = true;
     };
   }, [eventType]);
+
+  // ── Receipt scanning ─────────────────────────────────────────────────────────
+
+  const applyExtractedData = useCallback((result: ScanReceiptResponse) => {
+    const { extracted } = result;
+    if (extracted.event_type) setEventType(extracted.event_type);
+    if (extracted.event_date) setEventDate(extracted.event_date);
+    if (extracted.mileage != null) setMileage(String(extracted.mileage));
+    if (extracted.cost != null) setCost(String(extracted.cost));
+    if (extracted.vendor) setVendor(extracted.vendor);
+    if (extracted.notes) setNotes(extracted.notes);
+  }, []);
+
+  const handleScanReceipt = useCallback(async () => {
+    if (isWeb) {
+      Alert.alert('Not supported', 'Receipt scanning is not available in the web version.');
+      return;
+    }
+
+    const choice = await new Promise<'camera' | 'library' | 'cancel'>((resolve) => {
+      if (isIOS) {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Take photo', 'Choose from library', 'Cancel'],
+            cancelButtonIndex: 2,
+            title: 'Scan receipt or service report',
+          },
+          (idx) => {
+            if (idx === 0) resolve('camera');
+            else if (idx === 1) resolve('library');
+            else resolve('cancel');
+          },
+        );
+      } else {
+        Alert.alert(
+          'Scan receipt',
+          'Choose image source',
+          [
+            { text: 'Camera', onPress: () => resolve('camera') },
+            { text: 'Gallery', onPress: () => resolve('library') },
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
+          ],
+          { cancelable: true, onDismiss: () => resolve('cancel') },
+        );
+      }
+    });
+
+    if (choice === 'cancel') return;
+
+    if (choice === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Camera access is needed to take a photo.');
+        return;
+      }
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Photo library access is needed to pick an image.');
+        return;
+      }
+    }
+
+    const pickerResult =
+      choice === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: 'images',
+            quality: 0.85,
+            allowsEditing: false,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images',
+            quality: 0.85,
+            allowsEditing: false,
+          });
+
+    if (pickerResult.canceled || !pickerResult.assets?.length) return;
+
+    const asset = pickerResult.assets[0];
+    const mimeType = asset.mimeType ?? 'image/jpeg';
+    setReceiptLocalUri(asset.uri);
+
+    setScanning(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Could not get auth token. Please sign in again.');
+        return;
+      }
+
+      const result = await api.scanReceipt(carId!, token, asset.uri, mimeType);
+      setScanResult(result);
+      setReceiptImageUrl(result.receipt_image_url);
+      applyExtractedData(result);
+
+      Alert.alert(
+        '✅ Receipt scanned',
+        'Fields have been filled in from your receipt. Review and adjust if needed.',
+      );
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to scan receipt.';
+      Alert.alert('Scan failed', msg);
+      setReceiptLocalUri(null);
+    } finally {
+      setScanning(false);
+    }
+  }, [isWeb, isIOS, carId, getToken, applyExtractedData]);
+
+  const handleRemoveReceipt = useCallback(() => {
+    setReceiptImageUrl(null);
+    setReceiptLocalUri(null);
+    setScanResult(null);
+  }, []);
+
+  // ── Date / Time pickers ───────────────────────────────────────────────────────
 
   const openDatePicker = useCallback(() => {
     const now = new Date();
@@ -157,14 +282,13 @@ export default function AddMaintenanceEventScreen() {
         }
         return;
       }
-      // iOS - use event.nativeEvent.timestamp for v8.x compatibility
       const date = selectedDate ?? (event.nativeEvent.timestamp ? new Date(event.nativeEvent.timestamp) : null);
       if (date) {
         setPickerDate(date);
         setEventDate(toYYYYMMDD(date));
       }
     },
-    []
+    [],
   );
 
   const handleTimeChange = useCallback(
@@ -177,15 +301,16 @@ export default function AddMaintenanceEventScreen() {
         }
         return;
       }
-      // iOS - use event.nativeEvent.timestamp for v8.x compatibility
       const time = selectedTime ?? (event.nativeEvent.timestamp ? new Date(event.nativeEvent.timestamp) : null);
       if (time) {
         setPickerTime(time);
         setEventTime(toHHMM(time));
       }
     },
-    []
+    [],
   );
+
+  // ── Submit ────────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
     if (!carId || !user) return;
@@ -200,21 +325,17 @@ export default function AddMaintenanceEventScreen() {
 
     setSubmitting(true);
     try {
-      const token = await getToken();  // Use getToken() instead of user.getIdToken()
-      
+      const token = await getToken();
       if (!token) {
         Alert.alert('Error', 'Could not get auth token. Please sign in again.');
         return;
       }
-      
+
       const payload: MaintenanceEventCreate = {
         event_type: eventType,
         event_date: eventDate.trim(),
+        receipt_image_url: receiptImageUrl ?? undefined,
       };
-
-      // If your backend supports time, add an explicit field there and include it here.
-      // Example:
-      // (payload as any).event_time = eventTime;
 
       const m = mileage.trim();
       if (m) {
@@ -270,254 +391,307 @@ export default function AddMaintenanceEventScreen() {
             Add maintenance event
           </ThemedText>
 
-        {loadingTypes ? (
-          <ActivityIndicator style={styles.loader} />
-        ) : (
-          <>
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>
-              Event type <Text style={styles.required}>*</Text>
-            </ThemedText>
-            {isIOS ? (
-              <Pressable
-                style={[
-                  styles.selectButton,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-                onPress={() => {
-                  if (!eventTypes.length) return;
-                  ActionSheetIOS.showActionSheetWithOptions(
-                    {
-                      options: [...eventTypes.map((t) => EVENT_LABELS[t] ?? t), 'Cancel'],
-                      cancelButtonIndex: eventTypes.length,
-                      title: 'Select event type',
-                    },
-                    (idx) => {
-                      if (idx === undefined || idx === eventTypes.length) return;
-                      setEventType(eventTypes[idx]);
-                    }
-                  );
-                }}
-              >
-                <Text style={[styles.selectButtonText, { color: colors.text }]}>
-                  {eventType ? EVENT_LABELS[eventType] ?? eventType : 'Select event type'}
-                </Text>
-              </Pressable>
-            ) : (
-              <View style={styles.typeRow}>
-                {eventTypes.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[
-                      styles.typeChip,
-                      { backgroundColor: colors.chip },
-                      eventType === t && { backgroundColor: colors.primary },
-                    ]}
-                    onPress={() => setEventType(t)}
-                  >
-                    <Text
-                      style={[
-                        styles.typeChipText,
-                        { color: colors.text },
-                        eventType === t && { color: '#fff' },
-                      ]}
-                    >
-                      {EVENT_LABELS[t] ?? t}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>
-              Date <Text style={styles.required}>*</Text>
-            </ThemedText>
-            {isWeb ? (
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-                ]}
-                value={eventDate}
-                onChangeText={setEventDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.placeholder}
-                inputMode="numeric"
-              />
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.selectButton,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                  onPress={openDatePicker}
-                >
-                  <Text style={[styles.selectButtonText, { color: colors.text }]}>
-                    {eventDate}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={pickerDate}
-                    mode="date"
-                    display="default"
-                    onChange={handleDateChange}
-                    maximumDate={maximumDate}
-                  />
-                )}
-                {isIOS && (
-                  <Modal visible={showDateIOSModal} transparent animationType="slide">
-                    <View style={styles.modalOverlay}>
-                      <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-                        <DateTimePicker
-                          value={pickerDate}
-                          mode="date"
-                          display="spinner"
-                          onChange={handleDateChange}
-                          maximumDate={maximumDate}
-                          themeVariant={scheme === 'dark' ? 'dark' : 'light'}
-                          style={styles.iosPicker}
-                        />
-                        <TouchableOpacity
-                          style={[styles.modalDone, { backgroundColor: colors.primary }]}
-                          onPress={() => setShowDateIOSModal(false)}
-                        >
-                          <Text style={styles.modalDoneText}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </Modal>
-                )}
-              </>
-            )}
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Time</ThemedText>
-            {isWeb ? (
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-                ]}
-                value={eventTime}
-                onChangeText={setEventTime}
-                placeholder="HH:MM"
-                placeholderTextColor={colors.placeholder}
-                inputMode="numeric"
-              />
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.selectButton,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                  onPress={openTimePicker}
-                >
-                  <Text style={[styles.selectButtonText, { color: colors.text }]}>{eventTime}</Text>
-                </TouchableOpacity>
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={pickerTime}
-                    mode="time"
-                    display="default"
-                    onChange={handleTimeChange}
-                  />
-                )}
-                {isIOS && (
-                  <Modal visible={showTimeIOSModal} transparent animationType="slide">
-                    <View style={styles.modalOverlay}>
-                      <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-                        <DateTimePicker
-                          value={pickerTime}
-                          mode="time"
-                          display="spinner"
-                          onChange={handleTimeChange}
-                          themeVariant={scheme === 'dark' ? 'dark' : 'light'}
-                          style={styles.iosPicker}
-                        />
-                        <TouchableOpacity
-                          style={[styles.modalDone, { backgroundColor: colors.primary }]}
-                          onPress={() => setShowTimeIOSModal(false)}
-                        >
-                          <Text style={styles.modalDoneText}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </Modal>
-                )}
-              </>
-            )}
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Mileage (optional)</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              value={mileage}
-              onChangeText={setMileage}
-              placeholder="km"
-              placeholderTextColor={colors.placeholder}
-              keyboardType="number-pad"
-            />
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Cost (optional)</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              value={cost}
-              onChangeText={setCost}
-              placeholder="e.g. 1299.00"
-              placeholderTextColor={colors.placeholder}
-              keyboardType="decimal-pad"
-            />
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Vendor (optional)</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              value={vendor}
-              onChangeText={setVendor}
-              placeholder="Workshop or shop name"
-              placeholderTextColor={colors.placeholder}
-            />
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Notes (optional)</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                styles.notesInput,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Details"
-              placeholderTextColor={colors.placeholder}
-              multiline
-              numberOfLines={3}
-            />
-
+          {/* ── Scan receipt button ─────────────────────────── */}
+          {!isWeb && (
             <TouchableOpacity
               style={[
-                styles.submitBtn,
-                { backgroundColor: colors.success },
-                submitting && styles.submitBtnDisabled,
+                styles.scanBtn,
+                { backgroundColor: colors.scanBg, borderColor: colors.scanBorder },
+                scanning && styles.scanBtnDisabled,
               ]}
-              onPress={handleSubmit}
-              disabled={submitting}
+              onPress={handleScanReceipt}
+              disabled={scanning || submitting}
             >
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
+              {scanning ? (
+                <View style={styles.scanBtnInner}>
+                  <ActivityIndicator color={colors.primary} size="small" />
+                  <Text style={[styles.scanBtnText, { color: colors.primary }]}>
+                    {'  '}Scanning receipt…
+                  </Text>
+                </View>
               ) : (
-                <Text style={styles.submitBtnText}>Save event</Text>
+                <View style={styles.scanBtnInner}>
+                  <Text style={styles.scanBtnIcon}>📷</Text>
+                  <Text style={[styles.scanBtnText, { color: colors.primary }]}>
+                    Scan receipt / service report
+                  </Text>
+                </View>
               )}
             </TouchableOpacity>
-          </>
-        )}
+          )}
+
+          {/* ── Receipt preview ─────────────────────────────── */}
+          {receiptLocalUri && (
+            <View style={[styles.receiptPreviewContainer, { backgroundColor: colors.receiptBg, borderColor: colors.border }]}>
+              <View style={styles.receiptPreviewHeader}>
+                <Text style={[styles.receiptPreviewLabel, { color: colors.subtext }]}>
+                  📎 Receipt attached
+                </Text>
+                <TouchableOpacity onPress={handleRemoveReceipt}>
+                  <Text style={[styles.receiptRemoveBtn, { color: '#FF3B30' }]}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+              <Image
+                source={{ uri: receiptLocalUri }}
+                style={styles.receiptPreviewImage}
+                contentFit="contain"
+              />
+              {scanResult && (
+                <Text style={[styles.receiptExtractedNote, { color: colors.subtext }]}>
+                  ✨ Fields auto-filled from receipt. Review below.
+                </Text>
+              )}
+            </View>
+          )}
+
+          {loadingTypes ? (
+            <ActivityIndicator style={styles.loader} />
+          ) : (
+            <>
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>
+                Event type <Text style={styles.required}>*</Text>
+              </ThemedText>
+              {isIOS ? (
+                <Pressable
+                  style={[
+                    styles.selectButton,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                  onPress={() => {
+                    if (!eventTypes.length) return;
+                    ActionSheetIOS.showActionSheetWithOptions(
+                      {
+                        options: [...eventTypes.map((t) => EVENT_LABELS[t] ?? t), 'Cancel'],
+                        cancelButtonIndex: eventTypes.length,
+                        title: 'Select event type',
+                      },
+                      (idx) => {
+                        if (idx === undefined || idx === eventTypes.length) return;
+                        setEventType(eventTypes[idx]);
+                      },
+                    );
+                  }}
+                >
+                  <Text style={[styles.selectButtonText, { color: colors.text }]}>
+                    {eventType ? EVENT_LABELS[eventType] ?? eventType : 'Select event type'}
+                  </Text>
+                </Pressable>
+              ) : (
+                <View style={styles.typeRow}>
+                  {eventTypes.map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[
+                        styles.typeChip,
+                        { backgroundColor: colors.chip },
+                        eventType === t && { backgroundColor: colors.primary },
+                      ]}
+                      onPress={() => setEventType(t)}
+                    >
+                      <Text
+                        style={[
+                          styles.typeChipText,
+                          { color: colors.text },
+                          eventType === t && { color: '#fff' },
+                        ]}
+                      >
+                        {EVENT_LABELS[t] ?? t}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>
+                Date <Text style={styles.required}>*</Text>
+              </ThemedText>
+              {isWeb ? (
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                  ]}
+                  value={eventDate}
+                  onChangeText={setEventDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.placeholder}
+                  inputMode="numeric"
+                />
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.selectButton,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ]}
+                    onPress={openDatePicker}
+                  >
+                    <Text style={[styles.selectButtonText, { color: colors.text }]}>
+                      {eventDate}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={pickerDate}
+                      mode="date"
+                      display="default"
+                      onChange={handleDateChange}
+                      maximumDate={maximumDate}
+                    />
+                  )}
+                  {isIOS && (
+                    <Modal visible={showDateIOSModal} transparent animationType="slide">
+                      <View style={styles.modalOverlay}>
+                        <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                          <DateTimePicker
+                            value={pickerDate}
+                            mode="date"
+                            display="spinner"
+                            onChange={handleDateChange}
+                            maximumDate={maximumDate}
+                            themeVariant={scheme === 'dark' ? 'dark' : 'light'}
+                            style={styles.iosPicker}
+                          />
+                          <TouchableOpacity
+                            style={[styles.modalDone, { backgroundColor: colors.primary }]}
+                            onPress={() => setShowDateIOSModal(false)}
+                          >
+                            <Text style={styles.modalDoneText}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </Modal>
+                  )}
+                </>
+              )}
+
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>Time</ThemedText>
+              {isWeb ? (
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                  ]}
+                  value={eventTime}
+                  onChangeText={setEventTime}
+                  placeholder="HH:MM"
+                  placeholderTextColor={colors.placeholder}
+                  inputMode="numeric"
+                />
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.selectButton,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ]}
+                    onPress={openTimePicker}
+                  >
+                    <Text style={[styles.selectButtonText, { color: colors.text }]}>{eventTime}</Text>
+                  </TouchableOpacity>
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={pickerTime}
+                      mode="time"
+                      display="default"
+                      onChange={handleTimeChange}
+                    />
+                  )}
+                  {isIOS && (
+                    <Modal visible={showTimeIOSModal} transparent animationType="slide">
+                      <View style={styles.modalOverlay}>
+                        <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                          <DateTimePicker
+                            value={pickerTime}
+                            mode="time"
+                            display="spinner"
+                            onChange={handleTimeChange}
+                            themeVariant={scheme === 'dark' ? 'dark' : 'light'}
+                            style={styles.iosPicker}
+                          />
+                          <TouchableOpacity
+                            style={[styles.modalDone, { backgroundColor: colors.primary }]}
+                            onPress={() => setShowTimeIOSModal(false)}
+                          >
+                            <Text style={styles.modalDoneText}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </Modal>
+                  )}
+                </>
+              )}
+
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>Mileage (optional)</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                ]}
+                value={mileage}
+                onChangeText={setMileage}
+                placeholder="km"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="number-pad"
+              />
+
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>Cost (optional)</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                ]}
+                value={cost}
+                onChangeText={setCost}
+                placeholder="e.g. 1299.00"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="decimal-pad"
+              />
+
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>Vendor (optional)</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                ]}
+                value={vendor}
+                onChangeText={setVendor}
+                placeholder="Workshop or shop name"
+                placeholderTextColor={colors.placeholder}
+              />
+
+              <ThemedText style={[styles.label, { color: colors.subtext }]}>Notes (optional)</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.notesInput,
+                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                ]}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="Details"
+                placeholderTextColor={colors.placeholder}
+                multiline
+                numberOfLines={3}
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.submitBtn,
+                  { backgroundColor: colors.success },
+                  submitting && styles.submitBtnDisabled,
+                ]}
+                onPress={handleSubmit}
+                disabled={submitting || scanning}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Save event</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -546,10 +720,51 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  title: { marginBottom: 24, lineHeight: 32 },
+  title: { marginBottom: 20, lineHeight: 32 },
   loader: { marginVertical: 24 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
   required: { color: '#FF3B30', fontWeight: '700' },
+
+  // Scan receipt button
+  scanBtn: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  scanBtnDisabled: { opacity: 0.6 },
+  scanBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  scanBtnIcon: { fontSize: 20 },
+  scanBtnText: { fontSize: 15, fontWeight: '600' },
+
+  // Receipt preview
+  receiptPreviewContainer: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    gap: 10,
+  },
+  receiptPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  receiptPreviewLabel: { fontSize: 13, fontWeight: '600' },
+  receiptRemoveBtn: { fontSize: 13, fontWeight: '600' },
+  receiptPreviewImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 8,
+  },
+  receiptExtractedNote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
 
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   typeChip: {

@@ -24,6 +24,7 @@ class MaintenanceEventCreate(BaseModel):
     cost: Optional[float] = None  # NOK (or local currency); server converts to cost_cents
     vendor: Optional[str] = None
     notes: Optional[str] = None
+    receipt_image_url: Optional[str] = None  # Storage URL returned by scan-receipt; passed back on save
 
     @field_validator("event_type")
     @classmethod

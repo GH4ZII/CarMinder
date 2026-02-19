@@ -97,6 +97,24 @@ export interface MaintenanceEventCreate {
   cost?: number | null;
   vendor?: string | null;
   notes?: string | null;
+  /** Storage URL returned by scan-receipt; passed back when saving the event. */
+  receipt_image_url?: string | null;
+}
+
+/** Data extracted from a receipt image by Claude Vision. */
+export interface ExtractedReceiptData {
+  event_type: string;
+  event_date: string | null;
+  mileage: number | null;
+  cost: number | null;
+  vendor: string | null;
+  notes: string | null;
+}
+
+/** Response from POST /cars/{carId}/events/scan-receipt */
+export interface ScanReceiptResponse {
+  receipt_image_url: string;
+  extracted: ExtractedReceiptData;
 }
 
 /** Service due status computed by backend */
@@ -349,6 +367,41 @@ export const api = {
         : (typeof err.detail === 'string' ? err.detail : res.statusText);
       throw new Error(msg || 'Failed to create maintenance event');
     }
+    return res.json();
+  },
+
+  /**
+   * Upload a receipt or service-report image for OCR extraction.
+   * Stores the image in Supabase Storage, extracts data via Claude Vision,
+   * and returns { receipt_image_url, extracted }.
+   * Pass receipt_image_url back in the createMaintenanceEvent payload to attach it.
+   */
+  async scanReceipt(
+    carId: string,
+    token: string,
+    imageUri: string,
+    mimeType: string = 'image/jpeg',
+  ): Promise<ScanReceiptResponse> {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      name: `receipt.${mimeType.split('/')[1] ?? 'jpg'}`,
+      type: mimeType,
+    } as unknown as Blob);
+
+    const res = await fetch(`${API_URL}/cars/${carId}/events/scan-receipt`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const err = await res.json().catch(() => ({}));
+      const msg = typeof err.detail === 'string' ? err.detail : 'Failed to scan receipt';
+      throw new Error(msg);
+    }
+
     return res.json();
   },
 

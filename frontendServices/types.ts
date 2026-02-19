@@ -70,6 +70,24 @@ export interface MaintenanceEventCreate {
   cost?: number | null;
   vendor?: string | null;
   notes?: string | null;
+  /** Storage URL returned by scan-receipt; passed back when saving the event. */
+  receipt_image_url?: string | null;
+}
+
+/** Data extracted from a receipt by Claude Vision. */
+export interface ExtractedReceiptData {
+  event_type: string;
+  event_date: string | null;
+  mileage: number | null;
+  cost: number | null;
+  vendor: string | null;
+  notes: string | null;
+}
+
+/** Response from POST /cars/{carId}/events/scan-receipt */
+export interface ScanReceiptResponse {
+  receipt_image_url: string;
+  extracted: ExtractedReceiptData;
 }
 
 // Service status types
