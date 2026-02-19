@@ -19,35 +19,8 @@ import uuid
 from datetime import date
 from typing import Any
 
-import glob as _glob
-import os
-import shutil
-
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
-
-# Locate the tesseract binary.
-# On Railway/Nixpacks the binary lands somewhere in /nix/store but is NOT
-# always on PATH at runtime.  We try (in order):
-#   1. PATH lookup (works locally and on some hosts)
-#   2. Any tesseract binary found under /nix/store
-#   3. Common fallback paths
-def _find_tesseract() -> str:
-    # 1. PATH
-    found = shutil.which("tesseract")
-    if found:
-        return found
-    # 2. Nix store glob
-    candidates = _glob.glob("/nix/store/*/bin/tesseract")
-    if candidates:
-        return candidates[0]
-    # 3. Fallback
-    for path in ["/usr/bin/tesseract", "/usr/local/bin/tesseract"]:
-        if os.path.isfile(path):
-            return path
-    return "tesseract"  # last resort — let pytesseract raise a clear error
-
-pytesseract.pytesseract.tesseract_cmd = _find_tesseract()
 
 from config.database import get_supabase
 from config.settings import get_settings
