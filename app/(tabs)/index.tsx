@@ -13,10 +13,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
   AllCarsServiceStatus,
   api,
+  CarCareScoreResponse,
   CarServiceStatus,
   ServiceDueStatus,
 } from '../../frontendServices/apiCall';
@@ -36,6 +38,87 @@ const URGENCY_CONFIG = {
   unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: 'help-outline' as const, label: 'No Data' },
   ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: 'check-circle' as const, label: 'OK' },
 };
+
+const GRADE_COLORS: Record<string, string> = {
+  A: '#34C759',
+  B: '#30D158',
+  C: '#FF9500',
+  D: '#FF6B35',
+  F: '#FF3B30',
+};
+
+// ─── Score Ring ──────────────────────────────────────────────
+
+function ScoreRing({ score, grade }: { score: number; grade: string }) {
+  const color = GRADE_COLORS[grade] ?? '#8E8E93';
+
+  return (
+    <View style={ringStyles.container}>
+      {/* Background ring */}
+      <View style={[ringStyles.bgRing, { borderColor: 'rgba(128,128,128,0.15)' }]} />
+      {/* Colored arc overlay — approximated with quarter-border trick */}
+      <View
+        style={[
+          ringStyles.arcRing,
+          {
+            borderTopColor: score >= 1 ? color : 'transparent',
+            borderRightColor: score >= 25 ? color : 'transparent',
+            borderBottomColor: score >= 50 ? color : 'transparent',
+            borderLeftColor: score >= 75 ? color : 'transparent',
+          },
+        ]}
+      />
+      {/* Score text */}
+      <View style={ringStyles.labelWrap}>
+        <Text style={[ringStyles.number, { color }]}>{score}</Text>
+        <Text style={[ringStyles.grade, { color }]}>{grade}</Text>
+      </View>
+    </View>
+  );
+}
+
+const ringStyles = StyleSheet.create({
+  container: { width: 84, height: 84, justifyContent: 'center', alignItems: 'center' },
+  bgRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 42,
+    borderWidth: 6,
+  },
+  arcRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 42,
+    borderWidth: 6,
+    transform: [{ rotate: '-90deg' }],
+  },
+  labelWrap: { alignItems: 'center' },
+  number: { fontSize: 22, fontWeight: '800' },
+  grade: { fontSize: 12, fontWeight: '700', marginTop: -2 },
+});
+
+// ─── Score Card ─────────────────────────────────────────────
+
+function CarScoreCard({ score }: { score: CarCareScoreResponse }) {
+  const color = GRADE_COLORS[score.grade] ?? '#8E8E93';
+
+  return (
+    <View style={styles.scoreCard}>
+      <ScoreRing score={score.overall_score} grade={score.grade} />
+      <View style={styles.scoreDetails}>
+        <Text style={[styles.scoreTitle, { color }]}>Car Care Score</Text>
+        <ThemedText style={styles.scoreSummary} numberOfLines={2}>
+          {score.summary}
+        </ThemedText>
+        {(score.confidence_label === 'very_low' || score.confidence_label === 'low') && (
+          <Text style={styles.confidenceNote}>
+            Limited data — add more records for accuracy
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ─── Service Badge ──────────────────────────────────────────
 
 function ServiceBadge({ status }: { status: ServiceDueStatus }) {
   const config = URGENCY_CONFIG[status.urgency];
@@ -66,11 +149,15 @@ function ServiceBadge({ status }: { status: ServiceDueStatus }) {
   );
 }
 
+// ─── Car Service Card ───────────────────────────────────────
+
 function CarServiceCard({
   car,
+  score,
   onPress,
 }: {
   car: CarServiceStatus;
+  score: CarCareScoreResponse | null;
   onPress: () => void;
 }) {
   const urgentServices = car.services.filter((s) => s.urgency === 'overdue' || s.urgency === 'soon');
@@ -82,8 +169,11 @@ function CarServiceCard({
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {/* Score at top */}
+      {score && <CarScoreCard score={score} />}
+
       <View style={styles.carHeader}>
-        <View>
+        <View style={{ flex: 1 }}>
           <ThemedText style={styles.carName}>{car.car_name}</ThemedText>
           <ThemedText style={styles.carReg}>{car.registration}</ThemedText>
         </View>
@@ -124,10 +214,14 @@ function CarServiceCard({
   );
 }
 
+// ─── Home Screen ────────────────────────────────────────────
+
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, getToken } = useAuth();
   const [status, setStatus] = useState<AllCarsServiceStatus | null>(null);
+  const [scores, setScores] = useState<Record<string, CarCareScoreResponse>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -146,6 +240,21 @@ export default function HomeScreen() {
       }
       const data = await api.getAllServiceStatus(token);
       setStatus(data);
+
+      // Fetch scores for all cars in parallel
+      const scoreEntries = await Promise.allSettled(
+        data.cars.map(async (car) => {
+          const s = await api.getCarCareScore(car.car_id, token);
+          return [car.car_id, s] as const;
+        })
+      );
+      const scoreMap: Record<string, CarCareScoreResponse> = {};
+      for (const entry of scoreEntries) {
+        if (entry.status === 'fulfilled') {
+          scoreMap[entry.value[0]] = entry.value[1];
+        }
+      }
+      setScores(scoreMap);
     } catch (e) {
       console.error('Failed to fetch service status:', e);
       setError(true);
@@ -183,7 +292,7 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchStatus} />}
     >
       <ThemedText type="title" style={styles.title}>
@@ -262,6 +371,7 @@ export default function HomeScreen() {
         <CarServiceCard
           key={car.car_id}
           car={car}
+          score={scores[car.car_id] ?? null}
           onPress={() => router.push(`/(tabs)/car/${car.car_id}` as any)}
         />
       ))}
@@ -281,7 +391,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { paddingHorizontal: 20, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   title: { marginBottom: 16 },
 
@@ -306,7 +416,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
-  summaryIcon: {},
   summaryText: { fontSize: 16, fontWeight: '600' },
   summarySubtext: { fontSize: 14, opacity: 0.7, marginTop: 2 },
 
@@ -324,6 +433,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   addCarBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  // Score Card
+  scoreCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingBottom: 14,
+    marginBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.2)',
+  },
+  scoreDetails: { flex: 1 },
+  scoreTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  scoreSummary: { fontSize: 13, opacity: 0.8, lineHeight: 18 },
+  confidenceNote: { fontSize: 11, color: '#FF9500', marginTop: 4 },
 
   // Car Card
   carCard: {
@@ -356,7 +480,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  nextServiceIcon: {},
   nextServiceText: { fontSize: 14, fontWeight: '600' },
 
   // Services Grid

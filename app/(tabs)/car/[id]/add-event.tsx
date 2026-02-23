@@ -22,6 +22,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, MaintenanceEventCreate } from '../../../../frontendServices/apiCall';
 
 const EVENT_LABELS: Record<string, string> = {
@@ -48,8 +49,9 @@ function toHHMM(d: Date): string {
 
 export default function AddMaintenanceEventScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const { user, getToken } = useAuth();  // Add getToken here
+  const { user, getToken } = useAuth();
   const scheme = useColorScheme();
 
   const colors = useMemo(() => {
@@ -263,7 +265,7 @@ export default function AddMaintenanceEventScreen() {
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <ThemedText type="title" style={styles.title}>
@@ -525,7 +527,7 @@ export default function AddMaintenanceEventScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 6 },
+  container: { flex: 1, paddingHorizontal: 20 },
   center: {
     flex: 1,
     justifyContent: 'center',

@@ -14,6 +14,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, PublicCarHistory } from '../../frontendServices/apiCall';
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -47,6 +48,7 @@ function formatDate(s: string) {
 }
 
 export default function LookupScreen() {
+  const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const colors = useMemo(() => {
     const dark = scheme === 'dark';
@@ -94,7 +96,7 @@ export default function LookupScreen() {
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 12 }]}
       >
         <ThemedText type="title" style={styles.pageTitle}>Car History Lookup</ThemedText>
         <ThemedText style={[styles.subtitle, { color: colors.subtext }]}>

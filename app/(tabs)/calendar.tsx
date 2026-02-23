@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Calendar, DateData } from 'react-native-calendars';
 import { api, CarInfo, MaintenanceEvent } from '../../frontendServices/apiCall';
@@ -346,6 +347,7 @@ export default function CalendarScreen() {
   const { user, getToken } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [cars, setCars] = useState<CarInfo[]>([]);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
@@ -529,7 +531,7 @@ export default function CalendarScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={loading || eventsLoading} onRefresh={handleRefresh} />}
       >
-        <ThemedText type="title" style={styles.screenTitle}>Calendar</ThemedText>
+        <ThemedText type="title" style={[styles.screenTitle, { paddingTop: insets.top + 12 }]}>Calendar</ThemedText>
 
         {/* Car Selector */}
         {cars.length > 0 && (
@@ -618,7 +620,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, minHeight: 200 },
-  screenTitle: { paddingHorizontal: 20, paddingTop: 60, marginBottom: 12 },
+  screenTitle: { paddingHorizontal: 20, marginBottom: 12 },
 
   // Car Selector
   carSelector: { marginBottom: 16 },

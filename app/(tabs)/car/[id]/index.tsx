@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { api, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 
@@ -112,6 +113,7 @@ function ServiceStatusCard({ status }: { status: ServiceDueStatus }) {
 
 export default function CarTimelineScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { user, getToken } = useAuth();
   const [car, setCar] = useState<CarInfo | null>(null);
@@ -183,7 +185,7 @@ export default function CarTimelineScreen() {
   }
 
   const header = (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
         <Text style={styles.backBtnText}>← Back</Text>
       </TouchableOpacity>

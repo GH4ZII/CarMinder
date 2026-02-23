@@ -17,10 +17,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, loading: authLoading, signOut, getToken } = useAuth();
   const [cars, setCars] = useState<CarInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +152,7 @@ export default function ProfileScreen() {
   }
 
   const header = (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
       <ThemedText type="title" style={styles.title}>
         Profile
       </ThemedText>

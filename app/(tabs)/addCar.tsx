@@ -1,6 +1,8 @@
+import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,15 +15,30 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 
 export default function AddCarScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [regNumber, SetRegNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [carInfo, setCarInfo] = useState<CarInfo | null>(null);
   const { user, getToken, signOut } = useAuth();
+
+  const colors = useMemo(() => ({
+    bg: isDark ? '#151718' : '#f5f5f5',
+    card: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
+    text: isDark ? '#ECEDEE' : '#333',
+    subtext: isDark ? 'rgba(255,255,255,0.6)' : '#666',
+    border: isDark ? 'rgba(255,255,255,0.15)' : '#ddd',
+    inputBg: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
+    sectionBorder: isDark ? '#007AFF' : '#007AFF',
+    rowBorder: isDark ? 'rgba(255,255,255,0.08)' : '#eee',
+  }), [isDark]);
 
   const fetchCarInfo = async () => {
     if (!regNumber.trim()) {
@@ -85,31 +102,32 @@ export default function AddCarScreen() {
   };
 
   const InfoRow = ({ label, value }: { label: string; value: string | number }) => (
-    <View style={styles.infoRow}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+    <View style={[styles.infoRow, { borderBottomColor: colors.rowBorder }]}>
+      <Text style={[styles.label, { color: colors.subtext }]}>{label}</Text>
+      <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
     </View>
   );
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <Text style={styles.sectionHeader}>{title}</Text>
+    <Text style={[styles.sectionHeader, { borderBottomColor: colors.sectionBorder }]}>{title}</Text>
   );
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>← Back</Text>
-      </TouchableOpacity>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Add Your Car</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8 }}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <ThemedText type="title" style={styles.title}>Add Your Car</ThemedText>
 
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
             placeholder="Enter registration number (e.g., AB12345)"
+            placeholderTextColor={colors.subtext}
             value={regNumber}
             onChangeText={SetRegNumber}
             autoCapitalize="characters"
@@ -129,8 +147,8 @@ export default function AddCarScreen() {
         </View>
 
         {carInfo && (
-          <View style={styles.carInfoContainer}>
-            <Text style={styles.infoTitle}>{carInfo.merke} {carInfo.modell}</Text>
+          <View style={[styles.carInfoContainer, { backgroundColor: colors.card, shadowColor: isDark ? 'transparent' : '#000' }]}>
+            <Text style={[styles.infoTitle, { color: colors.text }]}>{carInfo.merke} {carInfo.modell}</Text>
 
             <SectionHeader title="Basic Information" />
             <InfoRow label="Registration" value={carInfo.registreringsnummer} />
@@ -181,8 +199,7 @@ export default function AddCarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -196,23 +213,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
     marginBottom: 20,
-    marginTop: 16,
     textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 20,
   },
   input: {
-    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 8,
     fontSize: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   button: {
     backgroundColor: '#007AFF',
@@ -226,10 +238,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   carInfoContainer: {
-    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 12,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -241,7 +251,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
-    color: '#333',
   },
   sectionHeader: {
     fontSize: 16,
@@ -258,17 +267,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   label: {
     fontSize: 14,
-    color: '#666',
     flex: 1,
   },
   value: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
     flex: 1,
     textAlign: 'right',
   },
