@@ -23,6 +23,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, IncidentReportCreate } from '../../../../frontendServices/apiCall';
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -49,6 +50,7 @@ function toYYYYMMDD(d: Date): string {
 
 export default function AddIncidentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { user, getToken } = useAuth();
   const scheme = useColorScheme();
@@ -227,7 +229,7 @@ export default function AddIncidentScreen() {
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <ThemedText type="title" style={styles.title}>
