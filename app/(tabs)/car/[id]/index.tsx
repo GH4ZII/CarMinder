@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { api, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 
 function formatDate(s: string) {
   try {
@@ -49,6 +49,120 @@ const URGENCY_CONFIG = {
   unknown: { bg: 'rgba(142,142,147,0.15)', text: '#8E8E93', icon: 'help-outline' as const, label: 'No Data' },
   ok: { bg: 'rgba(52,199,89,0.15)', text: '#34C759', icon: 'check-circle' as const, label: 'OK' },
 };
+
+const GRADE_COLORS: Record<string, string> = {
+  A: '#34C759',
+  B: '#30D158',
+  C: '#FF9500',
+  D: '#FF6B00',
+  F: '#FF3B30',
+};
+
+function ScoreRing({ score, grade }: { score: number; grade: string }) {
+  const color = GRADE_COLORS[grade] ?? '#8E8E93';
+  return (
+    <View style={[scoreStyles.ring, { borderColor: color }]}>
+      <Text style={[scoreStyles.grade, { color }]}>{grade}</Text>
+      <Text style={[scoreStyles.scoreNum, { color }]}>{score}</Text>
+    </View>
+  );
+}
+
+function CategoryBar({ label, score, weight }: { label: string; score: number; weight: number }) {
+  const barColor = score >= 75 ? '#34C759' : score >= 50 ? '#FF9500' : '#FF3B30';
+  return (
+    <View style={scoreStyles.catRow}>
+      <View style={scoreStyles.catLabelRow}>
+        <Text style={scoreStyles.catLabel}>{label}</Text>
+        <Text style={scoreStyles.catScore}>{score}/100</Text>
+      </View>
+      <View style={scoreStyles.barBg}>
+        <View style={[scoreStyles.barFill, { width: `${score}%`, backgroundColor: barColor }]} />
+      </View>
+    </View>
+  );
+}
+
+function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
+  const [expanded, setExpanded] = useState(false);
+  const cats = data.categories;
+  return (
+    <View style={scoreStyles.card}>
+      <TouchableOpacity activeOpacity={0.8} onPress={() => setExpanded(!expanded)}>
+        <View style={scoreStyles.topRow}>
+          <ScoreRing score={data.overall_score} grade={data.grade} />
+          <View style={scoreStyles.summaryCol}>
+            <Text style={scoreStyles.cardTitle}>Car Care Score</Text>
+            <Text style={scoreStyles.summary}>{data.summary}</Text>
+            <Text style={scoreStyles.confidence}>
+              Confidence: {data.confidence_label.replace('_', ' ')}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {expanded && (
+        <View style={scoreStyles.details}>
+          <View style={scoreStyles.divider} />
+          <CategoryBar label={cats.maintenance_regularity.label} score={cats.maintenance_regularity.score} weight={cats.maintenance_regularity.weight} />
+          <CategoryBar label={cats.eu_inspection.label} score={cats.eu_inspection.score} weight={cats.eu_inspection.weight} />
+          <CategoryBar label={cats.incident_history.label} score={cats.incident_history.score} weight={cats.incident_history.weight} />
+          <CategoryBar label={cats.mileage_tracking.label} score={cats.mileage_tracking.score} weight={cats.mileage_tracking.weight} />
+          <CategoryBar label={cats.documentation_quality.label} score={cats.documentation_quality.score} weight={cats.documentation_quality.weight} />
+
+          {data.recommendations.length > 0 && (
+            <>
+              <View style={scoreStyles.divider} />
+              <Text style={scoreStyles.recsTitle}>Recommendations</Text>
+              {data.recommendations.map((r, i) => (
+                <View key={i} style={scoreStyles.recRow}>
+                  <Text style={scoreStyles.recBullet}>•</Text>
+                  <Text style={scoreStyles.recText}>{r}</Text>
+                </View>
+              ))}
+            </>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const scoreStyles = StyleSheet.create({
+  card: {
+    backgroundColor: 'rgba(128,128,128,0.08)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+  },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  ring: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  grade: { fontSize: 22, fontWeight: '800' },
+  scoreNum: { fontSize: 12, fontWeight: '600', marginTop: -2 },
+  summaryCol: { flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#007AFF' },
+  summary: { fontSize: 13, opacity: 0.85, marginBottom: 4 },
+  confidence: { fontSize: 12, opacity: 0.6, textTransform: 'capitalize' },
+  details: { marginTop: 12 },
+  divider: { height: 1, backgroundColor: 'rgba(128,128,128,0.2)', marginVertical: 12 },
+  catRow: { marginBottom: 10 },
+  catLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  catLabel: { fontSize: 13, fontWeight: '500', opacity: 0.9 },
+  catScore: { fontSize: 13, fontWeight: '600', opacity: 0.8 },
+  barBg: { height: 6, backgroundColor: 'rgba(128,128,128,0.15)', borderRadius: 3, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 3 },
+  recsTitle: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
+  recRow: { flexDirection: 'row', marginBottom: 6, paddingRight: 8 },
+  recBullet: { fontSize: 14, marginRight: 6, opacity: 0.6 },
+  recText: { fontSize: 13, opacity: 0.85, flex: 1 },
+});
 
 const SEVERITY_COLORS: Record<string, string> = {
   minor: '#007AFF',
@@ -118,6 +232,7 @@ export default function CarTimelineScreen() {
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
+  const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -132,22 +247,25 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const [carData, eventsData, incidentsData, statusData] = await Promise.all([
+      const [carData, eventsData, incidentsData, statusData, scoreData] = await Promise.all([
         api.getCar(carId, token),
         api.getMaintenanceEvents(carId, token),
         api.getIncidents(carId, token),
         api.getCarServiceStatus(carId, token),
+        api.getCarCareScore(carId, token).catch(() => null),
       ]);
       setCar(carData);
       setEvents(eventsData);
       setIncidents(incidentsData);
       setServiceStatus(statusData);
+      setCareScore(scoreData);
     } catch {
       setError(true);
       setCar(null);
       setEvents([]);
       setIncidents([]);
       setServiceStatus(null);
+      setCareScore(null);
       Alert.alert('Error', 'Failed to load. Pull down to retry.');
     } finally {
       setLoading(false);
@@ -195,6 +313,9 @@ export default function CarTimelineScreen() {
           {car.registreringsnummer} · {car.kilometer?.toLocaleString() ?? '—'} km
         </ThemedText>
       ) : null}
+
+      {/* Car Care Score */}
+      {careScore && <CarCareScoreCard data={careScore} />}
 
       {/* Alert banner for urgent services */}
       {serviceStatus?.next_service && (

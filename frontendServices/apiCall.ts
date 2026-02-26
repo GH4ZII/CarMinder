@@ -440,7 +440,46 @@ export const api = {
     if (!res.ok) throw new Error('Failed to fetch public history');
     return res.json();
   },
+
+  /** Get car care score for a specific car */
+  async getCarCareScore(carId: string, token: string): Promise<CarCareScoreResponse> {
+    const res = await fetch(`${API_URL}/cars/${carId}/score`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      throw new Error('Failed to fetch car care score');
+    }
+    return res.json();
+  },
 };
+
+// Car care score interfaces
+export interface CategoryScore {
+  score: number;
+  weight: number;
+  label: string;
+}
+
+export interface CategoryBreakdown {
+  maintenance_regularity: CategoryScore;
+  eu_inspection: CategoryScore;
+  incident_history: CategoryScore;
+  mileage_tracking: CategoryScore;
+  documentation_quality: CategoryScore;
+}
+
+export interface CarCareScoreResponse {
+  car_id: string;
+  overall_score: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  confidence: number;
+  confidence_label: 'very_low' | 'low' | 'moderate' | 'high';
+  summary: string;
+  categories: CategoryBreakdown;
+  recommendations: string[];
+  computed_at: string;
+}
 
 // Incident report interfaces
 export interface IncidentReport {
