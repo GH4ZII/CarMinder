@@ -323,7 +323,12 @@ export const api = {
     });
     if (!res.ok) {
       if (res.status === 401) throw new ApiError('Unauthorized', 401);
-      throw new Error('Failed to fetch maintenance events');
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(
+        detail ?? 'Failed to fetch maintenance events',
+        res.status,
+        detail,
+      );
     }
     return res.json();
   },

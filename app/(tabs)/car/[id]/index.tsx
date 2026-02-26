@@ -249,10 +249,10 @@ export default function CarTimelineScreen() {
 
       const [carData, eventsData, incidentsData, statusData, scoreData] = await Promise.all([
         api.getCar(carId, token),
-        api.getMaintenanceEvents(carId, token),
-        api.getIncidents(carId, token),
-        api.getCarServiceStatus(carId, token),
-        api.getCarCareScore(carId, token).catch(() => null),
+        api.getMaintenanceEvents(carId, token).catch((e) => { console.warn('Events fetch failed:', e.message ?? e); return [] as MaintenanceEvent[]; }),
+        api.getIncidents(carId, token).catch((e) => { console.warn('Incidents fetch failed:', e.message ?? e); return [] as IncidentReport[]; }),
+        api.getCarServiceStatus(carId, token).catch((e) => { console.warn('Service status fetch failed:', e.message ?? e); return null; }),
+        api.getCarCareScore(carId, token).catch((e) => { console.warn('Score fetch failed:', e.message ?? e); return null; }),
       ]);
       setCar(carData);
       setEvents(eventsData);
