@@ -403,8 +403,8 @@ export default function CalendarScreen() {
       if (!token) return;
       const eventsData = await api.getMaintenanceEvents(selectedCarId, token);
       setEvents(eventsData);
-    } catch (e) {
-      console.error('Failed to fetch events:', e);
+    } catch (e: any) {
+      console.error('Failed to fetch events:', `status=${e?.status}`, e?.detail ?? e?.message ?? e);
       setEvents([]);
     } finally {
       setEventsLoading(false);

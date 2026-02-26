@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import get_settings
-from routers import auth, car, incident_report, maintenance_event, public_history, push_token, service_interval
+from routers import auth, car, car_score, incident_report, maintenance_event, public_history, push_token, service_interval
 
 app = FastAPI(title="CarMinder API")
 
@@ -19,6 +19,7 @@ app.include_router(car.router)
 app.include_router(maintenance_event.router)
 app.include_router(maintenance_event.router_meta)
 app.include_router(service_interval.router)
+app.include_router(car_score.router)
 app.include_router(incident_report.router)
 app.include_router(incident_report.router_meta)
 app.include_router(public_history.router)
