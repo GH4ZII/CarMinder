@@ -1,8 +1,8 @@
 """
 Car care score schemas for the scoring algorithm response.
 """
-from datetime import datetime
-from typing import List
+from datetime import date, datetime
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -37,3 +37,5 @@ class CarCareScoreResponse(BaseModel):
     categories: CategoryBreakdown
     recommendations: List[str]
     computed_at: datetime
+    scoring_version: str  # e.g. "1.0.0"
+    scored_as_of: Optional[date] = None  # reference date used for computation
