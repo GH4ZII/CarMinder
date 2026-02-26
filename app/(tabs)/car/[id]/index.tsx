@@ -84,6 +84,10 @@ function CategoryBar({ label, score, weight }: { label: string; score: number; w
   );
 }
 
+function SectionDivider() {
+  return <View style={{ height: 1, backgroundColor: 'rgba(128,128,128,0.15)', marginVertical: 16 }} />;
+}
+
 function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
   const [expanded, setExpanded] = useState(false);
   const cats = data.categories;
@@ -99,6 +103,11 @@ function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
               Confidence: {data.confidence_label.replace('_', ' ')}
             </Text>
           </View>
+          <MaterialIcons
+            name={expanded ? 'expand-less' : 'expand-more'}
+            size={24}
+            color="#8E8E93"
+          />
         </View>
       </TouchableOpacity>
 
@@ -131,10 +140,12 @@ function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
 
 const scoreStyles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(128,128,128,0.08)',
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: 'rgba(128,128,128,0.06)',
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.12)',
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   ring: {
@@ -331,6 +342,7 @@ export default function CarTimelineScreen() {
       )}
 
       {/* Service Status Section */}
+      <SectionDivider />
       <ThemedText type="subtitle" style={styles.sectionTitle}>
         Service Status
       </ThemedText>
@@ -339,6 +351,7 @@ export default function CarTimelineScreen() {
       ))}
 
       {/* Incidents section */}
+      <SectionDivider />
       <View style={styles.sectionRow}>
         <ThemedText type="subtitle" style={styles.section}>
           Incidents ({incidents.length})
@@ -378,6 +391,7 @@ export default function CarTimelineScreen() {
         ))
       )}
 
+      <SectionDivider />
       <View style={styles.sectionRow}>
         <ThemedText type="subtitle" style={styles.section}>
           Maintenance timeline
@@ -492,10 +506,12 @@ const styles = StyleSheet.create({
   addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   list: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 24 },
   card: {
-    backgroundColor: 'rgba(128,128,128,0.12)',
+    backgroundColor: 'rgba(128,128,128,0.08)',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.15)',
   },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   cardType: { fontSize: 16, fontWeight: '600' },

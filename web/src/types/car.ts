@@ -73,3 +73,33 @@ export interface AllCarsServiceStatus {
   overdue_count: number;
   soon_count: number;
 }
+
+// ── Car Care Score ──────────────────────────────────────────
+
+export interface CategoryScore {
+  score: number; // 0-100
+  weight: number; // weight in overall score (sums to 100)
+  label: string; // human-readable name
+}
+
+export interface CategoryBreakdown {
+  maintenance_regularity: CategoryScore;
+  eu_inspection: CategoryScore;
+  incident_history: CategoryScore;
+  mileage_tracking: CategoryScore;
+  documentation_quality: CategoryScore;
+}
+
+export interface CarCareScoreResponse {
+  car_id: string;
+  overall_score: number; // 0-100
+  grade: string; // A, B, C, D, F
+  confidence: number; // 0.0-1.0
+  confidence_label: string; // "very_low" | "low" | "moderate" | "high"
+  summary: string;
+  categories: CategoryBreakdown;
+  recommendations: string[];
+  computed_at: string;
+  scoring_version: string;
+  scored_as_of: string | null;
+}

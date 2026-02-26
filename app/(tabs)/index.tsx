@@ -410,11 +410,13 @@ const styles = StyleSheet.create({
   summaryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(128,128,128,0.1)',
+    backgroundColor: 'rgba(128,128,128,0.06)',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 20,
     gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.12)',
   },
   summaryText: { fontSize: 16, fontWeight: '600' },
   summarySubtext: { fontSize: 14, opacity: 0.7, marginTop: 2 },
@@ -451,10 +453,12 @@ const styles = StyleSheet.create({
 
   // Car Card
   carCard: {
-    backgroundColor: 'rgba(128,128,128,0.08)',
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: 'rgba(128,128,128,0.06)',
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.12)',
   },
   carCardUrgent: {
     borderLeftWidth: 4,

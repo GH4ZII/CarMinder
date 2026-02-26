@@ -1,7 +1,13 @@
 import * as carsApi from '@/api/cars';
 import Card from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import type { CarInfo, CarServiceStatus, MaintenanceEvent, ServiceDueStatus } from '@/types/car';
+import type {
+  CarCareScoreResponse,
+  CarInfo,
+  CarServiceStatus,
+  MaintenanceEvent,
+  ServiceDueStatus,
+} from '@/types/car';
 import {
   eventTypeLabel,
   formatCurrency,
@@ -12,6 +18,14 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const GRADE_COLORS: Record<string, string> = {
+  A: '#34C759',
+  B: '#30D158',
+  C: '#FF9500',
+  D: '#FF6B00',
+  F: '#FF3B30',
+};
+
 export default function CarDetail() {
   const { id } = useParams<{ id: string }>();
   const { getToken, signOut } = useAuth();
@@ -20,6 +34,7 @@ export default function CarDetail() {
   const [car, setCar] = useState<CarInfo | null>(null);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
+  const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,14 +45,16 @@ export default function CarDetail() {
     try {
       const token = await getToken();
       if (!token) return;
-      const [carData, statusData, eventsData] = await Promise.all([
+      const [carData, statusData, eventsData, scoreData] = await Promise.all([
         carsApi.getCar(id, token),
-        carsApi.getCarServiceStatus(id, token),
-        carsApi.getMaintenanceEvents(id, token),
+        carsApi.getCarServiceStatus(id, token).catch(() => null),
+        carsApi.getMaintenanceEvents(id, token).catch(() => [] as MaintenanceEvent[]),
+        carsApi.getCarCareScore(id, token).catch(() => null),
       ]);
       setCar(carData);
       setServiceStatus(statusData);
       setEvents(eventsData.sort((a, b) => b.event_date.localeCompare(a.event_date)));
+      setCareScore(scoreData);
     } catch (err) {
       if (err instanceof Error && 'status' in err && (err as { status: number }).status === 401) {
         signOut();
@@ -91,6 +108,9 @@ export default function CarDetail() {
         </div>
       </div>
 
+      {/* Car Care Score Card */}
+      {careScore && <CarCareScoreCard data={careScore} />}
+
       {nextService && nextService.urgency !== 'ok' && nextService.urgency !== 'unknown' && (
         <div
           className={`next-service-alert ${nextService.urgency === 'overdue' ? 'next-service-alert--overdue' : 'next-service-alert--soon'}`}
@@ -131,7 +151,15 @@ export default function CarDetail() {
         </div>
 
         {events.length === 0 ? (
-          <p className="text-muted">No maintenance events recorded yet.</p>
+          <div className="empty-state empty-state--compact">
+            <p>No maintenance events recorded yet.</p>
+            <button
+              className="button button--primary"
+              onClick={() => navigate(`/car/${id}/add-event`)}
+            >
+              + Add Your First Event
+            </button>
+          </div>
         ) : (
           <div className="timeline">
             {events.map((event) => (
@@ -143,6 +171,88 @@ export default function CarDetail() {
     </div>
   );
 }
+
+/* ── Car Care Score Card ─────────────────────────────────── */
+
+function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
+  const [expanded, setExpanded] = useState(false);
+  const color = GRADE_COLORS[data.grade] ?? '#64748b';
+  const cats = data.categories;
+  const categoryList = [
+    cats.maintenance_regularity,
+    cats.eu_inspection,
+    cats.incident_history,
+    cats.mileage_tracking,
+    cats.documentation_quality,
+  ];
+
+  return (
+    <Card
+      className="score-card"
+      onClick={() => setExpanded(!expanded)}
+      style={{ cursor: 'pointer' }}
+    >
+      <div className="score-card__top">
+        <div className="score-ring" style={{ borderColor: color }}>
+          <span className="score-ring__grade" style={{ color }}>
+            {data.grade}
+          </span>
+          <span className="score-ring__number" style={{ color }}>
+            {data.overall_score}
+          </span>
+        </div>
+        <div className="score-card__summary">
+          <h3 className="score-card__title">Car Care Score</h3>
+          <p className="score-card__text">{data.summary}</p>
+          <span className="score-card__confidence">
+            Confidence: {data.confidence_label.replace(/_/g, ' ')}
+          </span>
+        </div>
+        <span className={`score-card__chevron${expanded ? ' score-card__chevron--open' : ''}`}>
+          &#9662;
+        </span>
+      </div>
+
+      {expanded && (
+        <div className="score-card__details">
+          <div className="score-card__divider" />
+          {categoryList.map((cat) => (
+            <div key={cat.label} className="score-category">
+              <div className="score-category__header">
+                <span className="score-category__label">{cat.label}</span>
+                <span className="score-category__value">{cat.score}/100</span>
+              </div>
+              <div className="score-category__bar-bg">
+                <div
+                  className="score-category__bar-fill"
+                  style={{
+                    width: `${cat.score}%`,
+                    backgroundColor:
+                      cat.score >= 75 ? '#34C759' : cat.score >= 50 ? '#FF9500' : '#FF3B30',
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+
+          {data.recommendations.length > 0 && (
+            <>
+              <div className="score-card__divider" />
+              <h4 className="score-card__recs-title">Recommendations</h4>
+              <ul className="score-card__recs">
+                {data.recommendations.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/* ── Service Status Card ─────────────────────────────────── */
 
 function ServiceStatusCard({ service }: { service: ServiceDueStatus }) {
   return (
@@ -196,6 +306,8 @@ function ServiceStatusCard({ service }: { service: ServiceDueStatus }) {
     </Card>
   );
 }
+
+/* ── Event Card ──────────────────────────────────────────── */
 
 function EventCard({ event }: { event: MaintenanceEvent }) {
   const [expanded, setExpanded] = useState(false);

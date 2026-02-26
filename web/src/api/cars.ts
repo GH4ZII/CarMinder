@@ -1,5 +1,6 @@
 import type {
   AllCarsServiceStatus,
+  CarCareScoreResponse,
   CarInfo,
   CarServiceStatus,
   MaintenanceEvent,
@@ -138,6 +139,21 @@ export async function getAllServiceStatus(token: string): Promise<AllCarsService
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
     const detail = await parseErrorDetail(res);
     throw new ApiError('Failed to fetch service status', res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getCarCareScore(
+  carId: string,
+  token: string
+): Promise<CarCareScoreResponse> {
+  const res = await fetch(`${API_URL}/cars/${carId}/score`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError('Failed to fetch car care score', res.status, detail);
   }
   return res.json();
 }
