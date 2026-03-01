@@ -1,14 +1,17 @@
-/* ===== CSS Variables ===== */
+/* ===== CSS Variables — Neobank-inspired ===== */
 :root {
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-primary-light: #dbeafe;
+  --color-primary: #1A1A1A;
+  --color-primary-dark: #000000;
+  --color-primary-light: #F0F0F0;
+  --color-accent: #C5E636;
+  --color-accent-dark: #A8C41A;
+  --color-accent-light: #F2F9D4;
   --color-background: #ffffff;
-  --color-background-alt: #f8fafc;
+  --color-background-alt: #F5F5F7;
   --color-surface: #ffffff;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-border: #e2e8f0;
+  --color-text: #0F172A;
+  --color-text-muted: #6B7280;
+  --color-border: #E8E8E8;
   --color-error: #dc2626;
   --color-error-light: #fef2f2;
   --color-success: #16a34a;
@@ -16,12 +19,12 @@
   --color-warning: #ea580c;
   --color-warning-light: #fff7ed;
   --color-danger: #dc2626;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
   --max-width: 1100px;
 }
 
@@ -81,18 +84,18 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.5rem;
-  height: 60px;
+  padding: 0 2rem;
+  height: 64px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
 }
 
 .layout-logo {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-text);
   text-decoration: none;
+  letter-spacing: -0.02em;
 }
 
 .layout-nav {
@@ -102,7 +105,7 @@ a:hover {
 
 .nav-link {
   padding: 0.5rem 1rem;
-  border-radius: var(--radius-md);
+  border-radius: 999px;
   color: var(--color-text-muted);
   text-decoration: none;
   font-weight: 500;
@@ -115,8 +118,9 @@ a:hover {
   text-decoration: none;
 }
 .nav-link--active {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--color-accent-light);
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .layout-main {
@@ -152,13 +156,29 @@ a:hover {
   max-width: 420px;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 2rem;
-  box-shadow: var(--shadow-lg);
+  padding: 2.25rem;
+  border: 1px solid var(--color-border);
 }
 
 .auth-card h1 {
   text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.auth-card__subtitle {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
   margin-bottom: 1.5rem;
+}
+
+.auth-card__logo {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem;
+  color: var(--color-text);
 }
 
 .auth-footer {
@@ -166,6 +186,26 @@ a:hover {
   color: var(--color-text-muted);
   font-size: 0.9rem;
   margin-top: 1rem;
+}
+
+.auth-footer--small {
+  text-align: right;
+  margin-top: -0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.auth-footer--small a {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.form-success {
+  color: var(--color-success);
+  font-size: 0.85rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-success-light);
+  border-radius: var(--radius-sm);
 }
 
 .auth-divider {
@@ -194,13 +234,13 @@ a:hover {
   justify-content: center;
   gap: 0.6rem;
   width: 100%;
-  padding: 0.6rem 1rem;
+  padding: 0.65rem 1rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-text);
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -232,10 +272,11 @@ a:hover {
 .back-button {
   background: none;
   border: 1px solid var(--color-border);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-md);
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 500;
   color: var(--color-text-muted);
   transition: border-color 0.15s, color 0.15s;
 }
@@ -252,11 +293,115 @@ a:hover {
   margin-bottom: 1.5rem;
 }
 
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.home-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.35rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background:
+    radial-gradient(circle at 15% 15%, var(--color-accent-light) 0%, transparent 45%),
+    linear-gradient(140deg, #ffffff 0%, #f8f9f4 100%);
+}
+
+.home-hero__eyebrow {
+  display: inline-block;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.home-hero__title {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.home-hero__subtitle {
+  margin: 0.45rem 0 0;
+  max-width: 60ch;
+  color: var(--color-text-muted);
+}
+
+.home-hero__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.home-top-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.home-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.home-stat-card__label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.home-stat-card__value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.home-stat-card--overdue {
+  background: linear-gradient(180deg, #fff5f5 0%, #fff 100%);
+}
+
+.home-stat-card--overdue .home-stat-card__value {
+  color: var(--color-error);
+}
+
+.home-stat-card--soon {
+  background: linear-gradient(180deg, #fff8f0 0%, #fff 100%);
+}
+
+.home-stat-card--soon .home-stat-card__value {
+  color: var(--color-warning);
+}
+
+.home-stat-card--fleet .home-stat-card__value {
+  color: #334155;
+}
+
+.home-stat-card--score {
+  background: linear-gradient(180deg, #f6fae2 0%, #fff 100%);
+}
+
+.home-stat-card--score .home-stat-card__value {
+  color: #3f5600;
+}
+
 /* ===== Summary Banner ===== */
 .summary-banner {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .summary-stat {
@@ -268,6 +413,7 @@ a:hover {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .summary-stat--error {
@@ -297,19 +443,21 @@ a:hover {
 }
 
 .summary-stat__label {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--color-text-muted);
   margin-top: 0.25rem;
+  text-align: center;
 }
 
 /* ===== Card ===== */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s, border-color 0.15s;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 /* ===== Car Grid ===== */
@@ -323,13 +471,14 @@ a:hover {
 .car-service-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--color-primary);
+  transform: translateY(-2px);
 }
 
 .car-service-card__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.55rem;
 }
 
 .car-service-card__name {
@@ -347,6 +496,37 @@ a:hover {
   font-weight: 600;
   color: var(--color-text-muted);
   white-space: nowrap;
+  background: var(--color-background-alt);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.car-service-card__score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.78rem;
+}
+
+.car-service-card__score-label {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.car-service-card__score-value {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.car-service-card__score-confidence {
+  margin-left: auto;
+  text-transform: capitalize;
+  color: var(--color-text-muted);
+  background: var(--color-background-alt);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
 }
 
 /* ===== Next Service Alert ===== */
@@ -402,6 +582,12 @@ a:hover {
 .service-badge__urgency {
   color: var(--color-text-muted);
   font-size: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .home-top-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ===== Service Status Grid ===== */
@@ -669,7 +855,6 @@ a:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
-  box-shadow: var(--shadow-sm);
 }
 
 /* ===== Enhanced Empty State ===== */
@@ -942,6 +1127,291 @@ a:hover {
   gap: 0.75rem;
 }
 
+/* ===== Profile Enhanced ===== */
+.profile-header-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.profile-avatar--lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-header__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-header__name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.15rem;
+}
+
+.profile-header__email {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.profile-header__joined {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0;
+  opacity: 0.7;
+}
+
+.profile-header__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.profile-section {
+  margin-top: 1.5rem;
+}
+
+.profile-section__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+/* Profile car card enhanced */
+.profile-car-card--enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+
+.profile-car-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-car-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-car-card__name-row h3 {
+  margin: 0;
+}
+
+.profile-car-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.profile-car-card__meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: var(--color-background-alt);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.profile-car-card__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.profile-car-card__toggle-label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch__slider {
+  position: absolute;
+  inset: 0;
+  background: var(--color-border);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.toggle-switch__slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-switch__slider {
+  background: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-switch__slider::before {
+  transform: translateX(20px);
+}
+
+.profile-car-card__bottom {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Mileage update inline */
+.mileage-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mileage-edit__input {
+  width: 120px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.mileage-edit__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* Profile settings section */
+.profile-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.profile-settings-card {
+  margin-top: 1rem;
+  padding: 1.25rem;
+}
+
+.profile-settings-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.85rem;
+}
+
+.profile-settings-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.profile-settings__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-settings__item:last-child {
+  border-bottom: none;
+}
+
+.profile-settings__label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.profile-settings__value {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* Quick stats on profile */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.profile-stat {
+  text-align: center;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.profile-stat__number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.profile-stat__label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Danger zone */
+.profile-danger-zone {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-lg);
+  background: var(--color-error-light);
+}
+
+.profile-danger-zone__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-error);
+  margin-bottom: 0.5rem;
+}
+
+.profile-danger-zone p {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+}
+
 /* ===== Form ===== */
 .form {
   display: flex;
@@ -1002,15 +1472,18 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.6rem 1.25rem;
+  padding: 0.65rem 1.5rem;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
   text-decoration: none;
+}
+.button:active {
+  transform: scale(0.97);
 }
 
 .button--primary {
@@ -1041,8 +1514,16 @@ a:hover {
 }
 
 .button--sm {
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.85rem;
   font-size: 0.8rem;
+}
+
+.button--accent {
+  background: var(--color-accent);
+  color: var(--color-primary);
+}
+.button--accent:hover {
+  background: var(--color-accent-dark);
 }
 
 .button:disabled {
@@ -1147,8 +1628,8 @@ a:hover {
 
 .welcome-header__logo {
   font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-weight: 800;
+  color: var(--color-text);
   letter-spacing: -0.02em;
 }
 
@@ -1160,11 +1641,11 @@ a:hover {
 
 .welcome-header__link {
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-muted);
   text-decoration: none;
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
   transition: color 0.15s, background 0.15s;
 }
 .welcome-header__link:hover {
@@ -1181,17 +1662,17 @@ a:hover {
   text-align: center;
   padding: 5rem 2rem 4rem;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, var(--color-primary-light) 0%, transparent 70%);
+    radial-gradient(ellipse 80% 60% at 50% 0%, var(--color-accent-light) 0%, transparent 70%);
 }
 
 .welcome-hero__badge {
   display: inline-block;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-primary);
-  background: var(--color-primary-light);
+  background: var(--color-accent);
   padding: 0.35rem 1rem;
   border-radius: 999px;
   margin-bottom: 1.5rem;
@@ -1222,11 +1703,11 @@ a:hover {
 }
 
 .welcome-hero__cta {
-  padding: 0.7rem 1.75rem;
+  padding: 0.75rem 2rem;
   font-size: 0.95rem;
   font-weight: 600;
   text-decoration: none;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
 }
 .welcome-hero__cta:hover {
   text-decoration: none;
@@ -1236,10 +1717,10 @@ a:hover {
   background: transparent;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
-  padding: 0.6rem 1.25rem;
-  border-radius: var(--radius-sm);
+  padding: 0.65rem 1.5rem;
+  border-radius: 999px;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
@@ -1269,7 +1750,7 @@ a:hover {
 .welcome-stat__number {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-accent-dark);
   letter-spacing: -0.02em;
 }
 
@@ -1346,8 +1827,8 @@ a:hover {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--color-accent-light);
+  color: var(--color-accent-dark);
   margin-bottom: 1rem;
 }
 
@@ -1384,8 +1865,8 @@ a:hover {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1420,7 +1901,7 @@ a:hover {
   text-align: center;
   padding: 4rem 2rem;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 100%, var(--color-primary-light) 0%, transparent 70%);
+    radial-gradient(ellipse 80% 60% at 50% 100%, var(--color-accent-light) 0%, transparent 70%);
 }
 
 .welcome-cta h2 {
@@ -1463,6 +1944,28 @@ a:hover {
     flex-direction: column;
   }
 
+  .home-hero {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .home-hero__title {
+    font-size: 1.55rem;
+  }
+
+  .home-hero__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .home-hero__actions .button {
+    flex: 1;
+  }
+
+  .home-top-stats {
+    grid-template-columns: 1fr;
+  }
+
   .car-grid {
     grid-template-columns: 1fr;
   }
@@ -1488,6 +1991,25 @@ a:hover {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .profile-header-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-header__actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .profile-car-card__top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-stats {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .nav-link {

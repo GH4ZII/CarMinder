@@ -189,15 +189,15 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
     minHeight: 50,
   },
   button: {
-    backgroundColor: '#0a7ea4',
-    borderRadius: 8,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 999,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -217,7 +217,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
-    color: '#0a7ea4',
+    color: '#1A1A1A',
     fontSize: 14,
+    fontWeight: '500',
   },
 });

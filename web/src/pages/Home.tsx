@@ -114,16 +114,53 @@ export default function Home() {
     );
   }
 
+  const scoreValues = Object.values(scores);
+  const avgScore =
+    scoreValues.length > 0
+      ? Math.round(scoreValues.reduce((sum, s) => sum + s.overall_score, 0) / scoreValues.length)
+      : null;
+  const riskCount = data.overdue_count + data.soon_count;
+
   return (
-    <div className="page">
-      <div className="dashboard-header">
-        <h1>Service Overview</h1>
-        <button className="button button--primary" onClick={() => navigate('/add-car')}>
-          + Add Car
-        </button>
+    <div className="page home-page">
+      <section className="home-hero">
+        <div>
+          <p className="home-hero__eyebrow">Fleet command center</p>
+          <h1 className="home-hero__title">Service Overview</h1>
+          <p className="home-hero__subtitle">
+            Track urgency, care quality, and next maintenance actions across all your vehicles.
+          </p>
+        </div>
+        <div className="home-hero__actions">
+          <button className="button button--secondary" onClick={load}>
+            Refresh
+          </button>
+          <button className="button button--accent" onClick={() => navigate('/add-car')}>
+            + Add Car
+          </button>
+        </div>
+      </section>
+
+      <div className="home-top-stats">
+        <div className="home-stat-card home-stat-card--overdue">
+          <span className="home-stat-card__label">Overdue tasks</span>
+          <span className="home-stat-card__value">{data.overdue_count}</span>
+        </div>
+        <div className="home-stat-card home-stat-card--soon">
+          <span className="home-stat-card__label">Due soon</span>
+          <span className="home-stat-card__value">{data.soon_count}</span>
+        </div>
+        <div className="home-stat-card home-stat-card--fleet">
+          <span className="home-stat-card__label">Fleet size</span>
+          <span className="home-stat-card__value">{data.cars.length}</span>
+        </div>
+        <div className="home-stat-card home-stat-card--score">
+          <span className="home-stat-card__label">Average care score</span>
+          <span className="home-stat-card__value">{avgScore ?? '--'}</span>
+        </div>
       </div>
 
-      <SummaryBanner data={data} />
+      <SummaryBanner data={data} riskCount={riskCount} />
 
       <div className="car-grid">
         {data.cars.map((car) => (
@@ -134,20 +171,20 @@ export default function Home() {
   );
 }
 
-function SummaryBanner({ data }: { data: AllCarsServiceStatus }) {
+function SummaryBanner({ data, riskCount }: { data: AllCarsServiceStatus; riskCount: number }) {
   return (
     <div className="summary-banner">
       <div className="summary-stat summary-stat--error">
         <span className="summary-stat__number">{data.overdue_count}</span>
-        <span className="summary-stat__label">Overdue</span>
+        <span className="summary-stat__label">Needs immediate action</span>
       </div>
       <div className="summary-stat summary-stat--warning">
         <span className="summary-stat__number">{data.soon_count}</span>
-        <span className="summary-stat__label">Due Soon</span>
+        <span className="summary-stat__label">Upcoming service windows</span>
       </div>
       <div className="summary-stat summary-stat--neutral">
-        <span className="summary-stat__number">{data.cars.length}</span>
-        <span className="summary-stat__label">Vehicles</span>
+        <span className="summary-stat__number">{riskCount}</span>
+        <span className="summary-stat__label">Total risk items</span>
       </div>
     </div>
   );
@@ -186,6 +223,14 @@ function CarServiceCard({
         </div>
         <span className="car-service-card__km">{car.current_mileage.toLocaleString()} km</span>
       </div>
+
+      {score && (
+        <div className="car-service-card__score-row">
+          <span className="car-service-card__score-label">Care score</span>
+          <span className="car-service-card__score-value">{score.overall_score}/100</span>
+          <span className="car-service-card__score-confidence">{score.confidence_label}</span>
+        </div>
+      )}
 
       {car.next_service && car.next_service.urgency !== 'ok' && (
         <NextServiceAlert service={car.next_service} />

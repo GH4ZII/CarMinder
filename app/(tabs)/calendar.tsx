@@ -118,7 +118,7 @@ function MonthYearPicker({
                 <TouchableOpacity
                   style={[
                     styles.yearPill,
-                    { backgroundColor: isActive ? '#007AFF' : pillBg },
+                    { backgroundColor: isActive ? '#1A1A1A' : pillBg },
                   ]}
                   onPress={() => setPickerYear(year)}
                 >
@@ -140,7 +140,7 @@ function MonthYearPicker({
                   key={idx}
                   style={[
                     styles.monthCell,
-                    { backgroundColor: isActive ? '#007AFF' : pillBg },
+                    { backgroundColor: isActive ? '#1A1A1A' : pillBg },
                   ]}
                   onPress={() => {
                     onSelect(pickerYear, idx);
@@ -189,7 +189,7 @@ function CarSelector({
               styles.carPill,
               {
                 backgroundColor: isActive
-                  ? '#007AFF'
+                  ? '#1A1A1A'
                   : isDark
                     ? 'rgba(255,255,255,0.1)'
                     : 'rgba(0,0,0,0.06)',
@@ -423,12 +423,12 @@ export default function CalendarScreen() {
     events.forEach((e) => {
       marks[e.event_date] = {
         marked: true,
-        dotColor: '#007AFF',
-        ...(e.event_date === selectedDate && { selected: true, selectedColor: '#007AFF' }),
+        dotColor: '#1A1A1A',
+        ...(e.event_date === selectedDate && { selected: true, selectedColor: '#1A1A1A' }),
       };
     });
     if (selectedDate && !marks[selectedDate]) {
-      marks[selectedDate] = { selected: true, selectedColor: '#007AFF' };
+      marks[selectedDate] = { selected: true, selectedColor: '#1A1A1A' };
     }
     return marks;
   }, [events, selectedDate]);
@@ -510,11 +510,11 @@ export default function CalendarScreen() {
     calendarBackground: 'transparent',
     textSectionTitleColor: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)',
     dayTextColor: isDark ? '#ECEDEE' : '#11181C',
-    todayTextColor: '#007AFF',
+    todayTextColor: '#1A1A1A',
     monthTextColor: isDark ? '#ECEDEE' : '#11181C',
-    arrowColor: '#007AFF',
+    arrowColor: '#1A1A1A',
     textDisabledColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-    selectedDayBackgroundColor: '#007AFF',
+    selectedDayBackgroundColor: '#1A1A1A',
     selectedDayTextColor: '#fff',
     textDayFontWeight: '500' as const,
     textMonthFontWeight: '700' as const,
@@ -693,13 +693,13 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1A1A1A',
     marginVertical: 4,
   },
 
   entryCard: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginLeft: 8,
     marginBottom: 8,
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
   entryTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   entryTitle: { fontSize: 16, fontWeight: '700' },
   entryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  entryTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  entryTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   entryTagInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   entryTagText: { fontSize: 12, fontWeight: '500' },
   expandArrow: { fontSize: 12, paddingTop: 4, paddingLeft: 8 },

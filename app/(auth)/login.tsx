@@ -228,7 +228,7 @@ export default function LoginScreen() {
               value={rememberMe}
               onValueChange={setRememberMe}
               disabled={loading}
-              trackColor={{ false: '#767577', true: '#0a7ea4' }}
+              trackColor={{ false: '#767577', true: '#1A1A1A' }}
               thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
             />
             <ThemedText style={styles.rememberMeText}>
@@ -284,7 +284,7 @@ export default function LoginScreen() {
               <AppleAuthentication.AppleAuthenticationButton
                 buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
                 buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={8}
+                cornerRadius={999}
                 style={styles.appleButton}
                 onPress={handleAppleSignIn}
               />
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
@@ -352,8 +352,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#0a7ea4',
-    borderRadius: 8,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 999,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -373,16 +373,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
-    color: '#0a7ea4',
+    color: '#1A1A1A',
     fontSize: 14,
+    fontWeight: '500',
   },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: '#0a7ea4',
+    color: '#1A1A1A',
     fontSize: 14,
+    fontWeight: '500',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -400,8 +402,10 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   googleButton: {
-    backgroundColor: '#4285F4',
-    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 999,
     padding: 16,
     alignItems: 'center',
     minHeight: 50,
@@ -410,7 +414,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   googleButtonText: {
-    color: '#fff',
+    color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -422,7 +426,7 @@ const styles = StyleSheet.create({
   appleButton: {
     width: '100%',
     height: 50,
-    borderRadius: 8,
+    borderRadius: 999,
   },
   appleLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,

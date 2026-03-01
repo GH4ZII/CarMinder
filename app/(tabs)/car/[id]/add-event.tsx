@@ -64,8 +64,8 @@ export default function AddMaintenanceEventScreen() {
       border: dark ? '#2A2A35' : '#DDDDDD',
       placeholder: dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
       chip: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
-      primary: '#007AFF',
-      success: '#34C759',
+      primary: '#1A1A1A',
+      success: '#1A1A1A',
     };
   }, [scheme]);
 
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   typeChip: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 999,
   },
   typeChipText: { fontSize: 15, fontWeight: '500' },
 
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
 
   selectButton: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 16,
   },
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
 
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: 14,
     fontSize: 16,
     marginBottom: 16,
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
 
   submitBtn: {
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 999,
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 32,

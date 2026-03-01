@@ -399,10 +399,10 @@ const styles = StyleSheet.create({
   welcomeTitle: { marginBottom: 12, textAlign: 'center' },
   welcomeText: { fontSize: 16, textAlign: 'center', opacity: 0.8, marginBottom: 24 },
   loginBtn: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 32,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 999,
   },
   loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '600' },
 
@@ -429,10 +429,10 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 16, opacity: 0.8, marginBottom: 16 },
   addCarBtn: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 999,
   },
   addCarBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
@@ -479,8 +479,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,149,0,0.12)',
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 12,
     marginBottom: 12,
     gap: 8,
   },
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     minWidth: '48%',
     flexGrow: 1,
     gap: 8,
@@ -511,20 +511,20 @@ const styles = StyleSheet.create({
 
   tapHint: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#1A1A1A',
     textAlign: 'right',
     marginTop: 12,
-    opacity: 0.8,
+    opacity: 0.6,
   },
 
   // Add More Button
   addMoreBtn: {
     alignItems: 'center',
     padding: 16,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(128,128,128,0.3)',
     borderStyle: 'dashed',
   },
-  addMoreBtnText: { fontSize: 15, color: '#007AFF', fontWeight: '500' },
+  addMoreBtnText: { fontSize: 15, color: '#1A1A1A', fontWeight: '600' },
 });

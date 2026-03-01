@@ -46,7 +46,9 @@ export default function Login() {
   return (
     <div className="page page--auth">
       <div className="auth-card">
-        <h1>Sign In</h1>
+        <div className="auth-card__logo">CarMinder</div>
+        <h1>Welcome back</h1>
+        <p className="auth-card__subtitle">Sign in to manage your vehicles</p>
         <form onSubmit={handleSubmit} className="form">
           <Input
             label="Email"
