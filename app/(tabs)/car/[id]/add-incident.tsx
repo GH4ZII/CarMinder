@@ -65,8 +65,8 @@ export default function AddIncidentScreen() {
       border: dark ? '#2A2A35' : '#DDDDDD',
       placeholder: dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
       chip: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
-      primary: '#007AFF',
-      success: '#34C759',
+      primary: '#1A1A1A',
+      success: '#1A1A1A',
     };
   }, [scheme]);
 
@@ -471,9 +471,9 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
   required: { color: '#FF3B30', fontWeight: '700' },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  typeChip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
+  typeChip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999 },
   typeChipText: { fontSize: 15, fontWeight: '500' },
-  selectButton: { borderWidth: 1, borderRadius: 8, padding: 14, marginBottom: 16 },
+  selectButton: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 16 },
   selectButtonText: { fontSize: 16 },
   iosPicker: { alignSelf: 'stretch' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   },
   modalDone: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8 },
   modalDoneText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 16 },
+  input: { borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 16, marginBottom: 16 },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
   switchRow: {
     flexDirection: 'row',
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
-  submitBtn: { padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8, marginBottom: 32 },
+  submitBtn: { padding: 16, borderRadius: 999, alignItems: 'center', marginTop: 8, marginBottom: 32 },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

@@ -36,7 +36,7 @@ export default function AddCarScreen() {
     subtext: isDark ? 'rgba(255,255,255,0.6)' : '#666',
     border: isDark ? 'rgba(255,255,255,0.15)' : '#ddd',
     inputBg: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
-    sectionBorder: isDark ? '#007AFF' : '#007AFF',
+    sectionBorder: isDark ? '#1A1A1A' : '#1A1A1A',
     rowBorder: isDark ? 'rgba(255,255,255,0.08)' : '#eee',
   }), [isDark]);
 
@@ -209,8 +209,8 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 17,
-    color: '#007AFF',
-    fontWeight: '500',
+    color: '#1A1A1A',
+    fontWeight: '600',
   },
   title: {
     marginBottom: 20,
@@ -221,15 +221,15 @@ const styles = StyleSheet.create({
   },
   input: {
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 14,
     fontSize: 16,
     marginBottom: 10,
     borderWidth: 1,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1A1A1A',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 999,
     alignItems: 'center',
   },
   buttonText: {
@@ -239,11 +239,11 @@ const styles = StyleSheet.create({
   },
   carInfoContainer: {
     padding: 20,
-    borderRadius: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 20,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
     marginBottom: 30,
   },
   infoTitle: {
@@ -255,12 +255,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#1A1A1A',
     marginTop: 15,
     marginBottom: 8,
     paddingBottom: 5,
     borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#E8E8E8',
   },
   infoRow: {
     flexDirection: 'row',
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 20,
-    backgroundColor: '#34C759',
+    backgroundColor: '#1A1A1A',
   },
 });
 

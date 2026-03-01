@@ -159,7 +159,7 @@ const scoreStyles = StyleSheet.create({
   grade: { fontSize: 22, fontWeight: '800' },
   scoreNum: { fontSize: 12, fontWeight: '600', marginTop: -2 },
   summaryCol: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#007AFF' },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#1A1A1A' },
   summary: { fontSize: 13, opacity: 0.85, marginBottom: 4 },
   confidence: { fontSize: 12, opacity: 0.6, textTransform: 'capitalize' },
   details: { marginTop: 12 },
@@ -177,7 +177,7 @@ const scoreStyles = StyleSheet.create({
 });
 
 const SEVERITY_COLORS: Record<string, string> = {
-  minor: '#007AFF',
+  minor: '#1A1A1A',
   moderate: '#FF9500',
   severe: '#FF3B30',
 };
@@ -357,7 +357,7 @@ export default function CarTimelineScreen() {
           Incidents ({incidents.length})
         </ThemedText>
         <TouchableOpacity
-          style={[styles.addBtn, { backgroundColor: '#FF9500' }]}
+          style={[styles.addBtn, { backgroundColor: '#1A1A1A' }]}
           onPress={() => router.push(`/(tabs)/car/${carId}/add-incident` as any)}
         >
           <Text style={styles.addBtnText}>Report incident</Text>
@@ -460,20 +460,20 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 0, marginBottom: 8 },
-  backBtnText: { fontSize: 17, color: '#007AFF', fontWeight: '500' },
+  backBtnText: { fontSize: 17, color: '#1A1A1A', fontWeight: '600' },
   header: { padding: 20, paddingBottom: 16 },
   title: { marginBottom: 4 },
   subtitle: { fontSize: 14, opacity: 0.8, marginBottom: 16 },
   sectionTitle: { marginTop: 8, marginBottom: 12 },
   alertBanner: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
   },
   alertText: { fontWeight: '600', textAlign: 'center', fontSize: 14 },
   serviceCard: {
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 14,
     marginBottom: 10,
   },
   serviceHeader: {
@@ -498,20 +498,20 @@ const styles = StyleSheet.create({
   },
   section: { marginBottom: 0 },
   addBtn: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 999,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   list: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 24 },
   card: {
-    backgroundColor: 'rgba(128,128,128,0.08)',
+    backgroundColor: 'rgba(128,128,128,0.06)',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.15)',
+    borderColor: 'rgba(128,128,128,0.12)',
   },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   cardType: { fontSize: 16, fontWeight: '600' },
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   incidentCard: {
     backgroundColor: 'rgba(255,149,0,0.08)',
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 14,
     marginBottom: 10,
   },
   incidentHeader: {

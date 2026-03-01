@@ -22,6 +22,20 @@ export interface CarInfo {
   karosseri: string;
   eukontrollfrist: string;
   makshastighet: number;
+  public_history?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CarUpdate {
+  kilometer?: number;
+  farge?: string;
+  eukontrollfrist?: string;
+  public_history?: boolean;
+}
+
+export interface KilometerUpdate {
+  kilometer: number;
 }
 
 export interface MaintenanceEvent {

@@ -3,6 +3,8 @@ import type {
   CarCareScoreResponse,
   CarInfo,
   CarServiceStatus,
+  CarUpdate,
+  KilometerUpdate,
   MaintenanceEvent,
   MaintenanceEventCreate,
 } from '@/types/car';
@@ -67,6 +69,42 @@ export async function deleteCar(carId: string, token: string): Promise<void> {
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
     throw new Error('Failed to delete car');
   }
+}
+
+export async function updateCar(
+  carId: string,
+  token: string,
+  updates: CarUpdate
+): Promise<CarInfo> {
+  const res = await fetch(`${API_URL}/cars/${carId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError('Failed to update car', res.status, detail);
+  }
+  return res.json();
+}
+
+export async function updateKilometer(
+  carId: string,
+  token: string,
+  data: KilometerUpdate
+): Promise<CarInfo> {
+  const res = await fetch(`${API_URL}/cars/${carId}/kilometer`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError('Failed to update mileage', res.status, detail);
+  }
+  return res.json();
 }
 
 export async function getEventTypes(): Promise<string[]> {

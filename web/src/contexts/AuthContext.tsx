@@ -13,6 +13,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<AuthUser>) => Promise<void>;
   getToken: () => Promise<string | null>;
   forgotPassword: (email: string) => Promise<void>;
 }
@@ -85,6 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearPersistedAuth();
   }, []);
 
+  const updateProfile = useCallback(async (updates: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...updates };
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const getToken = useCallback((): Promise<string | null> => {
     return Promise.resolve(token);
   }, [token]);
@@ -102,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         signUp,
         signOut,
+        updateProfile,
         getToken,
         forgotPassword,
       }}

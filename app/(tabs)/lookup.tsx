@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, PublicCarHistory } from '../../frontendServices/apiCall';
 
 const SEVERITY_COLORS: Record<string, string> = {
-  minor: '#007AFF',
+  minor: '#1A1A1A',
   moderate: '#FF9500',
   severe: '#FF3B30',
 };
@@ -59,7 +59,7 @@ export default function LookupScreen() {
       subtext: dark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
       border: dark ? '#2A2A35' : '#DDDDDD',
       placeholder: dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
-      primary: '#007AFF',
+      primary: '#1A1A1A',
     };
   }, [scheme]);
 
@@ -230,20 +230,20 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: 14,
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 1,
   },
-  searchBtn: { paddingHorizontal: 20, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  searchBtn: { paddingHorizontal: 20, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
   searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   emptyContainer: { paddingVertical: 40, alignItems: 'center' },
   emptyText: { fontSize: 15, textAlign: 'center', opacity: 0.7 },
   resultsContainer: { gap: 0 },
   card: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 10,
   },

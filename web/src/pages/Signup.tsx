@@ -64,7 +64,9 @@ export default function Signup() {
   return (
     <div className="page page--auth">
       <div className="auth-card">
+        <div className="auth-card__logo">CarMinder</div>
         <h1>Create Account</h1>
+        <p className="auth-card__subtitle">Get started tracking your car maintenance</p>
         <form onSubmit={handleSubmit} className="form">
           <Input
             label="Name"
