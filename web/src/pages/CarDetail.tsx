@@ -6,6 +6,7 @@ import type {
   CarInfo,
   CarServiceStatus,
   MaintenanceEvent,
+  OwnershipTwinResponse,
   ServiceDueStatus,
 } from '@/types/car';
 import {
@@ -35,6 +36,13 @@ export default function CarDetail() {
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
+  const [twinAction, setTwinAction] = useState<'delay' | 'do_now'>('delay');
+  const [twinEventType, setTwinEventType] = useState('oil_change');
+  const [twinDelayDays, setTwinDelayDays] = useState(60);
+  const [twinMonthlyKm, setTwinMonthlyKm] = useState(1200);
+  const [twinLoading, setTwinLoading] = useState(false);
+  const [twinError, setTwinError] = useState<string | null>(null);
+  const [twinResult, setTwinResult] = useState<OwnershipTwinResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +77,28 @@ export default function CarDetail() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function runOwnershipTwin() {
+    if (!id) return;
+    setTwinLoading(true);
+    setTwinError(null);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const result = await carsApi.getOwnershipTwin(id, token, {
+        action: twinAction,
+        event_type: twinEventType,
+        delay_days: twinDelayDays,
+        monthly_km: twinMonthlyKm,
+      });
+      setTwinResult(result);
+    } catch (err) {
+      setTwinError(err instanceof Error ? err.message : 'Failed to run simulation');
+      setTwinResult(null);
+    } finally {
+      setTwinLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -110,6 +140,112 @@ export default function CarDetail() {
 
       {/* Car Care Score Card */}
       {careScore && <CarCareScoreCard data={careScore} />}
+
+      <section className="section section--card ownership-twin-card">
+        <div className="ownership-twin-card__header">
+          <h2>Ownership Twin</h2>
+          <p>Simulate maintenance choices before committing.</p>
+        </div>
+
+        <div className="ownership-twin-form">
+          <div className="input-wrap">
+            <label className="input-label">Service Type</label>
+            <select
+              className="input"
+              value={twinEventType}
+              onChange={(e) => setTwinEventType(e.target.value)}
+            >
+              <option value="oil_change">Oil change</option>
+              <option value="brake_service">Brake service</option>
+              <option value="tire_change">Tire change</option>
+              <option value="inspection">Inspection</option>
+              <option value="repair">Repair</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="ownership-twin-form__actions">
+            <button
+              className={`button ${twinAction === 'delay' ? 'button--primary' : 'button--secondary'}`}
+              onClick={() => setTwinAction('delay')}
+            >
+              Delay service
+            </button>
+            <button
+              className={`button ${twinAction === 'do_now' ? 'button--primary' : 'button--secondary'}`}
+              onClick={() => setTwinAction('do_now')}
+            >
+              Do it now
+            </button>
+          </div>
+
+          {twinAction === 'delay' && (
+            <div className="ownership-twin-form__grid">
+              <div className="input-wrap">
+                <label className="input-label">Delay (days)</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={twinDelayDays}
+                  onChange={(e) => setTwinDelayDays(Number(e.target.value) || 60)}
+                />
+              </div>
+              <div className="input-wrap">
+                <label className="input-label">Monthly km</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  max={10000}
+                  value={twinMonthlyKm}
+                  onChange={(e) => setTwinMonthlyKm(Number(e.target.value) || 1200)}
+                />
+              </div>
+            </div>
+          )}
+
+          <button className="button button--accent ownership-twin-form__run" onClick={runOwnershipTwin}>
+            {twinLoading ? 'Running simulation...' : 'Run simulation'}
+          </button>
+        </div>
+
+        {twinError && <div className="error-banner">{twinError}</div>}
+
+        {twinResult && (
+          <div className="ownership-twin-result">
+            <p className="ownership-twin-result__narrative">{twinResult.narrative}</p>
+            <div className="ownership-twin-result__scores">
+              <div>
+                <span className="ownership-twin-result__label">Baseline</span>
+                <strong>{twinResult.baseline.overall_score} ({twinResult.baseline.grade})</strong>
+              </div>
+              <div>
+                <span className="ownership-twin-result__label">Projected</span>
+                <strong>{twinResult.projected.overall_score} ({twinResult.projected.grade})</strong>
+              </div>
+              <div>
+                <span className="ownership-twin-result__label">Delta</span>
+                <strong>{twinResult.score_delta > 0 ? `+${twinResult.score_delta}` : twinResult.score_delta}</strong>
+              </div>
+            </div>
+
+            <div className="ownership-twin-result__urgency">
+              Urgency: {twinResult.baseline_urgency ?? 'unknown'} → {twinResult.projected_urgency ?? 'unknown'}
+              <span className="ownership-twin-result__source">{twinResult.explanation_source === 'llm' ? 'LLM explanation' : 'Rule-based explanation'}</span>
+            </div>
+
+            {twinResult.projected_recommendations.length > 0 && (
+              <ul className="ownership-twin-result__recs">
+                {twinResult.projected_recommendations.map((r, idx) => (
+                  <li key={idx}>{r}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
 
       {nextService && nextService.urgency !== 'ok' && nextService.urgency !== 'unknown' && (
         <div

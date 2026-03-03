@@ -117,3 +117,44 @@ export interface CarCareScoreResponse {
   scoring_version: string;
   scored_as_of: string | null;
 }
+
+export interface OwnershipTwinRequest {
+  action: 'delay' | 'do_now';
+  event_type: string;
+  delay_days?: number;
+  monthly_km?: number;
+}
+
+export interface OwnershipTwinScore {
+  overall_score: number;
+  grade: string;
+  confidence: number;
+  confidence_label: string;
+}
+
+export interface OwnershipTwinCategoryDelta {
+  category: string;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface OwnershipTwinResponse {
+  car_id: string;
+  action: 'delay' | 'do_now';
+  event_type: string;
+  assumptions: string[];
+  baseline: OwnershipTwinScore;
+  projected: OwnershipTwinScore;
+  category_deltas: OwnershipTwinCategoryDelta[];
+  baseline_urgency: string | null;
+  projected_urgency: string | null;
+  score_delta: number;
+  risk_change: 'improved' | 'worsened' | 'stable';
+  explanation_source: 'llm' | 'rule_based';
+  narrative: string;
+  projected_recommendations: string[];
+  computed_at: string;
+  scoring_version: string;
+  projected_as_of: string;
+}

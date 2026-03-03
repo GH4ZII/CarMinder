@@ -7,6 +7,8 @@ import type {
   KilometerUpdate,
   MaintenanceEvent,
   MaintenanceEventCreate,
+  OwnershipTwinRequest,
+  OwnershipTwinResponse,
 } from '@/types/car';
 import { API_URL, ApiError, authHeaders, parseErrorDetail } from './client';
 
@@ -192,6 +194,24 @@ export async function getCarCareScore(
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
     const detail = await parseErrorDetail(res);
     throw new ApiError('Failed to fetch car care score', res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getOwnershipTwin(
+  carId: string,
+  token: string,
+  payload: OwnershipTwinRequest
+): Promise<OwnershipTwinResponse> {
+  const res = await fetch(`${API_URL}/cars/${carId}/ownership-twin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError('Failed to simulate ownership twin', res.status, detail);
   }
   return res.json();
 }

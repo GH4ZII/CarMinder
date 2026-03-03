@@ -2,7 +2,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import get_settings
-from routers import auth, car, car_score, incident_report, maintenance_event, public_history, push_token, service_interval
+from routers import (
+    auth,
+    car,
+    car_score,
+    car_twin,
+    incident_report,
+    maintenance_event,
+    public_history,
+    push_token,
+    service_interval,
+)
 
 app = FastAPI(title="CarMinder API")
 
@@ -20,6 +30,7 @@ app.include_router(maintenance_event.router)
 app.include_router(maintenance_event.router_meta)
 app.include_router(service_interval.router)
 app.include_router(car_score.router)
+app.include_router(car_twin.router)
 app.include_router(incident_report.router)
 app.include_router(incident_report.router_meta)
 app.include_router(public_history.router)
@@ -40,5 +51,6 @@ def health_check():
             "SUPABASE_URL": bool(settings["SUPABASE_URL"]),
             "SUPABASE_SERVICE_KEY": bool(settings["SUPABASE_SERVICE_KEY"]),
             "JWT_SECRET_KEY": bool(settings["JWT_SECRET_KEY"]),
+            "OPENAI_API_KEY": bool(settings["OPENAI_API_KEY"]),
         },
     }

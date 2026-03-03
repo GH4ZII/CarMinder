@@ -15,4 +15,7 @@ def get_settings() -> dict[str, str | None]:
         "FIREBASE_WEB_API_KEY": os.getenv("FIREBASE_WEB_API_KEY"),
         "VEHICLE_API_KEY": os.getenv("VEHICLE_API_KEY"),
         "CRON_SECRET": os.getenv("CRON_SECRET"),
+        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+        "OPENAI_MODEL": os.getenv("OPENAI_MODEL"),
+        "OPENAI_BASE_URL": os.getenv("OPENAI_BASE_URL"),
     }

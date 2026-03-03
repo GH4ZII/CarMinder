@@ -9,6 +9,7 @@ Thin layer that:
   5. Maps everything into the Pydantic response DTO.
 """
 from datetime import date, datetime
+from typing import Any
 
 from domain.scoring.engine import compute_score
 from domain.scoring.normalize import (
@@ -43,24 +44,33 @@ def compute_car_care_score(uid: str, car_id: str) -> CarCareScoreResponse:
 
     # 2. Fix the reference date once -----------------------------------------
     as_of = date.today()
+    return compute_car_care_score_from_snapshot(raw_car, raw_events, raw_incidents, as_of)
 
-    # 3. Normalize into canonical types --------------------------------------
+
+def compute_car_care_score_from_snapshot(
+    raw_car: dict[str, Any],
+    raw_events: list[dict[str, Any]],
+    raw_incidents: list[dict[str, Any]],
+    as_of: date,
+) -> CarCareScoreResponse:
+    """Compute score from pre-fetched snapshot data with explicit as_of."""
+    # 1. Normalize into canonical types --------------------------------------
     car = normalize_car(raw_car)
     events = [normalize_event(e, fallback_date=as_of) for e in raw_events]
     incidents = [normalize_incident(i, fallback_date=as_of) for i in raw_incidents]
     intervals = normalize_intervals(DEFAULT_INTERVALS)
 
-    # 4. Run the pure scoring engine -----------------------------------------
+    # 2. Run the pure scoring engine -----------------------------------------
     result = compute_score(car, events, incidents, as_of, intervals)
 
-    # 5. Generate human-readable text ----------------------------------------
+    # 3. Generate human-readable text ----------------------------------------
     recommendations = generate_recommendations(result)
     summary = generate_summary(result, car)
 
-    # 6. Map engine result → response DTO ------------------------------------
+    # 4. Map engine result → response DTO ------------------------------------
     cats = result.categories
     return CarCareScoreResponse(
-        car_id=car_id,
+        car_id=str(raw_car.get("id", "")),
         overall_score=result.overall_score,
         grade=result.grade,
         confidence=result.confidence,

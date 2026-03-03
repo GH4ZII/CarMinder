@@ -1,5 +1,5 @@
 import { API_URL, ApiError, authHeaders } from './apiConfig';
-import type { CarInfo } from './types';
+import type { CarInfo, OwnershipTwinRequest, OwnershipTwinResponse } from './types';
 
 export const carApi = {
   async lookupVehicle(regNumber: string): Promise<CarInfo | null> {
@@ -81,6 +81,27 @@ export const carApi = {
     if (!res.ok) {
       if (res.status === 401) throw new ApiError('Unauthorized', 401);
       throw new Error('Failed to update car');
+    }
+    return res.json();
+  },
+
+  async getOwnershipTwin(
+    carId: string,
+    token: string,
+    payload: OwnershipTwinRequest
+  ): Promise<OwnershipTwinResponse> {
+    const res = await fetch(`${API_URL}/cars/${carId}/ownership-twin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const errorText = await res.text();
+      throw new Error(`Failed to simulate ownership twin: ${res.status} ${errorText}`);
     }
     return res.json();
   },

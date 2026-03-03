@@ -457,6 +457,31 @@ export const api = {
     }
     return res.json();
   },
+
+  /** Simulate a what-if ownership twin scenario */
+  async getOwnershipTwin(
+    carId: string,
+    token: string,
+    payload: OwnershipTwinRequest
+  ): Promise<OwnershipTwinResponse> {
+    const res = await fetch(`${API_URL}/cars/${carId}/ownership-twin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const err = await res.json().catch(() => ({}));
+      const msg = Array.isArray(err.detail)
+        ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
+        : (typeof err.detail === 'string' ? err.detail : res.statusText);
+      throw new Error(msg || 'Failed to simulate ownership twin');
+    }
+    return res.json();
+  },
 };
 
 // Car care score interfaces
@@ -484,6 +509,47 @@ export interface CarCareScoreResponse {
   categories: CategoryBreakdown;
   recommendations: string[];
   computed_at: string;
+}
+
+export interface OwnershipTwinRequest {
+  action: 'delay' | 'do_now';
+  event_type: string;
+  delay_days?: number;
+  monthly_km?: number;
+}
+
+export interface OwnershipTwinScore {
+  overall_score: number;
+  grade: string;
+  confidence: number;
+  confidence_label: string;
+}
+
+export interface OwnershipTwinCategoryDelta {
+  category: string;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface OwnershipTwinResponse {
+  car_id: string;
+  action: 'delay' | 'do_now';
+  event_type: string;
+  assumptions: string[];
+  baseline: OwnershipTwinScore;
+  projected: OwnershipTwinScore;
+  category_deltas: OwnershipTwinCategoryDelta[];
+  baseline_urgency: string | null;
+  projected_urgency: string | null;
+  score_delta: number;
+  risk_change: 'improved' | 'worsened' | 'stable';
+  explanation_source: 'llm' | 'rule_based';
+  narrative: string;
+  projected_recommendations: string[];
+  computed_at: string;
+  scoring_version: string;
+  projected_as_of: string;
 }
 
 // Incident report interfaces
@@ -545,4 +611,3 @@ export interface PublicCarHistory {
   maintenance_events: PublicMaintenanceEvent[];
   incident_reports: PublicIncidentReport[];
 }
-

@@ -11,12 +11,22 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import {
+  api,
+  CarCareScoreResponse,
+  CarInfo,
+  CarServiceStatus,
+  IncidentReport,
+  MaintenanceEvent,
+  OwnershipTwinResponse,
+  ServiceDueStatus,
+} from '../../../../frontendServices/apiCall';
 
 function formatDate(s: string) {
   try {
@@ -246,6 +256,12 @@ export default function CarTimelineScreen() {
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
+  const [twinAction, setTwinAction] = useState<'delay' | 'do_now'>('delay');
+  const [twinEventType, setTwinEventType] = useState<string>('oil_change');
+  const [twinDelayDays, setTwinDelayDays] = useState('60');
+  const [twinMonthlyKm, setTwinMonthlyKm] = useState('1200');
+  const [runningTwin, setRunningTwin] = useState(false);
+  const [twinResult, setTwinResult] = useState<OwnershipTwinResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -291,6 +307,27 @@ export default function CarTimelineScreen() {
     }, [fetch])
   );
 
+  const runOwnershipTwin = async () => {
+    if (!carId || !user) return;
+    setRunningTwin(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const result = await api.getOwnershipTwin(carId, token, {
+        action: twinAction,
+        event_type: twinEventType,
+        delay_days: Math.max(1, parseInt(twinDelayDays, 10) || 60),
+        monthly_km: Math.max(0, parseInt(twinMonthlyKm, 10) || 1200),
+      });
+      setTwinResult(result);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to run simulation';
+      Alert.alert('Ownership Twin', msg);
+    } finally {
+      setRunningTwin(false);
+    }
+  };
+
   if (!carId) {
     return (
       <ThemedView style={styles.center}>
@@ -329,6 +366,126 @@ export default function CarTimelineScreen() {
 
       {/* Car Care Score */}
       {careScore && <CarCareScoreCard data={careScore} />}
+
+      <SectionDivider />
+      <ThemedText type="subtitle" style={styles.sectionTitle}>
+        Ownership Twin
+      </ThemedText>
+      <View style={styles.twinCard}>
+        <ThemedText style={styles.twinIntro}>
+          Simulate maintenance choices before making a decision.
+        </ThemedText>
+
+        <View style={styles.twinTypeRow}>
+          {[
+            'oil_change',
+            'brake_service',
+            'tire_change',
+            'inspection',
+            'repair',
+            'other',
+          ].map((t) => (
+            <TouchableOpacity
+              key={t}
+              style={[styles.twinChip, twinEventType === t && styles.twinChipActive]}
+              onPress={() => setTwinEventType(t)}
+            >
+              <Text style={[styles.twinChipText, twinEventType === t && styles.twinChipTextActive]}>
+                {eventTypeLabel(t)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.twinActionRow}>
+          <TouchableOpacity
+            style={[styles.twinActionBtn, twinAction === 'delay' && styles.twinActionBtnActive]}
+            onPress={() => setTwinAction('delay')}
+          >
+            <Text style={[styles.twinActionBtnText, twinAction === 'delay' && styles.twinActionBtnTextActive]}>
+              Delay service
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.twinActionBtn, twinAction === 'do_now' && styles.twinActionBtnActive]}
+            onPress={() => setTwinAction('do_now')}
+          >
+            <Text style={[styles.twinActionBtnText, twinAction === 'do_now' && styles.twinActionBtnTextActive]}>
+              Do now
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {twinAction === 'delay' && (
+          <View style={styles.twinInputGrid}>
+            <View style={styles.twinInputWrap}>
+              <Text style={styles.twinInputLabel}>Delay days</Text>
+              <TextInput
+                value={twinDelayDays}
+                onChangeText={setTwinDelayDays}
+                keyboardType="numeric"
+                style={styles.twinInput}
+                placeholder="60"
+                placeholderTextColor="#8A8A8A"
+              />
+            </View>
+            <View style={styles.twinInputWrap}>
+              <Text style={styles.twinInputLabel}>Monthly km</Text>
+              <TextInput
+                value={twinMonthlyKm}
+                onChangeText={setTwinMonthlyKm}
+                keyboardType="numeric"
+                style={styles.twinInput}
+                placeholder="1200"
+                placeholderTextColor="#8A8A8A"
+              />
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.twinRunBtn} onPress={runOwnershipTwin} disabled={runningTwin}>
+          <Text style={styles.twinRunBtnText}>{runningTwin ? 'Running...' : 'Run simulation'}</Text>
+        </TouchableOpacity>
+
+        {twinResult && (
+          <View style={styles.twinResult}>
+            <ThemedText style={styles.twinNarrative}>{twinResult.narrative}</ThemedText>
+            <View style={styles.twinScoreRow}>
+              <View style={styles.twinScoreBox}>
+                <Text style={styles.twinScoreLabel}>Baseline</Text>
+                <Text style={styles.twinScoreValue}>
+                  {twinResult.baseline.overall_score} ({twinResult.baseline.grade})
+                </Text>
+              </View>
+              <View style={styles.twinScoreBox}>
+                <Text style={styles.twinScoreLabel}>Projected</Text>
+                <Text style={styles.twinScoreValue}>
+                  {twinResult.projected.overall_score} ({twinResult.projected.grade})
+                </Text>
+              </View>
+              <View style={styles.twinScoreBox}>
+                <Text style={styles.twinScoreLabel}>Delta</Text>
+                <Text style={styles.twinScoreValue}>
+                  {twinResult.score_delta > 0 ? `+${twinResult.score_delta}` : twinResult.score_delta}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.twinUrgency}>
+              Urgency: {twinResult.baseline_urgency ?? 'unknown'}
+              {' -> '}
+              {twinResult.projected_urgency ?? 'unknown'} ({twinResult.explanation_source === 'llm' ? 'LLM' : 'Rules'})
+            </Text>
+
+            {twinResult.projected_recommendations.map((rec, idx) => (
+              <View key={`${idx}-${rec.slice(0, 16)}`} style={styles.twinRecRow}>
+                <Text style={styles.twinRecBullet}>•</Text>
+                <Text style={styles.twinRecText}>{rec}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
 
       {/* Alert banner for urgent services */}
       {serviceStatus?.next_service && (
@@ -465,6 +622,89 @@ const styles = StyleSheet.create({
   title: { marginBottom: 4 },
   subtitle: { fontSize: 14, opacity: 0.8, marginBottom: 16 },
   sectionTitle: { marginTop: 8, marginBottom: 12 },
+  twinCard: {
+    backgroundColor: 'rgba(128,128,128,0.06)',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.12)',
+    marginBottom: 12,
+  },
+  twinIntro: { fontSize: 13, opacity: 0.75, marginBottom: 10 },
+  twinTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  twinChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.22)',
+    backgroundColor: '#fff',
+  },
+  twinChipActive: { backgroundColor: '#1A1A1A', borderColor: '#1A1A1A' },
+  twinChipText: { fontSize: 12, fontWeight: '600', color: '#1A1A1A' },
+  twinChipTextActive: { color: '#fff' },
+  twinActionRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  twinActionBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.25)',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  twinActionBtnActive: { backgroundColor: '#1A1A1A', borderColor: '#1A1A1A' },
+  twinActionBtnText: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
+  twinActionBtnTextActive: { color: '#fff' },
+  twinInputGrid: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  twinInputWrap: { flex: 1 },
+  twinInputLabel: { fontSize: 12, opacity: 0.7, marginBottom: 4 },
+  twinInput: {
+    borderWidth: 1,
+    borderColor: '#E3E3E3',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    fontSize: 13,
+    color: '#111',
+  },
+  twinRunBtn: {
+    backgroundColor: '#C5E636',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  twinRunBtnText: { fontSize: 14, fontWeight: '700', color: '#1A1A1A' },
+  twinResult: {
+    marginTop: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.2)',
+    borderRadius: 12,
+    padding: 10,
+    backgroundColor: '#fff',
+  },
+  twinNarrative: { fontSize: 13, opacity: 0.9, marginBottom: 10 },
+  twinScoreRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  twinScoreBox: {
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.25)',
+    borderRadius: 10,
+    padding: 8,
+  },
+  twinScoreLabel: {
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    opacity: 0.55,
+    marginBottom: 4,
+  },
+  twinScoreValue: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  twinUrgency: { fontSize: 12, opacity: 0.7, marginBottom: 6 },
+  twinRecRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 3 },
+  twinRecBullet: { marginRight: 6, opacity: 0.65 },
+  twinRecText: { flex: 1, fontSize: 12, opacity: 0.78 },
   alertBanner: {
     padding: 12,
     borderRadius: 12,
