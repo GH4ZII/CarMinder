@@ -1,78 +1,39 @@
-# Welcome to your Expo app 👋
+# CarMinder
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A car maintenance and reminder app built with Expo (React Native), a FastAPI backend, and an optional Vite-based web app. Track cars, service intervals, maintenance events, incidents, and get reminders.
 
-## Get started
+## Tech stack
 
-1. Install dependencies
+- **Mobile:** Expo (React Native), TypeScript, file-based routing via Expo Router
+- **Backend:** FastAPI, Supabase, Firebase Admin — `routers/`, `services/`, `schemas/`, `config/` in `backend-python/`
+- **Web:** Vite + React in `web/`
+- **API layer:** `frontendServices/` (e.g. `apiCall.ts`, `carApi.ts`, `authApi.ts`)
 
-   ```bash
-   npm install
-   ```
+## Quick start
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-
-
-## Quick Start
-
-### Frontend
+### Frontend (Expo / mobile)
 
 ```bash
 npm install
 npx expo start
 ```
 
+Then use the CLI to open in a [development build](https://docs.expo.dev/develop/development-builds/introduction/), [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/), [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/), or [Expo Go](https://expo.dev/go). Edit files in the **app** directory; the project uses [file-based routing](https://docs.expo.dev/router/introduction).
+
 ### Backend
 
 ```bash
 cd backend-python
-python3 -m venv .venv
+python -m venv .venv
+# Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# macOS/Linux:
 source .venv/bin/activate
-(For Windows) .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Web (Vite)
-
-Web-versjonen av appen kjører i `web/` med Vite:
 
 ```bash
 cd web
@@ -80,34 +41,39 @@ npm install
 npm run dev
 ```
 
-Åpne deretter nettleseren på adressen som vises (vanligvis `http://localhost:5173`).
+Open the URL shown (usually `http://localhost:5173`).
 
-- **Bygg for produksjon:** `npm run build`
-- **Forhåndsvis bygg:** `npm run preview`
+- **Production build:** `npm run build`
+- **Preview build:** `npm run preview`
 
 ## Architecture
 
-- **Frontend:** Expo, TypeScript, API calls in `frontendServices/apiCall.ts`
-- **Backend:** FastAPI, Supabase, Firebase Admin, organized in `routers/`, `services/`, `schemas/`, `config/`
-- **Env files:** `.env` (frontend), `backend-python/.env` (backend)
+- **Frontend:** Expo app; API calls live in `frontendServices/` (e.g. `apiCall.ts`, `carApi.ts`, `maintenanceApi.ts`, `authApi.ts`).
+- **Backend:** FastAPI in `backend-python/` with Supabase and Firebase Admin; routers for auth, cars, maintenance, service intervals, car score, incident reports, public history, push tokens.
+- **Env:** `.env` at repo root (frontend), `backend-python/.env` (backend).
 
-## How to Add New Backend Functions
+## Adding new backend features
 
-1. **Create a schema:** Add a Pydantic model in `backend-python/schemas/`.
-2. **Add logic:** Implement in `backend-python/services/`.
-3. **Add route:** Create an endpoint in `backend-python/routers/`.
-4. **Register router:** Import in `main.py`.
-5. **Frontend:** Add API call in `frontendServices/apiCall.ts` and use it in your React Native components.
+1. **Schema:** Add a Pydantic model in `backend-python/schemas/`.
+2. **Logic:** Implement in `backend-python/services/`.
+3. **Route:** Add an endpoint in `backend-python/routers/`.
+4. **Wire up:** Import and include the router in `main.py`.
+5. **Frontend:** Add or use an API helper in `frontendServices/` and call it from your screens in **app**.
 
-## Environment Variables
+## Environment variables
 
-- **Frontend:** `.env` (API URLs, Supabase keys, Firebase client IDs)
-- **Backend:** `backend-python/.env` (Supabase service key, API keys)
+- **Frontend:** `.env` — API base URL, Supabase URL/key, Firebase client config.
+- **Backend:** `backend-python/.env` — Supabase URL and service key, JWT secret, other API keys.
+
+Keep secrets out of git; use `.env.example` or docs for required keys.
 
 ## Contributing
 
-- Keep secrets out of git.
-- Follow the folder structure.
-- Use clear names and comments.
+- Do not commit secrets; use env files and keep them ignored.
+- Follow the existing folder structure and naming.
+- Use clear names and brief comments where helpful.
 
-##
+## Learn more
+
+- [Expo docs](https://docs.expo.dev/) and [Expo Router](https://docs.expo.dev/router/introduction)
+- [FastAPI](https://fastapi.tiangolo.com/)
