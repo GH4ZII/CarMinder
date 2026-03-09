@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
 
 function formatDate(s: string) {
   try {
@@ -86,6 +87,11 @@ function CategoryBar({ label, score, weight }: { label: string; score: number; w
 
 function SectionDivider() {
   return <View style={{ height: 1, backgroundColor: 'rgba(128,128,128,0.15)', marginVertical: 16 }} />;
+}
+
+function formatObdValue(value: number | null, unit: string): string {
+  if (value == null) return '—';
+  return `${value.toLocaleString()} ${unit}`.trim();
 }
 
 function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
@@ -246,6 +252,9 @@ export default function CarTimelineScreen() {
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
+  const [obdSnapshot, setObdSnapshot] = useState<ObdSnapshot | null>(null);
+  const [obdLoading, setObdLoading] = useState(false);
+  const [obdSupported, setObdSupported] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -260,18 +269,22 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const [carData, eventsData, incidentsData, statusData, scoreData] = await Promise.all([
+      const [carData, eventsData, incidentsData, statusData, scoreData, lastObdSnapshot, supportsObd] = await Promise.all([
         api.getCar(carId, token),
         api.getMaintenanceEvents(carId, token).catch((e) => { console.warn('Events fetch failed:', e.message ?? e); return [] as MaintenanceEvent[]; }),
         api.getIncidents(carId, token).catch((e) => { console.warn('Incidents fetch failed:', e.message ?? e); return [] as IncidentReport[]; }),
         api.getCarServiceStatus(carId, token).catch((e) => { console.warn('Service status fetch failed:', e.message ?? e); return null; }),
         api.getCarCareScore(carId, token).catch((e) => { console.warn('Score fetch failed:', e.message ?? e); return null; }),
+        obdService.getLastSnapshot(carId).catch(() => null),
+        obdService.isSupported().catch(() => false),
       ]);
       setCar(carData);
       setEvents(eventsData);
       setIncidents(incidentsData);
       setServiceStatus(statusData);
       setCareScore(scoreData);
+      setObdSnapshot(lastObdSnapshot);
+      setObdSupported(supportsObd);
     } catch {
       setError(true);
       setCar(null);
@@ -279,11 +292,35 @@ export default function CarTimelineScreen() {
       setIncidents([]);
       setServiceStatus(null);
       setCareScore(null);
+      setObdSnapshot(null);
+      setObdSupported(false);
       Alert.alert('Error', 'Failed to load. Pull down to retry.');
     } finally {
       setLoading(false);
     }
   }, [carId, user, getToken]);
+
+  const scanObd = useCallback(async () => {
+    if (!carId) return;
+    setObdLoading(true);
+    try {
+      const snapshot = await obdService.scanCar(carId);
+      setObdSnapshot(snapshot);
+      if (snapshot.source === 'simulated') {
+        Alert.alert('Demo scan complete', 'This is simulated OBD data. Connect a native transport for real adapter reads.');
+      }
+    } catch (e: any) {
+      Alert.alert('OBD scan failed', e?.message ?? 'Could not read OBD data.');
+    } finally {
+      setObdLoading(false);
+    }
+  }, [carId]);
+
+  const runObdDemo = useCallback(async () => {
+    obdService.useSimulator();
+    setObdSupported(true);
+    await scanObd();
+  }, [scanObd]);
 
   useFocusEffect(
     useCallback(() => {
@@ -349,6 +386,87 @@ export default function CarTimelineScreen() {
       {serviceStatus?.services.map((s) => (
         <ServiceStatusCard key={s.event_type} status={s} />
       ))}
+
+      <SectionDivider />
+      <View style={styles.sectionRow}>
+        <ThemedText type="subtitle" style={styles.section}>
+          OBD-II diagnostics
+        </ThemedText>
+        <View style={styles.obdActions}>
+          {obdSupported && (
+            <TouchableOpacity
+              style={[styles.addBtn, obdLoading && styles.addBtnDisabled]}
+              onPress={scanObd}
+              disabled={obdLoading}
+            >
+              <Text style={styles.addBtnText}>{obdLoading ? 'Scanning…' : 'Scan adapter'}</Text>
+            </TouchableOpacity>
+          )}
+          {!obdSupported && (
+            <TouchableOpacity
+              style={[styles.addBtn, styles.secondaryBtn]}
+              onPress={runObdDemo}
+              disabled={obdLoading}
+            >
+              <Text style={styles.secondaryBtnText}>Demo scan</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+      {!obdSupported && (
+        <ThemedText style={styles.obdHint}>
+          Native OBD transport is not configured yet in this build. Use Demo scan to preview UI.
+        </ThemedText>
+      )}
+      {obdSnapshot ? (
+        <View style={styles.obdCard}>
+          <View style={styles.obdHeaderRow}>
+            <ThemedText style={styles.obdCardTitle}>
+              Latest reading {obdSnapshot.source === 'simulated' ? '(Demo)' : '(Device)'}
+            </ThemedText>
+            <ThemedText style={styles.obdTimestamp}>{formatDate(obdSnapshot.capturedAt)}</ThemedText>
+          </View>
+
+          <View style={styles.obdMetricsGrid}>
+            <View style={styles.obdMetricItem}>
+              <ThemedText style={styles.obdMetricLabel}>RPM</ThemedText>
+              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.rpm, '')}</ThemedText>
+            </View>
+            <View style={styles.obdMetricItem}>
+              <ThemedText style={styles.obdMetricLabel}>Coolant</ThemedText>
+              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.coolantTempC, '°C')}</ThemedText>
+            </View>
+            <View style={styles.obdMetricItem}>
+              <ThemedText style={styles.obdMetricLabel}>Speed</ThemedText>
+              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.speedKph, 'km/h')}</ThemedText>
+            </View>
+            <View style={styles.obdMetricItem}>
+              <ThemedText style={styles.obdMetricLabel}>Engine Load</ThemedText>
+              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.engineLoadPct, '%')}</ThemedText>
+            </View>
+            <View style={styles.obdMetricItem}>
+              <ThemedText style={styles.obdMetricLabel}>Battery</ThemedText>
+              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.batteryVoltage, 'V')}</ThemedText>
+            </View>
+          </View>
+
+          <ThemedText style={styles.obdDtcTitle}>
+            Error codes ({obdSnapshot.dtcs.length})
+          </ThemedText>
+          {obdSnapshot.dtcs.length === 0 ? (
+            <ThemedText style={styles.obdNoCodes}>No stored trouble codes.</ThemedText>
+          ) : (
+            obdSnapshot.dtcs.map((dtc) => (
+              <View key={dtc.code} style={styles.obdCodeItem}>
+                <Text style={styles.obdCode}>{dtc.code}</Text>
+                <ThemedText style={styles.obdCodeDesc}>{dtc.description}</ThemedText>
+              </View>
+            ))
+          )}
+        </View>
+      ) : (
+        <ThemedText style={styles.obdHint}>No OBD snapshot yet.</ThemedText>
+      )}
 
       {/* Incidents section */}
       <SectionDivider />
@@ -504,6 +622,64 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  addBtnDisabled: {
+    opacity: 0.6,
+  },
+  secondaryBtn: {
+    backgroundColor: '#F1F1F1',
+  },
+  secondaryBtnText: {
+    color: '#1A1A1A',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  obdActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  obdHint: { fontSize: 13, opacity: 0.65, marginBottom: 10 },
+  obdCard: {
+    backgroundColor: 'rgba(26,26,26,0.04)',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.15)',
+    padding: 14,
+    marginBottom: 8,
+  },
+  obdHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  obdCardTitle: { fontSize: 14, fontWeight: '700' },
+  obdTimestamp: { fontSize: 12, opacity: 0.6 },
+  obdMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  obdMetricItem: {
+    width: '48%',
+    backgroundColor: 'rgba(128,128,128,0.08)',
+    borderRadius: 10,
+    padding: 10,
+  },
+  obdMetricLabel: { fontSize: 12, opacity: 0.7, marginBottom: 2 },
+  obdMetricValue: { fontSize: 14, fontWeight: '700' },
+  obdDtcTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  obdNoCodes: { fontSize: 13, opacity: 0.75 },
+  obdCodeItem: {
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+  },
+  obdCode: { fontSize: 13, fontWeight: '700', color: '#B00020', marginBottom: 3 },
+  obdCodeDesc: { fontSize: 12, opacity: 0.85 },
   list: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 24 },
   card: {
     backgroundColor: 'rgba(128,128,128,0.06)',
