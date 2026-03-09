@@ -1,0 +1,314 @@
+import { decode as b64Decode, encode as b64Encode } from 'base-64';
+import {
+  BleError,
+  BleManager,
+  Characteristic,
+  Device,
+  Subscription,
+} from 'react-native-ble-plx';
+import { PermissionsAndroid, Platform } from 'react-native';
+
+import type { ObdTransport } from './obdService';
+
+const ELM_SCAN_TIMEOUT_MS = 15000;
+const ELM_COMMAND_TIMEOUT_MS = 6000;
+const ELM_BOOT_TIMEOUT_MS = 10000;
+const ELM_NAME_HINTS = ['icar', 'v-link', 'vlink', 'elm', 'obd', 'obdii', 'obd2'];
+const UART_SERVICE_HINTS = [
+  '0000ffe0',
+  '0000fff0',
+  '6e400001',
+];
+const UART_CHAR_HINTS = [
+  '0000ffe1',
+  '0000fff1',
+  '6e400002',
+  '6e400003',
+];
+
+function normalizeUuid(value: string): string {
+  return value.replace(/-/g, '').toLowerCase();
+}
+
+function deviceLooksLikeElm327(device: Device): boolean {
+  const maybeName = `${device.name ?? ''} ${device.localName ?? ''}`.toLowerCase();
+  return ELM_NAME_HINTS.some((hint) => maybeName.includes(hint));
+}
+
+function characteristicLooksPreferred(char: Characteristic): boolean {
+  const uuid = normalizeUuid(char.uuid);
+  return UART_CHAR_HINTS.some((hint) => uuid.includes(hint));
+}
+
+function serviceLooksPreferred(uuid: string): boolean {
+  const normalized = normalizeUuid(uuid);
+  return UART_SERVICE_HINTS.some((hint) => normalized.includes(hint));
+}
+
+type ResolvedGatt = {
+  writeCharacteristic: Characteristic;
+  notifyCharacteristic: Characteristic;
+};
+
+export class BleElm327ObdTransport implements ObdTransport {
+  private manager = new BleManager();
+  private device: Device | null = null;
+  private gatt: ResolvedGatt | null = null;
+  private monitorSub: Subscription | null = null;
+  private lineBuffer = '';
+  private connecting = false;
+  private activeCommandTimer: ReturnType<typeof setInterval> | null = null;
+
+  async isSupported(): Promise<boolean> {
+    return Platform.OS === 'android' || Platform.OS === 'ios';
+  }
+
+  async connect(): Promise<void> {
+    if (this.device && this.gatt) return;
+    if (this.connecting) return;
+    this.connecting = true;
+    try {
+      const supported = await this.isSupported();
+      if (!supported) {
+        throw new Error('Bluetooth OBD is supported only on iOS and Android.');
+      }
+
+      await this.ensurePermissions();
+      await this.ensureBluetoothOn();
+      const found = await this.scanForElmDevice();
+      const connected = await found.connect({ timeout: ELM_SCAN_TIMEOUT_MS / 1000 });
+      this.device = await connected.discoverAllServicesAndCharacteristics();
+      this.gatt = await this.resolveGatt(this.device);
+      this.startMonitor();
+      await this.initializeElm327();
+    } finally {
+      this.connecting = false;
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    try {
+      if (this.activeCommandTimer) {
+        clearInterval(this.activeCommandTimer);
+        this.activeCommandTimer = null;
+      }
+      this.monitorSub?.remove();
+      this.monitorSub = null;
+      if (this.device) {
+        const stillConnected = await this.device.isConnected();
+        if (stillConnected) {
+          await this.manager.cancelDeviceConnection(this.device.id);
+        }
+      }
+    } catch {
+      // Best-effort disconnect.
+    } finally {
+      this.device = null;
+      this.gatt = null;
+      this.lineBuffer = '';
+    }
+  }
+
+  async readPid(modeAndPid: string): Promise<string> {
+    return this.sendElmCommand(modeAndPid, ELM_COMMAND_TIMEOUT_MS);
+  }
+
+  async readStoredDtcs(): Promise<string> {
+    return this.sendElmCommand('03', ELM_COMMAND_TIMEOUT_MS);
+  }
+
+  async readBatteryVoltage(): Promise<string> {
+    return this.sendElmCommand('ATRV', ELM_COMMAND_TIMEOUT_MS);
+  }
+
+  private async ensurePermissions(): Promise<void> {
+    if (Platform.OS !== 'android') return;
+    const sdk = Number(Platform.Version);
+    if (!Number.isFinite(sdk)) return;
+
+    if (sdk >= 31) {
+      const scan = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
+      const connect = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
+      if (scan !== PermissionsAndroid.RESULTS.GRANTED || connect !== PermissionsAndroid.RESULTS.GRANTED) {
+        throw new Error('Bluetooth permissions were denied.');
+      }
+      return;
+    }
+
+    const location = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    if (location !== PermissionsAndroid.RESULTS.GRANTED) {
+      throw new Error('Location permission is required for Bluetooth scanning.');
+    }
+  }
+
+  private async ensureBluetoothOn(): Promise<void> {
+    const state = await this.manager.state();
+    if (state === 'PoweredOn') return;
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        subscription.remove();
+        reject(new Error('Bluetooth is off. Please enable Bluetooth and try again.'));
+      }, ELM_SCAN_TIMEOUT_MS);
+
+      const subscription = this.manager.onStateChange((nextState) => {
+        if (nextState === 'PoweredOn') {
+          clearTimeout(timeout);
+          subscription.remove();
+          resolve();
+        }
+      }, true);
+    });
+  }
+
+  private async scanForElmDevice(): Promise<Device> {
+    return new Promise<Device>((resolve, reject) => {
+      let resolved = false;
+      const timeout = setTimeout(() => {
+        this.manager.stopDeviceScan();
+        if (!resolved) {
+          reject(new Error('No iCar/ELM327 adapter found. Make sure it is plugged in and powered.'));
+        }
+      }, ELM_SCAN_TIMEOUT_MS);
+
+      this.manager.startDeviceScan(null, { allowDuplicates: false }, (error: BleError | null, scanned: Device | null) => {
+        if (error) {
+          clearTimeout(timeout);
+          this.manager.stopDeviceScan();
+          reject(new Error(error.message));
+          return;
+        }
+        if (!scanned) return;
+        if (!deviceLooksLikeElm327(scanned)) return;
+
+        resolved = true;
+        clearTimeout(timeout);
+        this.manager.stopDeviceScan();
+        resolve(scanned);
+      });
+    });
+  }
+
+  private async resolveGatt(device: Device): Promise<ResolvedGatt> {
+    const services = await device.services();
+    if (!services.length) {
+      throw new Error('No GATT services available from adapter.');
+    }
+
+    let writeCharacteristic: Characteristic | null = null;
+    let notifyCharacteristic: Characteristic | null = null;
+
+    const orderedServices = [...services].sort((a, b) => {
+      const aScore = serviceLooksPreferred(a.uuid) ? 1 : 0;
+      const bScore = serviceLooksPreferred(b.uuid) ? 1 : 0;
+      return bScore - aScore;
+    });
+
+    for (const service of orderedServices) {
+      const characteristics = await device.characteristicsForService(service.uuid);
+      const orderedChars = [...characteristics].sort((a, b) => {
+        const aScore = characteristicLooksPreferred(a) ? 1 : 0;
+        const bScore = characteristicLooksPreferred(b) ? 1 : 0;
+        return bScore - aScore;
+      });
+
+      for (const char of orderedChars) {
+        if (!writeCharacteristic && (char.isWritableWithResponse || char.isWritableWithoutResponse)) {
+          writeCharacteristic = char;
+        }
+        if (!notifyCharacteristic && (char.isNotifiable || char.isIndicatable || char.isReadable)) {
+          notifyCharacteristic = char;
+        }
+      }
+
+      if (writeCharacteristic && notifyCharacteristic) break;
+    }
+
+    if (!writeCharacteristic || !notifyCharacteristic) {
+      throw new Error('Could not find adapter UART characteristics.');
+    }
+
+    return { writeCharacteristic, notifyCharacteristic };
+  }
+
+  private startMonitor(): void {
+    if (!this.device || !this.gatt) return;
+    if (this.monitorSub) {
+      this.monitorSub.remove();
+      this.monitorSub = null;
+    }
+
+    this.monitorSub = this.manager.monitorCharacteristicForDevice(
+      this.device.id,
+      this.gatt.notifyCharacteristic.serviceUUID,
+      this.gatt.notifyCharacteristic.uuid,
+      (error, characteristic) => {
+        if (error || !characteristic?.value) return;
+        try {
+          this.lineBuffer += b64Decode(characteristic.value);
+        } catch {
+          // Ignore malformed frames.
+        }
+      }
+    );
+  }
+
+  private async initializeElm327(): Promise<void> {
+    await this.sendElmCommand('ATZ', ELM_BOOT_TIMEOUT_MS);
+    await this.sendElmCommand('ATE0', ELM_COMMAND_TIMEOUT_MS);
+    await this.sendElmCommand('ATL0', ELM_COMMAND_TIMEOUT_MS);
+    await this.sendElmCommand('ATS0', ELM_COMMAND_TIMEOUT_MS);
+    await this.sendElmCommand('ATH0', ELM_COMMAND_TIMEOUT_MS);
+    await this.sendElmCommand('ATSP0', ELM_COMMAND_TIMEOUT_MS);
+  }
+
+  private async sendElmCommand(command: string, timeoutMs: number): Promise<string> {
+    if (!this.device || !this.gatt) {
+      throw new Error('OBD adapter is not connected.');
+    }
+
+    const payload = `${command.trim().toUpperCase()}\r`;
+    const encodedPayload = b64Encode(payload);
+    this.lineBuffer = '';
+
+    if (this.gatt.writeCharacteristic.isWritableWithResponse) {
+      await this.device.writeCharacteristicWithResponseForService(
+        this.gatt.writeCharacteristic.serviceUUID,
+        this.gatt.writeCharacteristic.uuid,
+        encodedPayload
+      );
+    } else {
+      await this.device.writeCharacteristicWithoutResponseForService(
+        this.gatt.writeCharacteristic.serviceUUID,
+        this.gatt.writeCharacteristic.uuid,
+        encodedPayload
+      );
+    }
+
+    return new Promise<string>((resolve, reject) => {
+      const startedAt = Date.now();
+      const timer = setInterval(() => {
+        const done = this.lineBuffer.includes('>');
+        const timedOut = Date.now() - startedAt > timeoutMs;
+        if (!done && !timedOut) return;
+
+        clearInterval(timer);
+        this.activeCommandTimer = null;
+        if (timedOut) {
+          reject(new Error(`Adapter timeout while running ${command}.`));
+          return;
+        }
+
+        const raw = this.lineBuffer;
+        this.lineBuffer = '';
+        const cleaned = raw
+          .replace(/>/g, ' ')
+          .replace(/\r/g, ' ')
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        resolve(cleaned || 'NO DATA');
+      }, 35);
+      this.activeCommandTimer = timer;
+    });
+  }
+}

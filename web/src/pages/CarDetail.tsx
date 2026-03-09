@@ -6,6 +6,7 @@ import type {
   CarInfo,
   CarServiceStatus,
   MaintenanceEvent,
+  ObdReadingResponse,
   ServiceDueStatus,
 } from '@/types/car';
 import {
@@ -35,6 +36,7 @@ export default function CarDetail() {
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
+  const [obdReading, setObdReading] = useState<ObdReadingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,16 +47,18 @@ export default function CarDetail() {
     try {
       const token = await getToken();
       if (!token) return;
-      const [carData, statusData, eventsData, scoreData] = await Promise.all([
+      const [carData, statusData, eventsData, scoreData, obdData] = await Promise.all([
         carsApi.getCar(id, token),
         carsApi.getCarServiceStatus(id, token).catch(() => null),
         carsApi.getMaintenanceEvents(id, token).catch(() => [] as MaintenanceEvent[]),
         carsApi.getCarCareScore(id, token).catch(() => null),
+        carsApi.getLatestObdReading(id, token).catch(() => null),
       ]);
       setCar(carData);
       setServiceStatus(statusData);
       setEvents(eventsData.sort((a, b) => b.event_date.localeCompare(a.event_date)));
       setCareScore(scoreData);
+      setObdReading(obdData);
     } catch (err) {
       if (err instanceof Error && 'status' in err && (err as { status: number }).status === 401) {
         signOut();
@@ -138,6 +142,8 @@ export default function CarDetail() {
           </div>
         </section>
       )}
+
+      {obdReading && <ObdDiagnosticsCard reading={obdReading} />}
 
       <section className="section">
         <div className="section-header">
@@ -304,6 +310,62 @@ function ServiceStatusCard({ service }: { service: ServiceDueStatus }) {
         )}
       </div>
     </Card>
+  );
+}
+
+/* ── OBD Diagnostics Card ────────────────────────────────── */
+
+function ObdDiagnosticsCard({ reading }: { reading: ObdReadingResponse }) {
+  const fmtVal = (v: number | null, unit: string) =>
+    v == null ? '\u2014' : `${v.toLocaleString()} ${unit}`.trim();
+
+  return (
+    <section className="section">
+      <h2>OBD-II Diagnostics</h2>
+      <Card className="obd-card">
+        <div className="obd-card__header">
+          <span className="obd-card__title">
+            Latest Reading {reading.source === 'simulated' ? '(Demo)' : '(Device)'}
+          </span>
+          <span className="obd-card__date">{formatDate(reading.captured_at)}</span>
+        </div>
+        <div className="obd-card__metrics">
+          <div className="obd-metric">
+            <span className="obd-metric__label">RPM</span>
+            <span className="obd-metric__value">{fmtVal(reading.rpm, '')}</span>
+          </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">Coolant</span>
+            <span className="obd-metric__value">{fmtVal(reading.coolant_temp_c, '\u00B0C')}</span>
+          </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">Speed</span>
+            <span className="obd-metric__value">{fmtVal(reading.speed_kph, 'km/h')}</span>
+          </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">Engine Load</span>
+            <span className="obd-metric__value">{fmtVal(reading.engine_load_pct, '%')}</span>
+          </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">Battery</span>
+            <span className="obd-metric__value">{fmtVal(reading.battery_voltage, 'V')}</span>
+          </div>
+        </div>
+        <div className="obd-card__dtcs">
+          <h4>Error Codes ({reading.dtcs.length})</h4>
+          {reading.dtcs.length === 0 ? (
+            <p className="text-muted">No stored trouble codes.</p>
+          ) : (
+            reading.dtcs.map((dtc) => (
+              <div key={dtc.code} className="obd-dtc">
+                <span className="obd-dtc__code">{dtc.code}</span>
+                <span className="obd-dtc__desc">{dtc.description}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+    </section>
   );
 }
 
