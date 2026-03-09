@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus, snapshotToObdPayload } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
 
 function formatDate(s: string) {
@@ -269,13 +269,14 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const [carData, eventsData, incidentsData, statusData, scoreData, lastObdSnapshot, supportsObd] = await Promise.all([
+      const [carData, eventsData, incidentsData, statusData, scoreData, lastObdSnapshot, backendReading, supportsObd] = await Promise.all([
         api.getCar(carId, token),
         api.getMaintenanceEvents(carId, token).catch((e) => { console.warn('Events fetch failed:', e.message ?? e); return [] as MaintenanceEvent[]; }),
         api.getIncidents(carId, token).catch((e) => { console.warn('Incidents fetch failed:', e.message ?? e); return [] as IncidentReport[]; }),
         api.getCarServiceStatus(carId, token).catch((e) => { console.warn('Service status fetch failed:', e.message ?? e); return null; }),
         api.getCarCareScore(carId, token).catch((e) => { console.warn('Score fetch failed:', e.message ?? e); return null; }),
         obdService.getLastSnapshot(carId).catch(() => null),
+        api.getLatestObdReading(carId, token).catch(() => null),
         obdService.isSupported().catch(() => false),
       ]);
       setCar(carData);
@@ -283,7 +284,27 @@ export default function CarTimelineScreen() {
       setIncidents(incidentsData);
       setServiceStatus(statusData);
       setCareScore(scoreData);
-      setObdSnapshot(lastObdSnapshot);
+
+      // Pick the most recent snapshot between local cache and backend
+      let bestSnapshot = lastObdSnapshot;
+      if (backendReading) {
+        const backendAsSnapshot: ObdSnapshot = {
+          capturedAt: backendReading.captured_at,
+          source: backendReading.source,
+          metrics: {
+            rpm: backendReading.rpm,
+            coolantTempC: backendReading.coolant_temp_c,
+            speedKph: backendReading.speed_kph,
+            engineLoadPct: backendReading.engine_load_pct,
+            batteryVoltage: backendReading.battery_voltage,
+          },
+          dtcs: backendReading.dtcs,
+        };
+        if (!bestSnapshot || new Date(backendReading.captured_at) > new Date(bestSnapshot.capturedAt)) {
+          bestSnapshot = backendAsSnapshot;
+        }
+      }
+      setObdSnapshot(bestSnapshot);
       setObdSupported(supportsObd);
     } catch {
       setError(true);
@@ -306,6 +327,19 @@ export default function CarTimelineScreen() {
     try {
       const snapshot = await obdService.scanCar(carId);
       setObdSnapshot(snapshot);
+
+      // Upload to backend (fire-and-forget)
+      (async () => {
+        try {
+          const token = await getToken();
+          if (token) {
+            await api.uploadObdReading(carId, token, snapshotToObdPayload(snapshot));
+          }
+        } catch (uploadErr) {
+          console.warn('OBD upload failed (cached locally):', uploadErr);
+        }
+      })();
+
       if (snapshot.source === 'simulated') {
         Alert.alert('Demo scan complete', 'This is simulated OBD data. Connect a native transport for real adapter reads.');
       }
@@ -314,7 +348,7 @@ export default function CarTimelineScreen() {
     } finally {
       setObdLoading(false);
     }
-  }, [carId]);
+  }, [carId, getToken]);
 
   const runObdDemo = useCallback(async () => {
     obdService.useSimulator();
@@ -327,6 +361,20 @@ export default function CarTimelineScreen() {
       fetch();
     }, [fetch])
   );
+
+  // Auto-scan when BLE adapter is detected
+  const hasAutoScanned = useRef(false);
+  useEffect(() => {
+    if (hasAutoScanned.current || !carId) return;
+    let cancelled = false;
+    (async () => {
+      const supported = await obdService.isSupported().catch(() => false);
+      if (cancelled || !supported || hasAutoScanned.current) return;
+      hasAutoScanned.current = true;
+      scanObd();
+    })();
+    return () => { cancelled = true; };
+  }, [carId, scanObd]);
 
   if (!carId) {
     return (

@@ -457,7 +457,51 @@ export const api = {
     }
     return res.json();
   },
+
+  /** Upload an OBD reading to the backend */
+  async uploadObdReading(carId: string, token: string, payload: ObdReadingCreate): Promise<ObdReadingResponse> {
+    const res = await fetch(`${API_URL}/cars/${carId}/obd-readings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to upload OBD reading', res.status, detail);
+    }
+    return res.json();
+  },
+
+  /** Get the latest OBD reading for a car */
+  async getLatestObdReading(carId: string, token: string): Promise<ObdReadingResponse | null> {
+    const res = await fetch(`${API_URL}/cars/${carId}/obd-readings/latest`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      return null;
+    }
+    return res.json();
+  },
 };
+
+/** Convert an ObdSnapshot (from obdService) into the flat backend payload */
+export function snapshotToObdPayload(snapshot: import('./obdService').ObdSnapshot): ObdReadingCreate {
+  return {
+    captured_at: snapshot.capturedAt,
+    source: snapshot.source,
+    rpm: snapshot.metrics.rpm,
+    coolant_temp_c: snapshot.metrics.coolantTempC,
+    speed_kph: snapshot.metrics.speedKph,
+    engine_load_pct: snapshot.metrics.engineLoadPct,
+    battery_voltage: snapshot.metrics.batteryVoltage,
+    dtcs: snapshot.dtcs,
+  };
+}
 
 // Car care score interfaces
 export interface CategoryScore {
@@ -544,5 +588,31 @@ export interface PublicCarHistory {
   car: PublicCarInfo;
   maintenance_events: PublicMaintenanceEvent[];
   incident_reports: PublicIncidentReport[];
+}
+
+// OBD reading interfaces
+export interface ObdReadingResponse {
+  id: string;
+  car_id: string;
+  captured_at: string;
+  source: 'device' | 'simulated';
+  rpm: number | null;
+  coolant_temp_c: number | null;
+  speed_kph: number | null;
+  engine_load_pct: number | null;
+  battery_voltage: number | null;
+  dtcs: { code: string; description: string }[];
+  created_at: string;
+}
+
+export interface ObdReadingCreate {
+  captured_at: string;
+  source: 'device' | 'simulated';
+  rpm: number | null;
+  coolant_temp_c: number | null;
+  speed_kph: number | null;
+  engine_load_pct: number | null;
+  battery_voltage: number | null;
+  dtcs: { code: string; description: string }[];
 }
 

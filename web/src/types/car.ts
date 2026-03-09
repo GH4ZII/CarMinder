@@ -117,3 +117,24 @@ export interface CarCareScoreResponse {
   scoring_version: string;
   scored_as_of: string | null;
 }
+
+// ── OBD Readings ────────────────────────────────────────────
+
+export interface ObdDiagnosticCode {
+  code: string;
+  description: string;
+}
+
+export interface ObdReadingResponse {
+  id: string;
+  car_id: string;
+  captured_at: string;
+  source: 'device' | 'simulated';
+  rpm: number | null;
+  coolant_temp_c: number | null;
+  speed_kph: number | null;
+  engine_load_pct: number | null;
+  battery_voltage: number | null;
+  dtcs: ObdDiagnosticCode[];
+  created_at: string;
+}
