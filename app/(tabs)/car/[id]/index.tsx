@@ -16,8 +16,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Sharing from 'expo-sharing';
 import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
+import { fetchCarReportData } from '../../../../frontendServices/reportTypes';
+import { generateCarReportPdf } from '../../../utils/pdf/carReportPdf';
 
 function formatDate(s: string) {
   try {
@@ -255,6 +258,38 @@ export default function CarTimelineScreen() {
   const [obdSnapshot, setObdSnapshot] = useState<ObdSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!carId) return;
+    try {
+      setExporting(true);
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Could not get auth token. Please sign in again.');
+        return;
+      }
+
+      const reportData = await fetchCarReportData(carId, token);
+      const uri = await generateCarReportPdf(reportData);
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        Alert.alert('PDF generated', `PDF was generated at:\n${uri}`);
+        return;
+      }
+
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Share car report',
+      });
+    } catch (e) {
+      console.error('Car report export failed', e);
+      Alert.alert('Error', 'Could not export PDF. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  }, [carId, getToken]);
 
   const fetch = useCallback(async () => {
     if (!carId || !user) return;
@@ -357,6 +392,14 @@ export default function CarTimelineScreen() {
           {car.registreringsnummer} · {car.kilometer?.toLocaleString() ?? '—'} km
         </ThemedText>
       ) : null}
+
+      <TouchableOpacity
+        style={[styles.addBtn, styles.exportBtn]}
+        onPress={handleExportPdf}
+        disabled={exporting}
+      >
+        <Text style={styles.addBtnText}>{exporting ? 'Generating…' : 'Export PDF'}</Text>
+      </TouchableOpacity>
 
       {/* Car Care Score */}
       {careScore && <CarCareScoreCard data={careScore} />}
@@ -595,6 +638,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
+  },
+  exportBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    marginBottom: 8,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   obdHint: { fontSize: 13, opacity: 0.65, marginBottom: 10 },
