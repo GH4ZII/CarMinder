@@ -67,6 +67,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="car/[id]/obd-scan"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus, snapshotToObdPayload } from '../../../../frontendServices/apiCall';
+import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
 
 function formatDate(s: string) {
@@ -253,8 +253,6 @@ export default function CarTimelineScreen() {
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
   const [obdSnapshot, setObdSnapshot] = useState<ObdSnapshot | null>(null);
-  const [obdLoading, setObdLoading] = useState(false);
-  const [obdSupported, setObdSupported] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -269,7 +267,7 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const [carData, eventsData, incidentsData, statusData, scoreData, lastObdSnapshot, backendReading, supportsObd] = await Promise.all([
+      const [carData, eventsData, incidentsData, statusData, scoreData, lastObdSnapshot, backendReading] = await Promise.all([
         api.getCar(carId, token),
         api.getMaintenanceEvents(carId, token).catch((e) => { console.warn('Events fetch failed:', e.message ?? e); return [] as MaintenanceEvent[]; }),
         api.getIncidents(carId, token).catch((e) => { console.warn('Incidents fetch failed:', e.message ?? e); return [] as IncidentReport[]; }),
@@ -277,7 +275,6 @@ export default function CarTimelineScreen() {
         api.getCarCareScore(carId, token).catch((e) => { console.warn('Score fetch failed:', e.message ?? e); return null; }),
         obdService.getLastSnapshot(carId).catch(() => null),
         api.getLatestObdReading(carId, token).catch(() => null),
-        obdService.isSupported().catch(() => false),
       ]);
       setCar(carData);
       setEvents(eventsData);
@@ -305,7 +302,6 @@ export default function CarTimelineScreen() {
         }
       }
       setObdSnapshot(bestSnapshot);
-      setObdSupported(supportsObd);
     } catch {
       setError(true);
       setCar(null);
@@ -314,67 +310,17 @@ export default function CarTimelineScreen() {
       setServiceStatus(null);
       setCareScore(null);
       setObdSnapshot(null);
-      setObdSupported(false);
       Alert.alert('Error', 'Failed to load. Pull down to retry.');
     } finally {
       setLoading(false);
     }
   }, [carId, user, getToken]);
 
-  const scanObd = useCallback(async () => {
-    if (!carId) return;
-    setObdLoading(true);
-    try {
-      const snapshot = await obdService.scanCar(carId);
-      setObdSnapshot(snapshot);
-
-      // Upload to backend (fire-and-forget)
-      (async () => {
-        try {
-          const token = await getToken();
-          if (token) {
-            await api.uploadObdReading(carId, token, snapshotToObdPayload(snapshot));
-          }
-        } catch (uploadErr) {
-          console.warn('OBD upload failed (cached locally):', uploadErr);
-        }
-      })();
-
-      if (snapshot.source === 'simulated') {
-        Alert.alert('Demo scan complete', 'This is simulated OBD data. Connect a native transport for real adapter reads.');
-      }
-    } catch (e: any) {
-      Alert.alert('OBD scan failed', e?.message ?? 'Could not read OBD data.');
-    } finally {
-      setObdLoading(false);
-    }
-  }, [carId, getToken]);
-
-  const runObdDemo = useCallback(async () => {
-    obdService.useSimulator();
-    setObdSupported(true);
-    await scanObd();
-  }, [scanObd]);
-
   useFocusEffect(
     useCallback(() => {
       fetch();
     }, [fetch])
   );
-
-  // Auto-scan when BLE adapter is detected
-  const hasAutoScanned = useRef(false);
-  useEffect(() => {
-    if (hasAutoScanned.current || !carId) return;
-    let cancelled = false;
-    (async () => {
-      const supported = await obdService.isSupported().catch(() => false);
-      if (cancelled || !supported || hasAutoScanned.current) return;
-      hasAutoScanned.current = true;
-      scanObd();
-    })();
-    return () => { cancelled = true; };
-  }, [carId, scanObd]);
 
   if (!carId) {
     return (
@@ -440,32 +386,13 @@ export default function CarTimelineScreen() {
         <ThemedText type="subtitle" style={styles.section}>
           OBD-II diagnostics
         </ThemedText>
-        <View style={styles.obdActions}>
-          {obdSupported && (
-            <TouchableOpacity
-              style={[styles.addBtn, obdLoading && styles.addBtnDisabled]}
-              onPress={scanObd}
-              disabled={obdLoading}
-            >
-              <Text style={styles.addBtnText}>{obdLoading ? 'Scanning…' : 'Scan adapter'}</Text>
-            </TouchableOpacity>
-          )}
-          {!obdSupported && (
-            <TouchableOpacity
-              style={[styles.addBtn, styles.secondaryBtn]}
-              onPress={runObdDemo}
-              disabled={obdLoading}
-            >
-              <Text style={styles.secondaryBtnText}>Demo scan</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
+        >
+          <Text style={styles.addBtnText}>Open Scanner</Text>
+        </TouchableOpacity>
       </View>
-      {!obdSupported && (
-        <ThemedText style={styles.obdHint}>
-          Native OBD transport is not configured yet in this build. Use Demo scan to preview UI.
-        </ThemedText>
-      )}
       {obdSnapshot ? (
         <View style={styles.obdCard}>
           <View style={styles.obdHeaderRow}>
@@ -670,22 +597,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  addBtnDisabled: {
-    opacity: 0.6,
-  },
-  secondaryBtn: {
-    backgroundColor: '#F1F1F1',
-  },
-  secondaryBtnText: {
-    color: '#1A1A1A',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  obdActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
   obdHint: { fontSize: 13, opacity: 0.65, marginBottom: 10 },
   obdCard: {
     backgroundColor: 'rgba(26,26,26,0.04)',
