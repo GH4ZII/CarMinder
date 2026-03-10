@@ -13,17 +13,20 @@ import type { ObdTransport } from './obdService';
 const ELM_SCAN_TIMEOUT_MS = 15000;
 const ELM_COMMAND_TIMEOUT_MS = 6000;
 const ELM_BOOT_TIMEOUT_MS = 10000;
-const ELM_NAME_HINTS = ['icar', 'v-link', 'vlink', 'elm', 'obd', 'obdii', 'obd2'];
+const ELM_NAME_HINTS = ['icar', 'v-link', 'vlink', 'v_link', 'elm', 'obd', 'obdii', 'obd2', 'vgate'];
 const UART_SERVICE_HINTS = [
   '0000ffe0',
   '0000fff0',
   '6e400001',
+  'e7810a71',  // Vgate iCar Pro BLE 4.0
 ];
 const UART_CHAR_HINTS = [
   '0000ffe1',
   '0000fff1',
+  '0000fff2',  // iCar Pro write characteristic
   '6e400002',
   '6e400003',
+  'bef8d6c9',  // Vgate iCar Pro BLE 4.0
 ];
 
 function normalizeUuid(value: string): string {
@@ -32,7 +35,14 @@ function normalizeUuid(value: string): string {
 
 function deviceLooksLikeElm327(device: Device): boolean {
   const maybeName = `${device.name ?? ''} ${device.localName ?? ''}`.toLowerCase();
-  return ELM_NAME_HINTS.some((hint) => maybeName.includes(hint));
+  if (ELM_NAME_HINTS.some((hint) => maybeName.includes(hint))) return true;
+
+  // Also match by advertised service UUIDs (some adapters advertise no name)
+  const advertised = device.serviceUUIDs ?? [];
+  return advertised.some((uuid) => {
+    const norm = normalizeUuid(uuid);
+    return UART_SERVICE_HINTS.some((hint) => norm.includes(hint));
+  });
 }
 
 function characteristicLooksPreferred(char: Characteristic): boolean {
@@ -163,10 +173,14 @@ export class BleElm327ObdTransport implements ObdTransport {
   private async scanForElmDevice(): Promise<Device> {
     return new Promise<Device>((resolve, reject) => {
       let resolved = false;
+      const seenDevices: string[] = [];
       const timeout = setTimeout(() => {
         this.manager.stopDeviceScan();
         if (!resolved) {
-          reject(new Error('No iCar/ELM327 adapter found. Make sure it is plugged in and powered.'));
+          const debugInfo = seenDevices.length
+            ? `\nDevices found nearby:\n${seenDevices.join('\n')}`
+            : '\nNo BLE devices detected at all. Is Bluetooth on?';
+          reject(new Error(`No OBD-II adapter found. Make sure it is plugged in and powered.${debugInfo}`));
         }
       }, ELM_SCAN_TIMEOUT_MS);
 
@@ -178,11 +192,19 @@ export class BleElm327ObdTransport implements ObdTransport {
           return;
         }
         if (!scanned) return;
+
+        // Log discovered devices for debugging
+        const label = scanned.name ?? scanned.localName ?? '(unnamed)';
+        const svcs = (scanned.serviceUUIDs ?? []).join(', ');
+        const entry = `  • ${label} [${scanned.id}]${svcs ? ` services: ${svcs}` : ''}`;
+        if (!seenDevices.includes(entry)) seenDevices.push(entry);
+
         if (!deviceLooksLikeElm327(scanned)) return;
 
         resolved = true;
         clearTimeout(timeout);
         this.manager.stopDeviceScan();
+        console.log(`OBD adapter matched: ${label} [${scanned.id}]`);
         resolve(scanned);
       });
     });
