@@ -29,42 +29,42 @@ export default function SignupScreen() {
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Feil', 'Vennligst fyll ut alle felt');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Feil', 'Passordet må være minst 6 tegn');
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Feil', 'Passordene stemmer ikke overens');
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
     setLoading(true);
     try {
       await signUp(email.trim(), password, name.trim());
-      Alert.alert('Suksess', 'Konto opprettet!', [
+      Alert.alert('Success', 'Account created!', [
         {
           text: 'OK',
           onPress: () => router.replace('/(tabs)'),
         },
       ]);
     } catch (error: any) {
-      let errorMessage = 'En feil oppstod';
+      let errorMessage = 'An error occurred';
       const d = error?.detail ?? error?.message ?? '';
       if (d.includes('EMAIL_EXISTS')) {
-        errorMessage = 'E-postadressen er allerede i bruk';
+        errorMessage = 'Email is already in use';
       } else if (d.includes('INVALID_EMAIL') || (d.includes('invalid') && d.includes('email'))) {
-        errorMessage = 'Ugyldig e-postadresse';
+        errorMessage = 'Invalid email address';
       } else if (d.includes('WEAK_PASSWORD')) {
-        errorMessage = 'Passordet er for svakt';
+        errorMessage = 'Password is too weak';
       } else if (typeof d === 'string' && d.length) {
         errorMessage = d;
       }
-      Alert.alert('Feil', errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,16 +81,16 @@ export default function SignupScreen() {
       >
         <ThemedView style={styles.content}>
           <ThemedText type="title" style={styles.title}>
-            Opprett konto
+            Create account
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
-            Opprett en ny konto for å komme i gang
+            Create a new account to get started
           </ThemedText>
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Navn"
+            placeholder="Name"
             placeholderTextColor={placeholderColor + '80'}
             value={name}
             onChangeText={setName}
@@ -101,7 +101,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="E-post"
+            placeholder="Email"
             placeholderTextColor={placeholderColor + '80'}
             value={email}
             onChangeText={setEmail}
@@ -113,7 +113,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Passord"
+            placeholder="Password"
             placeholderTextColor={placeholderColor + '80'}
             value={password}
             onChangeText={setPassword}
@@ -125,7 +125,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Bekreft passord"
+            placeholder="Confirm password"
             placeholderTextColor={placeholderColor + '80'}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -144,7 +144,7 @@ export default function SignupScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <ThemedText style={styles.buttonText}>
-                Opprett konto
+                Create account
               </ThemedText>
             )}
           </TouchableOpacity>
@@ -155,7 +155,7 @@ export default function SignupScreen() {
             disabled={loading}
           >
             <ThemedText style={styles.switchText}>
-              Har du allerede en konto? Logg inn
+              Already have an account? Log in
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>

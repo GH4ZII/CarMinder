@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ApiError } from '@/frontendServices/apiCall';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -62,7 +63,7 @@ export default function LoginScreen() {
           setAppleCheckError(
             typeof e?.message === 'string'
               ? e.message
-              : 'Apple-innlogging er ikke tilgjengelig i denne builden/enheten.',
+              : 'Apple Sign-In is not available on this build/device.',
           );
         }
       }
@@ -90,12 +91,12 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Feil', 'Vennligst fyll ut alle felt');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Feil', 'Passordet må være minst 6 tegn');
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
@@ -114,18 +115,18 @@ export default function LoginScreen() {
       
       router.replace('/(tabs)');
     } catch (error: any) {
-      let errorMessage = 'En feil oppstod';
+      let errorMessage = 'An error occurred';
       const d = error?.detail ?? error?.message ?? '';
       if (d.includes('EMAIL_NOT_FOUND') || d.includes('INVALID_LOGIN')) {
-        errorMessage = 'Bruker ikke funnet';
+        errorMessage = 'User not found';
       } else if (d.includes('INVALID_PASSWORD')) {
-        errorMessage = 'Feil passord';
+        errorMessage = 'Incorrect password';
       } else if (d.includes('INVALID_EMAIL') || d.includes('invalid') && d.includes('email')) {
-        errorMessage = 'Ugyldig e-postadresse';
+        errorMessage = 'Invalid email address';
       } else if (typeof d === 'string' && d.length) {
         errorMessage = d;
       }
-      Alert.alert('Feil', errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -137,16 +138,16 @@ export default function LoginScreen() {
       await signInWithGoogle();
       router.replace('/(tabs)');
     } catch (error: any) {
-      let errorMessage = 'Google innlogging feilet. Prøv igjen.';
+      let errorMessage = 'Google sign-in failed. Please try again.';
       const d = error instanceof ApiError ? error.detail : error?.message ?? '';
       if (typeof d === 'string' && (d.includes('INVALID_IDP_RESPONSE') || d.includes('INVALID_CREDENTIAL'))) {
-        errorMessage = 'Google-innlogging feilet. Prøv igjen eller bruk e-post.';
-      } else if (typeof d === 'string' && d.length && !d.includes('avbrutt') && !d.includes('pågår') && !d.includes('Play Services')) {
+        errorMessage = 'Google sign-in failed. Please try again or use email.';
+      } else if (typeof d === 'string' && d.length && !d.includes('cancelled') && !d.includes('in progress') && !d.includes('Play Services')) {
         errorMessage = d;
       } else if (error?.message && typeof error.message === 'string') {
         errorMessage = error.message;
       }
-      Alert.alert('Feil', errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setGoogleLoading(false);
     }
@@ -158,16 +159,16 @@ export default function LoginScreen() {
       await signInWithApple();
       router.replace('/(tabs)');
     } catch (error: any) {
-      let errorMessage = 'Apple-innlogging feilet. Prøv igjen.';
+      let errorMessage = 'Apple sign-in failed. Please try again.';
       const d = error instanceof ApiError ? error.detail : error?.message ?? '';
       if (typeof d === 'string' && (d.includes('INVALID_IDP_RESPONSE') || d.includes('INVALID_CREDENTIAL'))) {
-        errorMessage = 'Apple-innlogging feilet. Prøv igjen eller bruk e-post.';
-      } else if (typeof d === 'string' && d.length && !d.includes('avbrutt')) {
+        errorMessage = 'Apple sign-in failed. Please try again or use email.';
+      } else if (typeof d === 'string' && d.length && !d.includes('cancelled')) {
         errorMessage = d;
       } else if (error?.message && typeof error.message === 'string') {
         errorMessage = error.message;
       }
-      Alert.alert('Feil', errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setAppleLoading(false);
     }
@@ -184,16 +185,16 @@ export default function LoginScreen() {
       >
         <ThemedView style={styles.content}>
           <ThemedText type="title" style={styles.title}>
-            Logg inn
+            Log in
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
-            Logg inn for å fortsette
+            Log in to continue
           </ThemedText>
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="E-post"
+            placeholder="Email"
             placeholderTextColor={placeholderColor + '80'}
             value={email}
             onChangeText={setEmail}
@@ -205,7 +206,7 @@ export default function LoginScreen() {
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Passord"
+            placeholder="Password"
             placeholderTextColor={placeholderColor + '80'}
             value={password}
             onChangeText={setPassword}
@@ -220,7 +221,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/forgot-password')}
             disabled={loading}
           >
-            <ThemedText style={styles.forgotPasswordText}>Glemt passord?</ThemedText>
+            <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
           </TouchableOpacity>
 
           <View style={styles.rememberMeContainer}>
@@ -232,7 +233,7 @@ export default function LoginScreen() {
               thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
             />
             <ThemedText style={styles.rememberMeText}>
-              Husk meg
+              Remember me
             </ThemedText>
           </View>
 
@@ -245,20 +246,20 @@ export default function LoginScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <ThemedText style={styles.buttonText}>
-                Logg inn
+                Log in
               </ThemedText>
             )}
           </TouchableOpacity>
 
           <View style={styles.dividerContainer}>
             <View style={[styles.divider, { borderColor }]} />
-            <ThemedText style={styles.dividerText}>eller</ThemedText>
+            <ThemedText style={styles.dividerText}>or</ThemedText>
             <View style={[styles.divider, { borderColor }]} />
           </View>
 
           {!appleAvailable && appleCheckError && (
             <ThemedText style={styles.appleDebugText}>
-              Apple-innlogging utilgjengelig: {appleCheckError}
+              Apple sign-in unavailable: {appleCheckError}
             </ThemedText>
           )}
 
@@ -271,9 +272,9 @@ export default function LoginScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <ThemedText style={styles.googleButtonText}>🔍</ThemedText>
+                <AntDesign name="google" size={18} color="#1A1A1A" />
                 <ThemedText style={styles.googleButtonText}>
-                  Fortsett med Google
+                  Continue with Google
                 </ThemedText>
               </>
             )}
@@ -302,7 +303,7 @@ export default function LoginScreen() {
             disabled={loading || googleLoading}
           >
             <ThemedText style={styles.switchText}>
-              Har du ikke en konto? Opprett konto
+              Don't have an account? Create account
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>

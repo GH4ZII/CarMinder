@@ -28,7 +28,7 @@ export default function ForgotPasswordScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      Alert.alert('Feil', 'Vennligst skriv inn e-postadressen din');
+      Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
@@ -36,16 +36,16 @@ export default function ForgotPasswordScreen() {
     try {
       await forgotPassword(email.trim());
       Alert.alert(
-        'Sjekk e-posten din',
-        'Hvis e-posten finnes i systemet vårt, har vi sendt en lenke for å resette passordet.'
+        'Check your email',
+        'If that email exists in our system, we sent a password reset link.'
       );
       router.back();
     } catch (error: any) {
       const message =
         typeof error?.message === 'string' && error.message.length
           ? error.message
-          : 'Noe gikk galt. Prøv igjen senere.';
-      Alert.alert('Feil', message);
+          : 'Something went wrong. Please try again later.';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
@@ -59,16 +59,16 @@ export default function ForgotPasswordScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <ThemedView style={styles.content}>
           <ThemedText type="title" style={styles.title}>
-            Glemt passord
+            Forgot password
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
-            Skriv inn e-posten din, så sender vi en lenke for å resette passordet.
+            Enter your email and we will send a password reset link.
           </ThemedText>
 
           <TextInput
             style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="E-post"
+            placeholder="Email"
             placeholderTextColor={placeholderColor + '80'}
             value={email}
             onChangeText={setEmail}
@@ -86,7 +86,7 @@ export default function ForgotPasswordScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <ThemedText style={styles.buttonText}>Send reset-lenke</ThemedText>
+              <ThemedText style={styles.buttonText}>Send reset link</ThemedText>
             )}
           </TouchableOpacity>
 
@@ -95,7 +95,7 @@ export default function ForgotPasswordScreen() {
             onPress={() => router.back()}
             disabled={loading}
           >
-            <ThemedText style={styles.switchText}>Tilbake til innlogging</ThemedText>
+            <ThemedText style={styles.switchText}>Back to login</ThemedText>
           </TouchableOpacity>
         </ThemedView>
       </ScrollView>
@@ -161,4 +161,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 })
-

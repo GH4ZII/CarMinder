@@ -47,8 +47,8 @@ export default function Login() {
     <div className="page page--auth">
       <div className="auth-card">
         <div className="auth-card__logo">CarMinder</div>
-        <h1>Welcome back</h1>
-        <p className="auth-card__subtitle">Sign in to manage your vehicles</p>
+        <h1>Log in</h1>
+        <p className="auth-card__subtitle">Log in to continue</p>
         <form onSubmit={handleSubmit} className="form">
           <Input
             label="Email"
@@ -77,13 +77,14 @@ export default function Login() {
             </p>
           )}
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign In'}
+            {submitting ? 'Signing in...' : 'Log in'}
           </Button>
         </form>
         <div className="auth-divider">
           <span>or</span>
         </div>
         <GoogleSignInButton
+          label="Continue with Google"
           redirectTo={from}
           onError={(msg) => setError(msg)}
         />

@@ -65,8 +65,8 @@ export default function Signup() {
     <div className="page page--auth">
       <div className="auth-card">
         <div className="auth-card__logo">CarMinder</div>
-        <h1>Create Account</h1>
-        <p className="auth-card__subtitle">Get started tracking your car maintenance</p>
+        <h1>Create account</h1>
+        <p className="auth-card__subtitle">Create a new account to get started</p>
         <form onSubmit={handleSubmit} className="form">
           <Input
             label="Name"
@@ -96,7 +96,7 @@ export default function Signup() {
             disabled={submitting}
           />
           <Input
-            label="Confirm Password"
+            label="Confirm password"
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
@@ -110,18 +110,18 @@ export default function Signup() {
             </p>
           )}
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Creating account...' : 'Create Account'}
+            {submitting ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
         <div className="auth-divider">
           <span>or</span>
         </div>
         <GoogleSignInButton
-          label="Sign up with Google"
+          label="Continue with Google"
           onError={(msg) => setError(msg)}
         />
         <p className="auth-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          Already have an account? <Link to="/login">Log in</Link>
         </p>
       </div>
     </div>
