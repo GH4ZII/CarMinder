@@ -10,8 +10,8 @@ Thin layer that:
 """
 from datetime import date, datetime
 
-from domain.scoring.engine import compute_score
-from domain.scoring.normalize import (
+from services.scoring_engine import compute_score
+from services.scoring_normalize import (
     normalize_car,
     normalize_event,
     normalize_incident,

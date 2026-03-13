@@ -7,8 +7,8 @@ numeric scoring engine so text can evolve independently.
 """
 from __future__ import annotations
 
-from domain.scoring.engine import DetectedIssues, ScoringResult
-from domain.scoring.normalize import CarData
+from services.scoring_engine import DetectedIssues, ScoringResult
+from services.scoring_normalize import CarData
 
 GRADE_DESCRIPTIONS: dict[str, str] = {
     "A": "Excellent care",

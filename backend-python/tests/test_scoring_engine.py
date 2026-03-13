@@ -8,7 +8,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from domain.scoring.engine import (
+from services.scoring_engine import (
     ScoringResult,
     _compute_confidence,
     _event_sort_key,
@@ -16,7 +16,7 @@ from domain.scoring.engine import (
     _score_to_grade,
     compute_score,
 )
-from domain.scoring.normalize import (
+from services.scoring_normalize import (
     CarData,
     IncidentData,
     MaintenanceEventData,
@@ -327,7 +327,7 @@ class TestEnginePurity:
 
     def test_no_today_in_engine_source(self) -> None:
         import inspect
-        from domain.scoring import engine
+        from services import scoring_engine as engine
 
         source = inspect.getsource(engine)
         # The only allowed occurrence is in the docstring

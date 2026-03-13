@@ -1,0 +1,38 @@
+[importlinter]
+root_packages =
+    routers
+    services
+    repositories
+    domain
+    schemas
+    config
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = Enforce layered architecture
+type = layers
+layers =
+    routers
+    services
+    repositories
+    domain
+
+[importlinter:contract:domain-isolation]
+name = Domain layer must not import from any other internal layer
+type = forbidden
+source_modules =
+    domain
+forbidden_modules =
+    routers
+    services
+    repositories
+    config
+    schemas
+
+[importlinter:contract:routers-no-domain]
+name = Routers must not access domain layer directly
+type = forbidden
+source_modules =
+    routers
+forbidden_modules =
+    domain
