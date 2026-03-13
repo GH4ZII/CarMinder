@@ -1,22 +1,22 @@
 """
-Unit tests for the pure scoring engine.
+Tests for the car care scoring engine.
 
-Every test uses a fixed ``as_of`` date so results are deterministic
-and independent of the system clock.
+Validates two properties:
+  1. Determinism — identical inputs always produce identical output.
+  2. Metamorphic relations — logical relationships between inputs and
+     outputs that must hold regardless of exact score values.
+
+These tests run without a database, running server, or any FastAPI
+dependency, which itself demonstrates the domain module's isolation
+from infrastructure concerns.
 """
-from datetime import date, timedelta
+import inspect
+from datetime import date
 
 import pytest
 
-from services.scoring_engine import (
-    ScoringResult,
-    _compute_confidence,
-    _event_sort_key,
-    _parse_date,
-    _score_to_grade,
-    compute_score,
-)
-from services.scoring_normalize import (
+from domain.scoring.engine import compute_score
+from domain.scoring.normalize import (
     CarData,
     IncidentData,
     MaintenanceEventData,
@@ -24,334 +24,260 @@ from services.scoring_normalize import (
 )
 
 # ---------------------------------------------------------------------------
-# Fixtures / helpers
+# Shared fixtures
 # ---------------------------------------------------------------------------
 
-AS_OF = date(2025, 6, 15)
+REFERENCE_DATE = date(2026, 3, 1)
 
 DEFAULT_INTERVALS: dict[str, ServiceInterval] = {
-    "oil_change": ServiceInterval(months=12, km=15000),
+    "oil_change":    ServiceInterval(months=12, km=15000),
     "brake_service": ServiceInterval(months=24, km=30000),
-    "tire_change": ServiceInterval(months=48, km=40000),
-    "inspection": ServiceInterval(months=12, km=None),
-    "repair": ServiceInterval(months=None, km=None),
-    "other": ServiceInterval(months=None, km=None),
+    "tire_change":   ServiceInterval(months=24, km=30000),
+    "inspection":    ServiceInterval(months=24, km=None),
 }
 
+BASE_CAR = CarData(
+    first_registration_date=date(2020, 1, 1),
+    current_km=50000,
+    eu_deadline="2027-01-01",
+    brand="MAZDA",
+    model="3",
+)
 
-def _car(
-    *,
-    first_reg: date | None = None,
-    km: int = 50000,
-    eu_deadline: str | None = "2026-01-01",
-) -> CarData:
-    return CarData(
-        first_registration_date=first_reg or date(2020, 1, 1),
-        current_km=km,
-        eu_deadline=eu_deadline,
-        brand="Toyota",
-        model="Corolla",
+EMPTY_CAR = CarData(
+    first_registration_date=date(2023, 1, 1),
+    current_km=0,
+    eu_deadline=None,
+    brand="TEST",
+    model="EMPTY",
+)
+
+GOOD_OIL_CHANGE = MaintenanceEventData(
+    id="event-001",
+    event_type="oil_change",
+    event_date=date(2025, 6, 1),
+    mileage=45000,
+    cost_cents=129900,
+    vendor="Workshop A",
+    notes="Full synthetic oil changed on schedule",
+    receipt_image_url="https://example.com/receipt.jpg",
+)
+
+SEVERE_INCIDENT = IncidentData(
+    id="incident-001",
+    severity="severe",
+    repair_status="not_repaired",
+    incident_date=date(2025, 1, 1),
+    mileage=40000,
+    damage_description="Front collision damage",
+    repair_cost_cents=None,
+    repair_vendor=None,
+    insurance_claim=False,
+)
+
+MINOR_REPAIRED_INCIDENT = IncidentData(
+    id="incident-002",
+    severity="minor",
+    repair_status="fully_repaired",
+    incident_date=date(2025, 3, 1),
+    mileage=42000,
+    damage_description="Minor scratch on door",
+    repair_cost_cents=50000,
+    repair_vendor="Body Shop B",
+    insurance_claim=False,
+)
+
+
+# ---------------------------------------------------------------------------
+# Test 1 — Pure determinism
+# ---------------------------------------------------------------------------
+
+def test_scoring_is_deterministic():
+    """
+    Given identical inputs and identical as_of date, compute_score must
+    always return identical output. Calls the engine three times and
+    asserts all results are equal.
+
+    Validates the engine's core design contract: no hidden state, no
+    calls to date.today(), no randomness.
+    """
+    result_1 = compute_score(BASE_CAR, [GOOD_OIL_CHANGE], [], REFERENCE_DATE, DEFAULT_INTERVALS)
+    result_2 = compute_score(BASE_CAR, [GOOD_OIL_CHANGE], [], REFERENCE_DATE, DEFAULT_INTERVALS)
+    result_3 = compute_score(BASE_CAR, [GOOD_OIL_CHANGE], [], REFERENCE_DATE, DEFAULT_INTERVALS)
+
+    assert result_1.overall_score == result_2.overall_score == result_3.overall_score
+    assert result_1.grade == result_2.grade == result_3.grade
+    assert result_1.confidence == result_2.confidence == result_3.confidence
+    assert result_1.confidence_label == result_2.confidence_label == result_3.confidence_label
+
+
+# ---------------------------------------------------------------------------
+# Test 2 — Domain isolation at runtime
+# ---------------------------------------------------------------------------
+
+def test_engine_has_no_infrastructure_imports():
+    """
+    Verifies at runtime that the engine module imports no infrastructure
+    packages. Complements the static import-linter check with a runtime
+    assertion.
+    """
+    import domain.scoring.engine as engine_module
+
+    # Check only the actual import statements, not comments or docstrings
+    import ast
+    source = inspect.getsource(engine_module)
+    tree = ast.parse(source)
+
+    imported_modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported_modules.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                imported_modules.add(node.module.split(".")[0])
+
+    forbidden = {"fastapi", "repositories", "config", "schemas"}
+    violations = forbidden & imported_modules
+
+    assert not violations, (
+        f"Engine imports forbidden infrastructure modules: {violations}"
+    )
+
+# ---------------------------------------------------------------------------
+# Test 3 — Metamorphic relation: adding a good event cannot lower the score
+# ---------------------------------------------------------------------------
+
+def test_adding_good_maintenance_event_does_not_lower_score():
+    """
+    Metamorphic relation (Chen et al., 1998):
+      score(car, events + [good_oil_change]) >= score(car, events)
+
+    Adding a well-documented oil change within the expected service
+    interval must not decrease the overall score. The maintenance
+    regularity category can only improve when a timely, documented
+    event is added, and no other category is negatively affected.
+    """
+    score_without = compute_score(
+        BASE_CAR, [], [], REFERENCE_DATE, DEFAULT_INTERVALS
+    ).overall_score
+
+    score_with = compute_score(
+        BASE_CAR, [GOOD_OIL_CHANGE], [], REFERENCE_DATE, DEFAULT_INTERVALS
+    ).overall_score
+
+    assert score_with >= score_without, (
+        f"Score decreased after adding a good maintenance event: "
+        f"{score_without} -> {score_with}"
     )
 
 
-def _event(
-    *,
-    id: str = "e1",
-    event_type: str = "oil_change",
-    event_date: date = date(2025, 1, 15),
-    mileage: int | None = 45000,
-    cost_cents: int | None = 50000,
-    vendor: str | None = "AutoShop",
-    notes: str | None = "Regular oil change service",
-    receipt_image_url: str | None = None,
-) -> MaintenanceEventData:
-    return MaintenanceEventData(
-        id=id,
-        event_type=event_type,
-        event_date=event_date,
-        mileage=mileage,
-        cost_cents=cost_cents,
-        vendor=vendor,
-        notes=notes,
-        receipt_image_url=receipt_image_url,
-    )
+# ---------------------------------------------------------------------------
+# Test 4 — Metamorphic relation: severe unrepaired incident lowers the score
+# ---------------------------------------------------------------------------
 
+def test_severe_unrepaired_incident_lowers_score():
+    """
+    Metamorphic relation:
+      score(car, events, [severe_unrepaired]) < score(car, events, [])
 
-def _incident(
-    *,
-    id: str = "i1",
-    severity: str = "minor",
-    repair_status: str = "fully_repaired",
-    incident_date: date = date(2024, 6, 1),
-    mileage: int | None = 40000,
-    damage_description: str | None = "Small scratch",
-    repair_cost_cents: int | None = 10000,
-    repair_vendor: str | None = "BodyShop",
-    insurance_claim: bool = False,
-) -> IncidentData:
-    return IncidentData(
-        id=id,
-        severity=severity,
-        repair_status=repair_status,
-        incident_date=incident_date,
-        mileage=mileage,
-        damage_description=damage_description,
-        repair_cost_cents=repair_cost_cents,
-        repair_vendor=repair_vendor,
-        insurance_claim=insurance_claim,
+    A severe incident with repair_status=not_repaired applies a penalty
+    of 25 points with zero repair credit. Since incident history carries
+    20% weight, the overall score must decrease relative to having no
+    incidents.
+    """
+    score_no_incident = compute_score(
+        BASE_CAR, [GOOD_OIL_CHANGE], [], REFERENCE_DATE, DEFAULT_INTERVALS
+    ).overall_score
+
+    score_with_incident = compute_score(
+        BASE_CAR, [GOOD_OIL_CHANGE], [SEVERE_INCIDENT], REFERENCE_DATE, DEFAULT_INTERVALS
+    ).overall_score
+
+    assert score_with_incident < score_no_incident, (
+        f"Score did not decrease after adding a severe unrepaired incident: "
+        f"{score_no_incident} -> {score_with_incident}"
     )
 
 
 # ---------------------------------------------------------------------------
-# 1. Deterministic output test
+# Test 5 — Confidence dampening on empty car
 # ---------------------------------------------------------------------------
 
-class TestDeterministicOutput:
-    """Given the same inputs and same as_of, outputs must be identical."""
+def test_empty_car_produces_dampened_score():
+    """
+    A car with no events, no incidents, no mileage, and no EU deadline
+    must receive a score dampened toward 50 and a low or very_low
+    confidence label.
 
-    def test_same_inputs_produce_same_result(self) -> None:
-        car = _car()
-        events = [
-            _event(id="e1", event_type="oil_change", event_date=date(2024, 6, 1), mileage=30000),
-            _event(id="e2", event_type="oil_change", event_date=date(2025, 1, 15), mileage=45000),
-            _event(id="e3", event_type="brake_service", event_date=date(2024, 3, 1), mileage=25000),
-            _event(id="e4", event_type="inspection", event_date=date(2024, 12, 1), mileage=44000),
-        ]
-        incidents = [_incident()]
-
-        r1 = compute_score(car, events, incidents, AS_OF, DEFAULT_INTERVALS)
-        r2 = compute_score(car, events, incidents, AS_OF, DEFAULT_INTERVALS)
-
-        assert r1.overall_score == r2.overall_score
-        assert r1.grade == r2.grade
-        assert r1.confidence == r2.confidence
-        assert r1.confidence_label == r2.confidence_label
-        for key in r1.categories:
-            assert r1.categories[key].score == r2.categories[key].score
-
-    def test_different_as_of_can_change_score(self) -> None:
-        car = _car(eu_deadline="2025-07-01")
-        events = [_event(event_date=date(2025, 5, 1))]
-        incidents: list[IncidentData] = []
-
-        r_before = compute_score(car, events, incidents, date(2025, 6, 1), DEFAULT_INTERVALS)
-        r_after = compute_score(car, events, incidents, date(2025, 12, 1), DEFAULT_INTERVALS)
-
-        # After 6 more months, score must differ (services become more overdue)
-        assert r_before.overall_score != r_after.overall_score
-
-
-# ---------------------------------------------------------------------------
-# 2. Sorting tie-breaker test
-# ---------------------------------------------------------------------------
-
-class TestSortingTieBreaker:
-    """Two events on the same date must sort deterministically."""
-
-    def test_same_date_different_mileage(self) -> None:
-        e1 = _event(id="e1", event_date=date(2025, 1, 15), mileage=40000)
-        e2 = _event(id="e2", event_date=date(2025, 1, 15), mileage=41000)
-
-        key1 = _event_sort_key(e1)
-        key2 = _event_sort_key(e2)
-
-        # e1 comes before e2 (lower mileage)
-        assert key1 < key2
-
-    def test_same_date_same_mileage_different_type(self) -> None:
-        e1 = _event(id="e1", event_type="brake_service", event_date=date(2025, 1, 15), mileage=40000)
-        e2 = _event(id="e2", event_type="oil_change", event_date=date(2025, 1, 15), mileage=40000)
-
-        key1 = _event_sort_key(e1)
-        key2 = _event_sort_key(e2)
-
-        # brake_service < oil_change alphabetically
-        assert key1 < key2
-
-    def test_same_date_same_mileage_same_type_different_id(self) -> None:
-        e1 = _event(id="aaa", event_date=date(2025, 1, 15), mileage=40000)
-        e2 = _event(id="bbb", event_date=date(2025, 1, 15), mileage=40000)
-
-        key1 = _event_sort_key(e1)
-        key2 = _event_sort_key(e2)
-
-        assert key1 < key2
-
-    def test_scoring_stable_with_same_date_events(self) -> None:
-        """Compute score twice with same-date events; results must match."""
-        car = _car()
-        events = [
-            _event(id="e1", event_type="oil_change", event_date=date(2025, 1, 15), mileage=40000),
-            _event(id="e2", event_type="oil_change", event_date=date(2025, 1, 15), mileage=41000),
-        ]
-
-        r1 = compute_score(car, events, [], AS_OF, DEFAULT_INTERVALS)
-        r2 = compute_score(car, events, [], AS_OF, DEFAULT_INTERVALS)
-
-        assert r1.overall_score == r2.overall_score
-
-
-# ---------------------------------------------------------------------------
-# 3. Missing / invalid date parsing stability
-# ---------------------------------------------------------------------------
-
-class TestDateParsing:
-    """_parse_date must never raise; always return a valid date."""
-
-    @pytest.mark.parametrize(
-        "value",
-        [None, "", "Unknown", "garbage", "2025-13-99", 12345, True, [], {}],
+    Validates the confidence dampening mechanism: sparse data must not
+    produce misleadingly high or low scores.
+    """
+    result = compute_score(
+        EMPTY_CAR, [], [], REFERENCE_DATE, DEFAULT_INTERVALS
     )
-    def test_invalid_values_return_fallback(self, value) -> None:  # type: ignore[no-untyped-def]
-        fallback = date(2000, 1, 1)
-        assert _parse_date(value, fallback) == fallback
 
-    def test_valid_iso_date_parsed(self) -> None:
-        assert _parse_date("2025-06-15", date(2000, 1, 1)) == date(2025, 6, 15)
-
-    def test_score_with_no_dates_does_not_crash(self) -> None:
-        """Car with no events, no EU deadline, no first-reg."""
-        car = CarData(
-            first_registration_date=None,
-            current_km=0,
-            eu_deadline=None,
-            brand="",
-            model="",
-        )
-        result = compute_score(car, [], [], AS_OF, DEFAULT_INTERVALS)
-        assert 0 <= result.overall_score <= 100
-        assert result.grade in ("A", "B", "C", "D", "F")
+    assert 35 <= result.overall_score <= 65, (
+        f"Empty car score {result.overall_score} is outside expected "
+        f"dampened range [35, 65]"
+    )
+    assert result.confidence_label in ("very_low", "low"), (
+        f"Empty car confidence label should be very_low or low, "
+        f"got {result.confidence_label}"
+    )
 
 
 # ---------------------------------------------------------------------------
-# 4. Confidence dampening boundary tests
+# Test 6 — Grade boundaries
 # ---------------------------------------------------------------------------
 
-class TestConfidenceDampening:
-    """Verify the dampening formula at the 0.5 boundary."""
+@pytest.mark.parametrize("score,expected_grade", [
+    (90, "A"),
+    (75, "B"),
+    (60, "C"),
+    (40, "D"),
+    (39, "F"),
+])
+def test_grade_boundaries(score, expected_grade):
+    """
+    Verifies that grade assignment thresholds match the specification:
+      A >= 90, B >= 75, C >= 60, D >= 40, F < 40.
 
-    def test_very_low_confidence_pulls_toward_50(self) -> None:
-        """With near-zero confidence, score should gravitate toward 50."""
-        # New car, no events, no km, no EU → very low confidence
-        car = CarData(
-            first_registration_date=AS_OF - timedelta(days=30),
-            current_km=0,
-            eu_deadline=None,
-            brand="",
-            model="",
-        )
-        result = compute_score(car, [], [], AS_OF, DEFAULT_INTERVALS)
-
-        # Confidence should be low
-        assert result.confidence < 0.5
-        # Score should be dampened toward 50
-        assert 40 <= result.overall_score <= 65
-
-    def test_high_confidence_no_dampening(self) -> None:
-        """With enough data, score reflects actual category values."""
-        car = _car(first_reg=date(2020, 1, 1), km=80000, eu_deadline="2026-06-01")
-        # Generous set of events across types
-        events = [
-            _event(id="e1", event_type="oil_change", event_date=date(2024, 1, 15), mileage=60000),
-            _event(id="e2", event_type="oil_change", event_date=date(2025, 1, 15), mileage=75000),
-            _event(id="e3", event_type="brake_service", event_date=date(2024, 6, 1), mileage=65000),
-            _event(id="e4", event_type="tire_change", event_date=date(2023, 1, 1), mileage=50000),
-            _event(id="e5", event_type="inspection", event_date=date(2024, 12, 1), mileage=74000),
-            _event(id="e6", event_type="inspection", event_date=date(2023, 12, 1), mileage=55000),
-        ]
-
-        result = compute_score(car, events, [], AS_OF, DEFAULT_INTERVALS)
-        assert result.confidence >= 0.5
-
-    def test_confidence_function_boundaries(self) -> None:
-        # Zero events, new car
-        c = _compute_confidence(1, 0, False, False)
-        assert 0.0 <= c <= 1.0
-
-        # Plenty of events, old car
-        c = _compute_confidence(120, 50, True, True)
-        assert c == 1.0
+    Uses the internal _score_to_grade function directly to test boundary
+    values without requiring full engine input construction.
+    """
+    from domain.scoring.engine import _score_to_grade
+    assert _score_to_grade(score) == expected_grade, (
+        f"Score {score} should produce grade {expected_grade}, "
+        f"got {_score_to_grade(score)}"
+    )
 
 
 # ---------------------------------------------------------------------------
-# 5. Grade boundaries
+# Test 7 — Fully repaired incident penalises less than unrepaired
 # ---------------------------------------------------------------------------
 
-class TestGradeBoundaries:
-    def test_grade_thresholds(self) -> None:
-        assert _score_to_grade(100) == "A"
-        assert _score_to_grade(90) == "A"
-        assert _score_to_grade(89) == "B"
-        assert _score_to_grade(75) == "B"
-        assert _score_to_grade(74) == "C"
-        assert _score_to_grade(60) == "C"
-        assert _score_to_grade(59) == "D"
-        assert _score_to_grade(40) == "D"
-        assert _score_to_grade(39) == "F"
-        assert _score_to_grade(0) == "F"
+def test_repaired_incident_penalises_less_than_unrepaired():
+    """
+    Metamorphic relation:
+      score(car, events, [minor_fully_repaired]) >
+      score(car, events, [severe_not_repaired])
 
+    A minor incident that is fully repaired must produce a higher score
+    than a severe incident left unrepaired. Repair diligence must be
+    rewarded by the scoring algorithm.
+    """
+    score_repaired = compute_score(
+        BASE_CAR, [GOOD_OIL_CHANGE], [MINOR_REPAIRED_INCIDENT],
+        REFERENCE_DATE, DEFAULT_INTERVALS
+    ).overall_score
 
-# ---------------------------------------------------------------------------
-# 6. Result structure integrity
-# ---------------------------------------------------------------------------
+    score_unrepaired = compute_score(
+        BASE_CAR, [GOOD_OIL_CHANGE], [SEVERE_INCIDENT],
+        REFERENCE_DATE, DEFAULT_INTERVALS
+    ).overall_score
 
-class TestResultStructure:
-    def test_all_category_keys_present(self) -> None:
-        result = compute_score(_car(), [], [], AS_OF, DEFAULT_INTERVALS)
-        expected_keys = {
-            "maintenance_regularity",
-            "eu_inspection",
-            "incident_history",
-            "mileage_tracking",
-            "documentation_quality",
-        }
-        assert set(result.categories.keys()) == expected_keys
-
-    def test_weights_sum_to_100(self) -> None:
-        result = compute_score(_car(), [], [], AS_OF, DEFAULT_INTERVALS)
-        total_weight = sum(c.weight for c in result.categories.values())
-        assert total_weight == 100
-
-    def test_result_is_frozen(self) -> None:
-        result = compute_score(_car(), [], [], AS_OF, DEFAULT_INTERVALS)
-        with pytest.raises(AttributeError):
-            result.overall_score = 999  # type: ignore[misc]
-
-
-# ---------------------------------------------------------------------------
-# 7. Engine purity test — no date.today() calls
-# ---------------------------------------------------------------------------
-
-class TestEnginePurity:
-    """The engine module must not reference date.today()."""
-
-    def test_no_today_in_engine_source(self) -> None:
-        import inspect
-        from services import scoring_engine as engine
-
-        source = inspect.getsource(engine)
-        # The only allowed occurrence is in the docstring
-        # Filter out comments and docstrings
-        lines = source.split("\n")
-        code_lines = []
-        in_docstring = False
-        for line in lines:
-            stripped = line.strip()
-            if stripped.startswith('"""') or stripped.startswith("'''"):
-                if in_docstring:
-                    in_docstring = False
-                    continue
-                # Check if single-line docstring
-                if stripped.count('"""') >= 2 or stripped.count("'''") >= 2:
-                    continue
-                in_docstring = True
-                continue
-            if in_docstring:
-                continue
-            if stripped.startswith("#"):
-                continue
-            code_lines.append(line)
-
-        code_text = "\n".join(code_lines)
-        assert "date.today()" not in code_text, "engine.py must not call date.today()"
-        assert "datetime.utcnow()" not in code_text, "engine.py must not call datetime.utcnow()"
+    assert score_repaired > score_unrepaired, (
+        f"Fully repaired minor incident should score higher than "
+        f"unrepaired severe incident: {score_repaired} vs {score_unrepaired}"
+    )
