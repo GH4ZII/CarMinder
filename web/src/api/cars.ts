@@ -232,7 +232,8 @@ export async function getCarReportPdf(carId: string, token: string): Promise<Blo
   });
   if (!res.ok) {
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
-    throw new ApiError('Failed to generate car report PDF', res.status);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to generate car report PDF', res.status);
   }
   return res.blob();
 }

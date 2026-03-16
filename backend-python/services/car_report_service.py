@@ -9,7 +9,6 @@ from repositories import (
     obd_repository,
 )
 from schemas.car_score import CarCareScoreResponse
-from schemas.service_interval import ServiceDueStatus
 from services.scoring_service import compute_car_care_score
 from services.service_interval_service import get_car_service_status
 
@@ -132,29 +131,24 @@ def _build_html(
           <li><strong>{_escape_html(cats.mileage_tracking.label)}:</strong> {cats.mileage_tracking.score} / 100</li>
           <li><strong>{_escape_html(cats.documentation_quality.label)}:</strong> {cats.documentation_quality.score} / 100</li>
         </ul>
-        {
-            "<h3>Recommendations</h3><ul>"
-            + "".join(f"<li>{_escape_html(r)}</li>" for r in care_score.recommendations)
-            + "</ul>"
-            if care_score.recommendations
-            else ""
-        }
         """
     else:
         score_section = "<h2>Car Care Score</h2><p>No score available.</p>"
 
     services_rows = ""
     if service_status:
-        services: List[ServiceDueStatus] = service_status.get("services", [])
+        services: List[Dict[str, Any]] = service_status.get("services", [])
         for s in services:
+            last_d = s.get("last_date")
+            due_d = s.get("due_date")
             services_rows += f"""
             <tr>
-              <td>{_escape_html(s.event_type)}</td>
-              <td>{_format_date(s.last_date.isoformat()) if s.last_date else "—"}</td>
-              <td>{_format_km(s.last_mileage) if s.last_mileage is not None else "—"}</td>
-              <td>{_format_date(s.due_date.isoformat()) if s.due_date else "—"}</td>
-              <td>{_format_km(s.due_mileage) if s.due_mileage is not None else "—"}</td>
-              <td>{s.urgency}</td>
+              <td>{_escape_html(s.get('event_type', ''))}</td>
+              <td>{_format_date(last_d.isoformat() if hasattr(last_d, 'isoformat') else last_d) if last_d else "—"}</td>
+              <td>{_format_km(s.get('last_mileage')) if s.get('last_mileage') is not None else "—"}</td>
+              <td>{_format_date(due_d.isoformat() if hasattr(due_d, 'isoformat') else due_d) if due_d else "—"}</td>
+              <td>{_format_km(s.get('due_mileage')) if s.get('due_mileage') is not None else "—"}</td>
+              <td>{_escape_html(str(s.get('urgency', '')))}</td>
             </tr>
             """
 

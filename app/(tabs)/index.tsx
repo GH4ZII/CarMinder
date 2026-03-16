@@ -1,26 +1,26 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
-  AllCarsServiceStatus,
-  api,
-  CarCareScoreResponse,
-  CarServiceStatus,
-  ServiceDueStatus,
+    AllCarsServiceStatus,
+    api,
+    CarCareScoreResponse,
+    CarServiceStatus,
+    ServiceDueStatus,
 } from '../../frontendServices/apiCall';
 
 const SERVICE_LABELS: Record<string, string> = {

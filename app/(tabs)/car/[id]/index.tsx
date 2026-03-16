@@ -1,27 +1,24 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Sharing from 'expo-sharing';
-import * as Linking from 'expo-linking';
-import { API_URL, api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import { API_URL, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus, api } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
-import { fetchCarReportData } from '../../../../frontendServices/reportTypes';
-import { generateCarReportPdf } from '../../../utils/pdf/carReportPdf';
 
 function formatDate(s: string) {
   try {
@@ -278,9 +275,15 @@ export default function CarTimelineScreen() {
         },
       });
 
-      if (!res.ok) {
-        console.error('Car report export failed with status', res.status);
-        Alert.alert('Error', 'Could not export PDF. Please try again.');
+      const status = res?.status;
+      const ok = res?.ok;
+      if (!res || !ok) {
+        console.error('Car report export failed with status', status);
+        const isNetworkError = status === undefined || status === 0;
+        const message = isNetworkError
+          ? 'Could not reach the server. On a device or emulator, use a reachable API URL (e.g. your deployed backend), not localhost.'
+          : 'Could not export PDF. Please try again.';
+        Alert.alert('Error', message);
         return;
       }
 
@@ -293,7 +296,10 @@ export default function CarTimelineScreen() {
       }
     } catch (e) {
       console.error('Car report export failed', e);
-      Alert.alert('Error', 'Could not export PDF. Please try again.');
+      Alert.alert(
+        'Error',
+        'Could not export PDF. Check your connection and that the API is reachable.'
+      );
     } finally {
       setExporting(false);
     }

@@ -1,3 +1,5 @@
+import logging
+from io import BytesIO
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -92,16 +94,22 @@ def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid
         html = car_report_service.generate_car_report_html(uid, car_id)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
-
-    from io import BytesIO
-
-    pdf_buffer = BytesIO()
-    pisa_status = pisa.CreatePDF(html, dest=pdf_buffer)
-
-    if pisa_status.err:
+    except Exception:
+        logging.getLogger(__name__).exception("Report HTML generation failed for car_id=%s", car_id)
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
 
-    pdf_bytes = pdf_buffer.getvalue()
+    try:
+        pdf_buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(html, dest=pdf_buffer)
+        if pisa_status.err:
+            raise HTTPException(status_code=500, detail="Failed to generate PDF")
+        pdf_bytes = pdf_buffer.getvalue()
+    except HTTPException:
+        raise
+    except Exception:
+        logging.getLogger(__name__).exception("PDF generation failed for car_id=%s", car_id)
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")
+
     headers = {
         "Content-Disposition": f'attachment; filename="car-report-{car_id}.pdf"'
     }

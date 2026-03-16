@@ -1,4 +1,5 @@
 import * as carsApi from '@/api/cars';
+import { ApiError } from '@/api/client';
 import Card from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import type {
@@ -39,6 +40,7 @@ export default function CarDetail() {
   const [obdReading, setObdReading] = useState<ObdReadingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
@@ -73,10 +75,14 @@ export default function CarDetail() {
 
   const handleExportPdf = useCallback(async () => {
     if (!id) return;
+    setExportError(null);
     setExporting(true);
     try {
       const token = await getToken();
-      if (!token) return;
+      if (!token) {
+        setExportError('Please sign in to export PDF.');
+        return;
+      }
       const blob = await carsApi.getCarReportPdf(id, token);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -88,7 +94,20 @@ export default function CarDetail() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to export PDF', err);
-      setError('Failed to export PDF');
+      const rawMessage =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to export PDF';
+      const isNetworkError =
+        rawMessage === 'Failed to fetch' ||
+        rawMessage === 'NetworkError when attempting to fetch resource.' ||
+        (err instanceof TypeError && rawMessage.includes('fetch'));
+      const message = isNetworkError
+        ? 'Could not reach the server. If using a remote API (e.g. Railway), set VITE_API_URL in web/.env and restart. Otherwise ensure the backend is running (e.g. http://localhost:8000).'
+        : rawMessage;
+      setExportError(message);
     } finally {
       setExporting(false);
     }
@@ -142,6 +161,20 @@ export default function CarDetail() {
           {exporting ? 'Generating…' : 'Export PDF'}
         </button>
       </div>
+
+      {exportError && (
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ flex: 1 }}>{exportError}</span>
+          <button
+            type="button"
+            className="link-button"
+            style={{ flexShrink: 0 }}
+            onClick={() => setExportError(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Car Care Score Card */}
       {careScore && <CarCareScoreCard data={careScore} />}
