@@ -1,6 +1,9 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from xhtml2pdf import pisa
 
 from config.auth import get_current_user_uid
 from exceptions import AlreadyExistsError, NotFoundError, ValidationError
@@ -12,7 +15,7 @@ from schemas.car import (
     VehicleLookupRequest,
     VehicleLookupResponse,
 )
-from services import car_service
+from services import car_report_service, car_service
 
 router = APIRouter(prefix="/cars", tags=["cars"])
 
@@ -78,3 +81,28 @@ def delete_car(car_id: str, uid: str = Depends(get_current_user_uid)):
         return {"message": "Car deleted successfully", "id": car_id}
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
+
+
+@router.get("/{car_id}/report.pdf")
+def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid)) -> Response:
+    """
+    Generate a PDF car report for the given car and authenticated user.
+    """
+    try:
+        html = car_report_service.generate_car_report_html(uid, car_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+
+    from io import BytesIO
+
+    pdf_buffer = BytesIO()
+    pisa_status = pisa.CreatePDF(html, dest=pdf_buffer)
+
+    if pisa_status.err:
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")
+
+    pdf_bytes = pdf_buffer.getvalue()
+    headers = {
+        "Content-Disposition": f'attachment; filename="car-report-{car_id}.pdf"'
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
