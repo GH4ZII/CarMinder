@@ -3,7 +3,9 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
+import { File, Paths } from 'expo-file-system';
 import * as Linking from 'expo-linking';
+import * as Sharing from 'expo-sharing';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
@@ -17,7 +19,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { API_URL, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus, api } from '../../../../frontendServices/apiCall';
+import { ApiError, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus, api } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
 
 function formatDate(s: string) {
@@ -268,38 +270,31 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      // Call backend PDF endpoint directly so all logic lives in FastAPI
-      const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const arrayBuffer = await api.getCarReportPdf(carId, token);
+      const file = new File(Paths.cache, `car-report-${carId}.pdf`);
+      file.write(new Uint8Array(arrayBuffer));
 
-      const status = res?.status;
-      const ok = res?.ok;
-      if (!res || !ok) {
-        console.error('Car report export failed with status', status);
-        const isNetworkError = status === undefined || status === 0;
-        const message = isNetworkError
-          ? 'Could not reach the server. On a device or emulator, use a reachable API URL (e.g. your deployed backend), not localhost.'
-          : 'Could not export PDF. Please try again.';
-        Alert.alert('Error', message);
-        return;
-      }
-
-      // Many mobile platforms will open the PDF in the browser when using a URL.
-      const url = res.url || `${API_URL}/cars/${carId}/report.pdf`;
-      if (await Linking.canOpenURL(url)) {
-        await Linking.openURL(url);
+      const shareUri = file.contentUri ?? file.uri;
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(shareUri, { mimeType: 'application/pdf', dialogTitle: 'Car report PDF' });
       } else {
-        Alert.alert('PDF ready', 'The car report PDF has been generated on the server.');
+        await Linking.openURL(shareUri);
       }
     } catch (e) {
       console.error('Car report export failed', e);
-      Alert.alert(
-        'Error',
-        'Could not export PDF. Check your connection and that the API is reachable.'
-      );
+      if (e instanceof ApiError) {
+        if (e.status === 401) {
+          Alert.alert('Error', 'Please sign in again.');
+          return;
+        }
+        Alert.alert('Error', e.message || 'Could not export PDF. Please try again.');
+      } else {
+        Alert.alert(
+          'Error',
+          'Could not export PDF. Check your connection and that the API is reachable.'
+        );
+      }
     } finally {
       setExporting(false);
     }

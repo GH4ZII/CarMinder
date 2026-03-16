@@ -487,6 +487,19 @@ export const api = {
     }
     return res.json();
   },
+
+  /** Get car report PDF as ArrayBuffer (throws ApiError on non-2xx). Use ArrayBuffer so React Native can write bytes without Blob.arrayBuffer(). */
+  async getCarReportPdf(carId: string, token: string): Promise<ArrayBuffer> {
+    const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res).catch(() => undefined);
+      throw new ApiError(detail ?? 'Failed to generate PDF', res.status, detail);
+    }
+    return res.arrayBuffer();
+  },
 };
 
 /** Convert an ObdSnapshot (from obdService) into the flat backend payload */
