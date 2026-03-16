@@ -225,3 +225,14 @@ export async function getObdReadings(
   }
   return res.json();
 }
+
+export async function getCarReportPdf(carId: string, token: string): Promise<Blob> {
+  const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    throw new ApiError('Failed to generate car report PDF', res.status);
+  }
+  return res.blob();
+}

@@ -39,6 +39,7 @@ export default function CarDetail() {
   const [obdReading, setObdReading] = useState<ObdReadingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -69,6 +70,29 @@ export default function CarDetail() {
       setLoading(false);
     }
   }, [id, getToken, signOut]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!id) return;
+    setExporting(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const blob = await carsApi.getCarReportPdf(id, token);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `car-report-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export PDF', err);
+      setError('Failed to export PDF');
+    } finally {
+      setExporting(false);
+    }
+  }, [id, getToken]);
 
   useEffect(() => {
     load();
@@ -110,6 +134,13 @@ export default function CarDetail() {
             <span className="car-detail-meta__km">{car.kilometer.toLocaleString()} km</span>
           </div>
         </div>
+        <button
+          className="button button--primary"
+          onClick={handleExportPdf}
+          disabled={exporting}
+        >
+          {exporting ? 'Generating…' : 'Export PDF'}
+        </button>
       </div>
 
       {/* Car Care Score Card */}

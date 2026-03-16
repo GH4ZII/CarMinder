@@ -17,7 +17,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Sharing from 'expo-sharing';
-import { api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus } from '../../../../frontendServices/apiCall';
+import * as Linking from 'expo-linking';
+import { API_URL, api, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ObdReadingResponse, ServiceDueStatus } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
 import { fetchCarReportData } from '../../../../frontendServices/reportTypes';
 import { generateCarReportPdf } from '../../../utils/pdf/carReportPdf';
@@ -270,19 +271,26 @@ export default function CarTimelineScreen() {
         return;
       }
 
-      const reportData = await fetchCarReportData(carId, token);
-      const uri = await generateCarReportPdf(reportData);
+      // Call backend PDF endpoint directly so all logic lives in FastAPI
+      const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      const canShare = await Sharing.isAvailableAsync();
-      if (!canShare) {
-        Alert.alert('PDF generated', `PDF was generated at:\n${uri}`);
+      if (!res.ok) {
+        console.error('Car report export failed with status', res.status);
+        Alert.alert('Error', 'Could not export PDF. Please try again.');
         return;
       }
 
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Share car report',
-      });
+      // Many mobile platforms will open the PDF in the browser when using a URL.
+      const url = res.url || `${API_URL}/cars/${carId}/report.pdf`;
+      if (await Linking.canOpenURL(url)) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('PDF ready', 'The car report PDF has been generated on the server.');
+      }
     } catch (e) {
       console.error('Car report export failed', e);
       Alert.alert('Error', 'Could not export PDF. Please try again.');
