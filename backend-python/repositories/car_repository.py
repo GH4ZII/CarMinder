@@ -62,6 +62,18 @@ def delete_car(car_id: str) -> None:
     get_supabase().table("cars").delete().eq("id", car_id).execute()
 
 
+def get_car_by_transfer_code(code_hash: str) -> dict[str, Any] | None:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("*")
+        .eq("transfer_code", code_hash)
+        .execute()
+    )
+    data = cast(list[dict[str, Any]], result.data)
+    return data[0] if data else None
+
+
 def get_public_car_by_registration(registration_number: str) -> dict[str, Any] | None:
     result = (
         get_supabase()

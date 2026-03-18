@@ -54,3 +54,12 @@ class VehicleLookupResponse(BaseModel):
     success: bool
     car: Optional[CarBase] = None
     error: Optional[str] = None
+
+
+class TransferResponse(BaseModel):
+    transfer_code: str
+    expires_at: str
+
+
+class ClaimRequest(BaseModel):
+    transfer_code: str

@@ -226,6 +226,51 @@ export async function getObdReadings(
   return res.json();
 }
 
+export async function initiateTransfer(
+  carId: string,
+  token: string
+): Promise<{ transfer_code: string; expires_at: string }> {
+  const res = await fetch(`${API_URL}/cars/${carId}/transfer`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to initiate transfer', res.status, detail);
+  }
+  return res.json();
+}
+
+export async function cancelTransfer(carId: string, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/cars/${carId}/transfer`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to cancel transfer', res.status, detail);
+  }
+}
+
+export async function claimCar(
+  transferCode: string,
+  token: string
+): Promise<CarInfo> {
+  const res = await fetch(`${API_URL}/cars/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify({ transfer_code: transferCode }),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to claim car', res.status, detail);
+  }
+  return res.json();
+}
+
 export async function getCarReportPdf(carId: string, token: string): Promise<Blob> {
   const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
     headers: authHeaders(token),

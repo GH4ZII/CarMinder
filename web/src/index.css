@@ -1531,6 +1531,86 @@ a:hover {
   cursor: not-allowed;
 }
 
+.button--outline {
+  background: transparent;
+  color: #007AFF;
+  border: 1px solid #007AFF;
+}
+.button--outline:hover {
+  background: rgba(0, 122, 255, 0.08);
+}
+
+/* ===== Section Header Actions ===== */
+.section-header__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+}
+.modal-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+}
+.modal-card__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.modal-card__subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+.modal-card__hint {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  margin: 0.5rem 0 1.25rem;
+}
+.modal-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Transfer code display */
+.transfer-code-box {
+  background: var(--color-background-alt);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  text-align: center;
+}
+.transfer-code-box__code {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+  word-break: break-all;
+}
+
+/* Claim input */
+.transfer-claim-input {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-bottom: 1.25rem;
+}
+
 /* ===== Utilities ===== */
 .text-muted {
   color: var(--color-text-muted);

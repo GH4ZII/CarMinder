@@ -29,6 +29,11 @@ export default function Profile() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [deletingProfile, setDeletingProfile] = useState(false);
+  const [transferCode, setTransferCode] = useState<string | null>(null);
+  const [transferCarName, setTransferCarName] = useState('');
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [claimCodeInput, setClaimCodeInput] = useState('');
+  const [claimLoading, setClaimLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,6 +169,43 @@ export default function Profile() {
     }
   }
 
+  async function handleTransfer(car: CarInfo) {
+    if (!car.id) return;
+    const ok = window.confirm(
+      `Generate a transfer code for ${car.merke} ${car.modell}? The new owner will use this code to claim the car with all its history.`
+    );
+    if (!ok) return;
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const result = await carsApi.initiateTransfer(car.id, token);
+      setTransferCarName(`${car.merke} ${car.modell}`);
+      setTransferCode(result.transfer_code);
+    } catch {
+      alert('Failed to generate transfer code.');
+    }
+  }
+
+  async function handleClaimCar() {
+    const code = claimCodeInput.trim();
+    if (!code) return;
+    setClaimLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const claimed = await carsApi.claimCar(code, token);
+      setCars((prev) => [...prev, claimed]);
+      setClaimModalOpen(false);
+      setClaimCodeInput('');
+      alert(`${claimed.merke} ${claimed.modell} has been added to your garage with all its history.`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Invalid or expired transfer code.';
+      alert(msg);
+    } finally {
+      setClaimLoading(false);
+    }
+  }
+
   const totalKm = cars.reduce((sum, c) => sum + c.kilometer, 0);
   const avgScore =
     Object.values(scores).length > 0
@@ -218,9 +260,14 @@ export default function Profile() {
       <section className="profile-section">
         <div className="section-header">
           <h2 className="profile-section__title">Your Cars</h2>
-          <button className="button button--primary" onClick={() => navigate('/add-car')}>
-            + Add Car
-          </button>
+          <div className="section-header__actions">
+            <button className="button button--outline" onClick={() => setClaimModalOpen(true)}>
+              Claim Car
+            </button>
+            <button className="button button--primary" onClick={() => navigate('/add-car')}>
+              + Add Car
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -338,6 +385,12 @@ export default function Profile() {
                       View Timeline
                     </button>
                     <button
+                      className="button button--outline button--sm"
+                      onClick={() => handleTransfer(car)}
+                    >
+                      Transfer
+                    </button>
+                    <button
                       className="button button--danger button--sm"
                       onClick={() => car.id && handleDelete(car.id)}
                     >
@@ -404,6 +457,76 @@ export default function Profile() {
           </button>
         </div>
       </section>
+
+      {/* Transfer Code Modal */}
+      {transferCode && (
+        <div className="modal-overlay" onClick={() => setTransferCode(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-card__title">Transfer Code</h2>
+            <p className="modal-card__subtitle">
+              Share this code with the new owner of {transferCarName}. They can use it to claim the car with all its history.
+            </p>
+            <div className="transfer-code-box">
+              <code className="transfer-code-box__code">{transferCode}</code>
+            </div>
+            <p className="modal-card__hint">Code expires in 24 hours</p>
+            <div className="modal-card__actions">
+              <button
+                className="button button--primary"
+                onClick={() => {
+                  navigator.clipboard.writeText(transferCode);
+                  alert('Transfer code copied to clipboard.');
+                }}
+              >
+                Copy Code
+              </button>
+              <button className="button button--secondary" onClick={() => setTransferCode(null)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Claim Car Modal */}
+      {claimModalOpen && (
+        <div className="modal-overlay" onClick={() => setClaimModalOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-card__title">Claim a Car</h2>
+            <p className="modal-card__subtitle">
+              Enter the transfer code from the previous owner to add their car (with all history) to your garage.
+            </p>
+            <input
+              className="input transfer-claim-input"
+              value={claimCodeInput}
+              onChange={(e) => setClaimCodeInput(e.target.value)}
+              placeholder="Paste transfer code"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleClaimCar();
+              }}
+            />
+            <div className="modal-card__actions">
+              <button
+                className="button button--primary"
+                onClick={handleClaimCar}
+                disabled={claimLoading}
+              >
+                {claimLoading ? 'Claiming...' : 'Claim Car'}
+              </button>
+              <button
+                className="button button--secondary"
+                onClick={() => {
+                  setClaimModalOpen(false);
+                  setClaimCodeInput('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
