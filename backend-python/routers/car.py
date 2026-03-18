@@ -13,7 +13,9 @@ from schemas.car import (
     CarCreate,
     CarResponse,
     CarUpdate,
+    ClaimRequest,
     KilometerUpdate,
+    TransferResponse,
     VehicleLookupRequest,
     VehicleLookupResponse,
 )
@@ -114,3 +116,34 @@ def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid
         "Content-Disposition": f'attachment; filename="car-report-{car_id}.pdf"'
     }
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
+
+
+@router.post("/{car_id}/transfer", response_model=TransferResponse)
+def initiate_transfer(car_id: str, uid: str = Depends(get_current_user_uid)):
+    try:
+        return car_service.initiate_transfer(uid, car_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
+
+
+@router.post("/claim", response_model=CarResponse)
+def claim_car(body: ClaimRequest, uid: str = Depends(get_current_user_uid)):
+    try:
+        return car_service.claim_car(uid, body.transfer_code)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
+
+
+@router.delete("/{car_id}/transfer")
+def cancel_transfer(car_id: str, uid: str = Depends(get_current_user_uid)):
+    try:
+        car_service.cancel_transfer(uid, car_id)
+        return {"message": "Transfer cancelled"}
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)

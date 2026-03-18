@@ -1,9 +1,16 @@
+import hashlib
+import hmac
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from config.settings import get_settings
 from exceptions import AlreadyExistsError, NotFoundError, ValidationError
 from repositories import car_repository
 from schemas.car import CarCreate, CarUpdate, KilometerUpdate
 from services.vehicle_lookup_service import lookup_vehicle
+
+_TRANSFER_CODE_EXPIRY_HOURS = 24
 
 
 async def lookup(registration_number: str):
@@ -64,6 +71,66 @@ def update_kilometer(uid: str, car_id: str, data: KilometerUpdate) -> dict[str, 
 def delete_car(uid: str, car_id: str) -> None:
     _ensure_ownership(uid, car_id)
     car_repository.delete_car(car_id)
+
+
+def initiate_transfer(uid: str, car_id: str) -> dict[str, str]:
+    _ensure_ownership(uid, car_id)
+
+    raw_token = secrets.token_urlsafe(32)
+    code_hash = _hmac_hash(raw_token)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=_TRANSFER_CODE_EXPIRY_HOURS)
+
+    result = car_repository.update_car(car_id, {
+        "transfer_code": code_hash,
+        "transfer_code_expires_at": expires_at.isoformat(),
+    })
+    if not result:
+        raise ValidationError("Failed to initiate transfer")
+
+    return {"transfer_code": raw_token, "expires_at": expires_at.isoformat()}
+
+
+def claim_car(uid: str, raw_token: str) -> dict[str, Any]:
+    code_hash = _hmac_hash(raw_token)
+    car = car_repository.get_car_by_transfer_code(code_hash)
+
+    if not car:
+        raise NotFoundError("Invalid transfer code")
+
+    expires_at = car.get("transfer_code_expires_at")
+    if expires_at:
+        exp_dt = datetime.fromisoformat(expires_at)
+        if exp_dt < datetime.now(timezone.utc):
+            raise ValidationError("Transfer code has expired")
+
+    if car["firebase_user_id"] == uid:
+        raise ValidationError("Cannot transfer car to yourself")
+
+    result = car_repository.update_car(car["id"], {
+        "firebase_user_id": uid,
+        "transfer_code": None,
+        "transfer_code_expires_at": None,
+    })
+    if not result:
+        raise ValidationError("Failed to claim car")
+    return result
+
+
+def cancel_transfer(uid: str, car_id: str) -> dict[str, Any]:
+    _ensure_ownership(uid, car_id)
+
+    result = car_repository.update_car(car_id, {
+        "transfer_code": None,
+        "transfer_code_expires_at": None,
+    })
+    if not result:
+        raise ValidationError("Failed to cancel transfer")
+    return result
+
+
+def _hmac_hash(token: str) -> str:
+    secret = get_settings()["JWT_SECRET_KEY"] or ""
+    return hmac.new(secret.encode(), token.encode(), hashlib.sha256).hexdigest()
 
 
 def _ensure_ownership(uid: str, car_id: str) -> None:

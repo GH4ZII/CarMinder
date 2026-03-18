@@ -5,11 +5,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   RefreshControl,
   StyleSheet,
   Switch,
@@ -36,6 +38,11 @@ export default function ProfileScreen() {
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
+  const [transferCode, setTransferCode] = useState<string | null>(null);
+  const [transferCarName, setTransferCarName] = useState('');
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [claimCodeInput, setClaimCodeInput] = useState('');
+  const [claimLoading, setClaimLoading] = useState(false);
 
   const SECURE_AUTH_TOKEN_KEY = 'auth_token_secure';
   const SECURE_BIOMETRICS_ENABLED_KEY = 'use_biometrics_flag';
@@ -205,6 +212,70 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleTransfer = async (car: CarInfo) => {
+    if (!car.id) return;
+    Alert.alert(
+      'Transfer Car',
+      `Generate a transfer code for ${car.merke} ${car.modell}? The new owner will use this code to claim the car with all its history.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Generate Code',
+          onPress: async () => {
+            const token = await getToken();
+            if (!token) return;
+            try {
+              const result = await api.initiateTransfer(car.id!, token);
+              setTransferCarName(`${car.merke} ${car.modell}`);
+              setTransferCode(result.transfer_code);
+            } catch (e) {
+              if (e instanceof ApiError && e.status === 401) {
+                await signOut();
+                router.replace('/(auth)/login');
+                return;
+              }
+              Alert.alert('Error', 'Failed to generate transfer code.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCopyTransferCode = async () => {
+    if (!transferCode) return;
+    await Clipboard.setStringAsync(transferCode);
+    Alert.alert('Copied', 'Transfer code copied to clipboard.');
+  };
+
+  const handleClaimCar = async () => {
+    const code = claimCodeInput.trim();
+    if (!code) {
+      Alert.alert('Error', 'Please enter a transfer code.');
+      return;
+    }
+    setClaimLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const claimed = await api.claimCar(code, token);
+      setCars((prev) => [...prev, claimed]);
+      setClaimModalOpen(false);
+      setClaimCodeInput('');
+      Alert.alert('Success', `${claimed.merke} ${claimed.modell} has been added to your garage with all its history.`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        await signOut();
+        router.replace('/(auth)/login');
+        return;
+      }
+      const msg = e instanceof ApiError ? (e.detail ?? e.message) : 'Invalid or expired transfer code.';
+      Alert.alert('Error', msg);
+    } finally {
+      setClaimLoading(false);
+    }
+  };
+
   // Function to delete a car
   const handleDelete = async (carId: string) => {
     if (!user) return;
@@ -359,12 +430,20 @@ export default function ProfileScreen() {
         <ThemedText type="subtitle" style={styles.section}>
           Your Cars
         </ThemedText>
-        <TouchableOpacity
-          style={styles.addCarButton}
-          onPress={() => router.push('/(tabs)/addCar')}
-        >
-          <Text style={styles.addCarButtonText}>+ Add Car</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionActions}>
+          <TouchableOpacity
+            style={styles.claimCarButton}
+            onPress={() => setClaimModalOpen(true)}
+          >
+            <Text style={styles.claimCarButtonText}>Claim Car</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addCarButton}
+            onPress={() => router.push('/(tabs)/addCar')}
+          >
+            <Text style={styles.addCarButtonText}>+ Add Car</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -470,6 +549,12 @@ export default function ProfileScreen() {
                 <Text style={styles.viewButtonText}>View timeline</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={styles.transferButton}
+                onPress={() => handleTransfer(item)}
+              >
+                <Text style={styles.transferButtonText}>Transfer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => handleDelete(item.id!)}
               >
@@ -483,6 +568,74 @@ export default function ProfileScreen() {
           <RefreshControl refreshing={loading} onRefresh={fetchCars} />
         }
       />
+
+      {/* Transfer Code Modal */}
+      <Modal visible={!!transferCode} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Transfer Code</Text>
+            <Text style={styles.modalSubtitle}>
+              Share this code with the new owner of {transferCarName}. They can use it to claim the car with all its history.
+            </Text>
+            <View style={styles.codeBox}>
+              <Text style={styles.codeText} selectable>{transferCode}</Text>
+            </View>
+            <Text style={styles.modalHint}>Code expires in 24 hours</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.copyButton} onPress={handleCopyTransferCode}>
+                <Text style={styles.copyButtonText}>Copy Code</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setTransferCode(null)}
+              >
+                <Text style={styles.modalCloseButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Claim Car Modal */}
+      <Modal visible={claimModalOpen} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Claim a Car</Text>
+            <Text style={styles.modalSubtitle}>
+              Enter the transfer code from the previous owner to add their car (with all history) to your garage.
+            </Text>
+            <TextInput
+              style={styles.claimInput}
+              value={claimCodeInput}
+              onChangeText={setClaimCodeInput}
+              placeholder="Paste transfer code"
+              placeholderTextColor="#8A8A8A"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setClaimModalOpen(false);
+                  setClaimCodeInput('');
+                }}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.copyButton, claimLoading && { opacity: 0.6 }]}
+                onPress={handleClaimCar}
+                disabled={claimLoading}
+              >
+                <Text style={styles.copyButtonText}>
+                  {claimLoading ? 'Claiming...' : 'Claim Car'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -841,6 +994,120 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontSize: 15,
     fontWeight: '600',
+  },
+  // Transfer button
+  transferButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,122,255,0.1)',
+  },
+  transferButtonText: {
+    color: '#007AFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  // Section actions row
+  sectionActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  claimCarButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,122,255,0.1)',
+  },
+  claimCarButtonText: {
+    color: '#007AFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 360,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  codeBox: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  codeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    color: '#111',
+    letterSpacing: 1,
+  },
+  modalHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  copyButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#1A1A1A',
+  },
+  copyButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(128,128,128,0.12)',
+  },
+  modalCloseButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  claimInput: {
+    borderWidth: 1,
+    borderColor: '#E3E3E3',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    backgroundColor: '#F9F9F9',
+    color: '#111',
+    marginBottom: 20,
+    fontFamily: 'Courier',
   },
   emptyContainer: {
     minHeight: 160,

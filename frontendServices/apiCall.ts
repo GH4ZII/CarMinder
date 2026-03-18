@@ -488,6 +488,51 @@ export const api = {
     return res.json();
   },
 
+  /** Initiate a car transfer — returns a transfer code the buyer uses to claim */
+  async initiateTransfer(carId: string, token: string): Promise<{ transfer_code: string; expires_at: string }> {
+    const res = await fetch(`${API_URL}/cars/${carId}/transfer`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to initiate transfer', res.status, detail);
+    }
+    return res.json();
+  },
+
+  /** Cancel a pending transfer */
+  async cancelTransfer(carId: string, token: string): Promise<void> {
+    const res = await fetch(`${API_URL}/cars/${carId}/transfer`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to cancel transfer', res.status, detail);
+    }
+  },
+
+  /** Claim a car using a transfer code */
+  async claimCar(transferCode: string, token: string): Promise<CarInfo> {
+    const res = await fetch(`${API_URL}/cars/claim`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token),
+      },
+      body: JSON.stringify({ transfer_code: transferCode }),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to claim car', res.status, detail);
+    }
+    return res.json();
+  },
+
   /** Get car report PDF as ArrayBuffer (throws ApiError on non-2xx). Use ArrayBuffer so React Native can write bytes without Blob.arrayBuffer(). */
   async getCarReportPdf(carId: string, token: string): Promise<ArrayBuffer> {
     const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
