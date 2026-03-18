@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     AllCarsServiceStatus,
     api,
+    ApiError,
     CarCareScoreResponse,
     CarServiceStatus,
     ServiceDueStatus,
@@ -219,7 +220,7 @@ function CarServiceCard({
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, getToken } = useAuth();
+  const { user, getToken, signOut } = useAuth();
   const [status, setStatus] = useState<AllCarsServiceStatus | null>(null);
   const [scores, setScores] = useState<Record<string, CarCareScoreResponse>>({});
   const [loading, setLoading] = useState(true);
@@ -257,11 +258,17 @@ export default function HomeScreen() {
       setScores(scoreMap);
     } catch (e) {
       console.error('Failed to fetch service status:', e);
+      // If unauthorized (401), sign out to force re-authentication
+      if (e instanceof ApiError && e.status === 401) {
+        console.log('Token expired or invalid, signing out...');
+        await signOut();
+        return;
+      }
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [user, getToken]);
+  }, [user, getToken, signOut]);
 
   useFocusEffect(
     useCallback(() => {

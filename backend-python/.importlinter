@@ -36,3 +36,43 @@ source_modules =
     routers
 forbidden_modules =
     domain
+
+[importlinter:contract:routers-no-repositories]
+name = Routers must not access repositories directly
+type = forbidden
+source_modules =
+    routers
+forbidden_modules =
+    repositories
+allow_indirect_imports = True
+
+[importlinter:contract:repositories-no-upward-deps]
+name = Repositories must not depend on higher layers
+type = forbidden
+source_modules =
+    repositories
+forbidden_modules =
+    routers
+    services
+    domain
+    schemas
+
+[importlinter:contract:services-no-routers]
+name = Services must not depend on routers
+type = forbidden
+source_modules =
+    services
+forbidden_modules =
+    routers
+
+[importlinter:contract:schemas-isolation]
+name = Schemas must remain isolated from app layers
+type = forbidden
+source_modules =
+    schemas
+forbidden_modules =
+    routers
+    services
+    repositories
+    domain
+    config
