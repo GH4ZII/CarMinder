@@ -1,3 +1,4 @@
+import { ApiError } from '@/api/client';
 import * as carsApi from '@/api/cars';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -17,12 +18,14 @@ export default function AddCar() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'generic' | 'already_registered' | 'retired'>('generic');
   const [success, setSuccess] = useState<string | null>(null);
 
   async function handleLookup(e: FormEvent) {
     e.preventDefault();
     if (!regNumber.trim()) return;
     setError(null);
+    setErrorType('generic');
     setCarInfo(null);
     setSuccess(null);
     setLoading(true);
@@ -45,6 +48,7 @@ export default function AddCar() {
     if (!carInfo) return;
     setSaving(true);
     setError(null);
+    setErrorType('generic');
     setSuccess(null);
 
     try {
@@ -57,7 +61,15 @@ export default function AddCar() {
       setSuccess('Car saved successfully!');
       setTimeout(() => navigate('/'), 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save car');
+      const msg = err instanceof Error ? err.message : 'Failed to save car';
+      setError(msg);
+      if (err instanceof ApiError && err.detail) {
+        if (err.detail.includes('retired')) {
+          setErrorType('retired');
+        } else if (err.detail.includes('already registered')) {
+          setErrorType('already_registered');
+        }
+      }
     } finally {
       setSaving(false);
     }
@@ -88,7 +100,25 @@ export default function AddCar() {
         </form>
       </Card>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && (
+        <div className={`save-error-banner save-error-banner--${errorType}`}>
+          <div className="save-error-banner__icon">
+            {errorType === 'retired' ? '⛔' : errorType === 'already_registered' ? '🔗' : '⚠️'}
+          </div>
+          <div className="save-error-banner__content">
+            <p className="save-error-banner__message">{error}</p>
+            {errorType === 'already_registered' && (
+              <button
+                className="button button--outline button--sm"
+                style={{ marginTop: '0.5rem' }}
+                onClick={() => navigate('/', { state: { openClaim: true } })}
+              >
+                Claim a Car with Transfer Code
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {success && <div className="success-banner">{success}</div>}
 
       {carInfo && (
