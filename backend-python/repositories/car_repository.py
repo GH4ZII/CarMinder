@@ -3,6 +3,18 @@ from typing import Any, cast
 from config.database import get_supabase
 
 
+def get_car_by_id(car_id: str) -> dict[str, Any] | None:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("*")
+        .eq("id", car_id)
+        .execute()
+    )
+    data = cast(list[dict[str, Any]], result.data)
+    return data[0] if data else None
+
+
 def get_car_by_id_and_user(car_id: str, uid: str) -> dict[str, Any] | None:
     result = (
         get_supabase()

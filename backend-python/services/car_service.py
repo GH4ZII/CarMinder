@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -9,6 +10,8 @@ from exceptions import AlreadyExistsError, NotFoundError, ValidationError
 from repositories import car_repository
 from schemas.car import CarCreate, CarUpdate, KilometerUpdate
 from services.vehicle_lookup_service import lookup_vehicle
+
+logger = logging.getLogger(__name__)
 
 _TRANSFER_CODE_EXPIRY_HOURS = 24
 
@@ -167,5 +170,14 @@ def _ensure_ownership(uid: str, car_id: str) -> None:
 def _ensure_ownership_and_return(uid: str, car_id: str) -> dict[str, Any]:
     car = car_repository.get_car_by_id_and_user(car_id, uid)
     if not car:
+        # Debug: check if the car exists at all (without user filter)
+        any_car = car_repository.get_car_by_id(car_id)
+        if any_car:
+            logger.warning(
+                "Ownership mismatch: car %s belongs to uid=%s but request uid=%s",
+                car_id, any_car.get("firebase_user_id"), uid,
+            )
+        else:
+            logger.warning("Car %s does not exist in DB at all", car_id)
         raise NotFoundError("Car not found")
     return car
