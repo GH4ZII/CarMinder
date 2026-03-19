@@ -40,6 +40,17 @@ def car_exists_for_user(uid: str, registration_number: str) -> bool:
     return bool(result.data)
 
 
+def car_exists_by_vin(chassisnummer: str) -> bool:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("id")
+        .eq("chassisnummer", chassisnummer)
+        .execute()
+    )
+    return bool(result.data)
+
+
 def insert_car(car_data: dict[str, Any]) -> dict[str, Any] | None:
     result = get_supabase().table("cars").insert(car_data).execute()
     data = cast(list[dict[str, Any]], result.data)

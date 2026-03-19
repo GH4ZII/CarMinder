@@ -233,8 +233,8 @@ export const api = {
       if (res.status === 401) {
         throw new ApiError('Unauthorized', 401);
       }
-      if (res.status === 400 && errorText.includes('Car already registered to this user')) {
-        throw new Error('This car is already saved to your profile.');
+      if (res.status === 400 && errorText.includes('already registered')) {
+        throw new Error('This car is already registered to another account. Ask the current owner to transfer it to you.');
       }
       throw new Error(`Failed to save car: ${errorText}`);
     }

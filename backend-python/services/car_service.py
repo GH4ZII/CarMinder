@@ -18,8 +18,8 @@ async def lookup(registration_number: str):
 
 
 def create_car(uid: str, car: CarCreate) -> dict[str, Any]:
-    if car_repository.car_exists_for_user(uid, car.registreringsnummer):
-        raise AlreadyExistsError("Car already registered to this user")
+    if car_repository.car_exists_by_vin(car.chassisnummer):
+        raise AlreadyExistsError("A car with this VIN is already registered")
 
     car_data = car.model_dump()
     car_data["firebase_user_id"] = uid
