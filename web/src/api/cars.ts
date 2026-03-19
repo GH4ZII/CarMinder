@@ -271,6 +271,19 @@ export async function claimCar(
   return res.json();
 }
 
+export async function retireCar(carId: string, token: string): Promise<CarInfo> {
+  const res = await fetch(`${API_URL}/cars/${carId}/retire`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to retire car', res.status, detail);
+  }
+  return res.json();
+}
+
 export async function getCarReportPdf(carId: string, token: string): Promise<Blob> {
   const res = await fetch(`${API_URL}/cars/${carId}/report.pdf`, {
     headers: authHeaders(token),

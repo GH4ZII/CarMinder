@@ -18,7 +18,12 @@ async def lookup(registration_number: str):
 
 
 def create_car(uid: str, car: CarCreate) -> dict[str, Any]:
-    if car_repository.car_exists_by_vin(car.chassisnummer):
+    existing = car_repository.get_car_by_vin(car.chassisnummer)
+    if existing:
+        if existing.get("retired_at"):
+            raise ValidationError(
+                "This vehicle has been retired (damaged beyond repair) and cannot be registered again"
+            )
         raise AlreadyExistsError("A car with this VIN is already registered")
 
     car_data = car.model_dump()
@@ -73,8 +78,25 @@ def delete_car(uid: str, car_id: str) -> None:
     car_repository.delete_car(car_id)
 
 
+def retire_car(uid: str, car_id: str) -> dict[str, Any]:
+    car = _ensure_ownership_and_return(uid, car_id)
+    if car.get("retired_at"):
+        raise ValidationError("Car is already retired")
+
+    result = car_repository.update_car(car_id, {
+        "retired_at": datetime.now(timezone.utc).isoformat(),
+        "transfer_code": None,
+        "transfer_code_expires_at": None,
+    })
+    if not result:
+        raise ValidationError("Failed to retire car")
+    return result
+
+
 def initiate_transfer(uid: str, car_id: str) -> dict[str, str]:
-    _ensure_ownership(uid, car_id)
+    car = _ensure_ownership_and_return(uid, car_id)
+    if car.get("retired_at"):
+        raise ValidationError("Cannot transfer a retired car")
 
     raw_token = secrets.token_urlsafe(32)
     code_hash = _hmac_hash(raw_token)
@@ -102,6 +124,9 @@ def claim_car(uid: str, raw_token: str) -> dict[str, Any]:
         exp_dt = datetime.fromisoformat(expires_at)
         if exp_dt < datetime.now(timezone.utc):
             raise ValidationError("Transfer code has expired")
+
+    if car.get("retired_at"):
+        raise ValidationError("This car has been retired and cannot be claimed")
 
     if car["firebase_user_id"] == uid:
         raise ValidationError("Cannot transfer car to yourself")
@@ -137,3 +162,10 @@ def _ensure_ownership(uid: str, car_id: str) -> None:
     car = car_repository.get_car_by_id_and_user(car_id, uid)
     if not car:
         raise NotFoundError("Car not found")
+
+
+def _ensure_ownership_and_return(uid: str, car_id: str) -> dict[str, Any]:
+    car = car_repository.get_car_by_id_and_user(car_id, uid)
+    if not car:
+        raise NotFoundError("Car not found")
+    return car

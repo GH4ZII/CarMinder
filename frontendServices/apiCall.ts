@@ -65,6 +65,7 @@ export interface CarInfo {
   eukontrollfrist: string;
   makshastighet: number;
   public_history?: boolean;
+  retired_at?: string | null;
 }
 
 /** Server-defined; thin client fetches via getEventTypes(). */
@@ -529,6 +530,20 @@ export const api = {
       if (res.status === 401) throw new ApiError('Unauthorized', 401);
       const detail = await parseErrorDetail(res);
       throw new ApiError(detail ?? 'Failed to claim car', res.status, detail);
+    }
+    return res.json();
+  },
+
+  /** Retire a car (damaged beyond repair — permanently blocks re-registration) */
+  async retireCar(carId: string, token: string): Promise<CarInfo> {
+    const res = await fetch(`${API_URL}/cars/${carId}/retire`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to retire car', res.status, detail);
     }
     return res.json();
   },

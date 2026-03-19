@@ -51,6 +51,18 @@ def car_exists_by_vin(chassisnummer: str) -> bool:
     return bool(result.data)
 
 
+def get_car_by_vin(chassisnummer: str) -> dict[str, Any] | None:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("*")
+        .eq("chassisnummer", chassisnummer)
+        .execute()
+    )
+    data = cast(list[dict[str, Any]], result.data)
+    return data[0] if data else None
+
+
 def insert_car(car_data: dict[str, Any]) -> dict[str, Any] | None:
     result = get_supabase().table("cars").insert(car_data).execute()
     data = cast(list[dict[str, Any]], result.data)

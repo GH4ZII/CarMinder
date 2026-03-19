@@ -1197,6 +1197,24 @@ a:hover {
   padding: 1.25rem;
 }
 
+.profile-car-card--retired {
+  opacity: 0.7;
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.retired-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-error-light);
+  color: var(--color-error);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
 .profile-car-card__top {
   display: flex;
   align-items: center;
@@ -1510,6 +1528,16 @@ a:hover {
 }
 .button--danger:hover {
   background: var(--color-error);
+  color: white;
+}
+
+.button--warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+.button--warning:hover {
+  background: var(--color-warning);
   color: white;
 }
 
