@@ -186,6 +186,22 @@ export default function Profile() {
     }
   }
 
+  async function handleRetire(car: CarInfo) {
+    if (!car.id) return;
+    const ok = window.confirm(
+      `Permanently retire ${car.merke} ${car.modell}? This marks it as damaged beyond repair. The VIN will be blocked from ever being registered again. This cannot be undone.`
+    );
+    if (!ok) return;
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const updated = await carsApi.retireCar(car.id, token);
+      setCars((prev) => prev.map((c) => (c.id === car.id ? updated : c)));
+    } catch {
+      alert('Failed to retire car.');
+    }
+  }
+
   async function handleClaimCar() {
     const code = claimCodeInput.trim();
     if (!code) return;
@@ -284,15 +300,19 @@ export default function Profile() {
           <div className="car-list">
             {cars.map((car) => {
               const score = car.id ? scores[car.id] : null;
+              const isRetired = !!car.retired_at;
               return (
-                <Card key={car.id} className="profile-car-card--enhanced">
+                <Card key={car.id} className={`profile-car-card--enhanced${isRetired ? ' profile-car-card--retired' : ''}`}>
                   <div className="profile-car-card__top">
                     <div>
                       <div className="profile-car-card__name-row">
-                        <h3>
+                        <h3 style={isRetired ? { opacity: 0.5 } : undefined}>
                           {car.merke} {car.modell}
                         </h3>
-                        {score && (
+                        {isRetired && (
+                          <span className="retired-badge">Retired</span>
+                        )}
+                        {score && !isRetired && (
                           <span
                             className="score-badge"
                             style={{ backgroundColor: GRADE_COLORS[score.grade] ?? '#64748b' }}
@@ -312,7 +332,7 @@ export default function Profile() {
 
                     {/* Mileage display/edit */}
                     <div>
-                      {editingMileage === car.id ? (
+                      {editingMileage === car.id && !isRetired ? (
                         <div className="mileage-edit">
                           <input
                             type="number"
@@ -350,7 +370,9 @@ export default function Profile() {
                       ) : (
                         <button
                           className="button button--secondary button--sm"
+                          disabled={isRetired}
                           onClick={() => {
+                            if (isRetired) return;
                             setEditingMileage(car.id!);
                             setMileageValue(String(car.kilometer));
                           }}
@@ -362,19 +384,21 @@ export default function Profile() {
                     </div>
                   </div>
 
-                  {/* Public history toggle */}
-                  <div className="profile-car-card__toggle-row">
-                    <span className="profile-car-card__toggle-label">Public service history</span>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={car.public_history ?? false}
-                        onChange={() => car.id && handleTogglePublic(car.id, car.public_history ?? false)}
-                        disabled={togglingPublic === car.id}
-                      />
-                      <span className="toggle-switch__slider" />
-                    </label>
-                  </div>
+                  {/* Public history toggle — hidden for retired cars */}
+                  {!isRetired && (
+                    <div className="profile-car-card__toggle-row">
+                      <span className="profile-car-card__toggle-label">Public service history</span>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={car.public_history ?? false}
+                          onChange={() => car.id && handleTogglePublic(car.id, car.public_history ?? false)}
+                          disabled={togglingPublic === car.id}
+                        />
+                        <span className="toggle-switch__slider" />
+                      </label>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="profile-car-card__bottom">
@@ -384,12 +408,22 @@ export default function Profile() {
                     >
                       View Timeline
                     </button>
-                    <button
-                      className="button button--outline button--sm"
-                      onClick={() => handleTransfer(car)}
-                    >
-                      Transfer
-                    </button>
+                    {!isRetired && (
+                      <>
+                        <button
+                          className="button button--outline button--sm"
+                          onClick={() => handleTransfer(car)}
+                        >
+                          Transfer
+                        </button>
+                        <button
+                          className="button button--warning button--sm"
+                          onClick={() => handleRetire(car)}
+                        >
+                          Retire
+                        </button>
+                      </>
+                    )}
                     <button
                       className="button button--danger button--sm"
                       onClick={() => car.id && handleDelete(car.id)}

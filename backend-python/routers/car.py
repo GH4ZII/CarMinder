@@ -118,6 +118,16 @@ def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
 
+@router.post("/{car_id}/retire", response_model=CarResponse)
+def retire_car(car_id: str, uid: str = Depends(get_current_user_uid)):
+    try:
+        return car_service.retire_car(uid, car_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
+
+
 @router.post("/{car_id}/transfer", response_model=TransferResponse)
 def initiate_transfer(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:

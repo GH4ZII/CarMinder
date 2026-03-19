@@ -276,6 +276,36 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleRetire = (car: CarInfo) => {
+    if (!car.id) return;
+    Alert.alert(
+      'Retire Car',
+      `Permanently retire ${car.merke} ${car.modell}? This marks it as damaged beyond repair. The VIN will be blocked from ever being registered again. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Retire',
+          style: 'destructive',
+          onPress: async () => {
+            const token = await getToken();
+            if (!token) return;
+            try {
+              const updated = await api.retireCar(car.id!, token);
+              setCars((prev) => prev.map((c) => (c.id === car.id ? updated : c)));
+            } catch (e) {
+              if (e instanceof ApiError && e.status === 401) {
+                await signOut();
+                router.replace('/(auth)/login');
+                return;
+              }
+              Alert.alert('Error', 'Failed to retire car.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Function to delete a car
   const handleDelete = async (carId: string) => {
     if (!user) return;
@@ -473,13 +503,22 @@ export default function ProfileScreen() {
         keyExtractor={(item) => item.id ?? ''}
         ListHeaderComponent={header}
         ListEmptyComponent={emptyComponent}
-        renderItem={({ item }) => (
-          <View style={styles.carCard}>
+        renderItem={({ item }) => {
+          const isRetired = !!item.retired_at;
+          return (
+          <View style={[styles.carCard, isRetired && styles.carCardRetired]}>
             <View style={styles.carCardHeader}>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.carTitle}>
-                  {item.merke} {item.modell}
-                </ThemedText>
+                <View style={styles.carTitleRow}>
+                  <ThemedText style={[styles.carTitle, isRetired && { opacity: 0.5 }]}>
+                    {item.merke} {item.modell}
+                  </ThemedText>
+                  {isRetired && (
+                    <View style={styles.retiredBadge}>
+                      <Text style={styles.retiredBadgeText}>Retired</Text>
+                    </View>
+                  )}
+                </View>
                 <View style={styles.carMetaRow}>
                   <View style={styles.carMetaTag}>
                     <Text style={styles.carMetaTagText}>{item.registreringsnummer}</Text>
@@ -490,57 +529,30 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
-              {/* Mileage display/edit */}
-              {editingMileageId === item.id ? (
-                <View style={styles.mileageEditRow}>
-                  <TextInput
-                    style={styles.mileageInput}
-                    value={mileageInput}
-                    onChangeText={setMileageInput}
-                    keyboardType="numeric"
-                    placeholder="km"
-                    autoFocus
-                    selectTextOnFocus
-                  />
-                  <TouchableOpacity
-                    style={styles.mileageSaveBtn}
-                    onPress={() => handleSaveMileage(item.id!)}
-                    disabled={savingMileage}
-                  >
-                    <Text style={styles.mileageSaveBtnText}>{savingMileage ? '...' : '✓'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.mileageCancelBtn}
-                    onPress={() => {
-                      setEditingMileageId(null);
-                      setMileageInput('');
-                    }}
-                  >
-                    <Text style={styles.mileageCancelBtnText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.mileageBadge}
-                  onPress={() => {
-                    setEditingMileageId(item.id!);
-                    setMileageInput(String(item.kilometer));
-                  }}
-                >
-                  <Text style={styles.mileageBadgeText}>{item.kilometer.toLocaleString()} km</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={styles.mileageBadge}
+                disabled={isRetired}
+                onPress={() => {
+                  if (isRetired) return;
+                  setEditingMileageId(item.id!);
+                  setMileageInput(String(item.kilometer));
+                }}
+              >
+                <Text style={styles.mileageBadgeText}>{item.kilometer.toLocaleString()} km</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.publicToggleRow}>
-              <ThemedText style={styles.publicToggleLabel}>Public history</ThemedText>
-              <Switch
-                value={item.public_history ?? false}
-                onValueChange={(val) => handleTogglePublic(item.id!, val)}
-                trackColor={{ false: '#E8E8E8', true: '#1A1A1A' }}
-                thumbColor="#fff"
-              />
-            </View>
+            {!isRetired && (
+              <View style={styles.publicToggleRow}>
+                <ThemedText style={styles.publicToggleLabel}>Public history</ThemedText>
+                <Switch
+                  value={item.public_history ?? false}
+                  onValueChange={(val) => handleTogglePublic(item.id!, val)}
+                  trackColor={{ false: '#E8E8E8', true: '#1A1A1A' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            )}
             <View style={styles.carCardActions}>
               <TouchableOpacity
                 style={styles.viewButton}
@@ -548,12 +560,22 @@ export default function ProfileScreen() {
               >
                 <Text style={styles.viewButtonText}>View timeline</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.transferButton}
-                onPress={() => handleTransfer(item)}
-              >
-                <Text style={styles.transferButtonText}>Transfer</Text>
-              </TouchableOpacity>
+              {!isRetired && (
+                <>
+                  <TouchableOpacity
+                    style={styles.transferButton}
+                    onPress={() => handleTransfer(item)}
+                  >
+                    <Text style={styles.transferButtonText}>Transfer</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.retireButton}
+                    onPress={() => handleRetire(item)}
+                  >
+                    <Text style={styles.retireButtonText}>Retire</Text>
+                  </TouchableOpacity>
+                </>
+              )}
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => handleDelete(item.id!)}
@@ -562,7 +584,8 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        )}
+          );
+        }}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={fetchCars} />
@@ -992,6 +1015,41 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#FF3B30',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  // Retired state
+  carCardRetired: {
+    opacity: 0.7,
+    borderColor: 'rgba(255,59,48,0.25)',
+  },
+  carTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  retiredBadge: {
+    backgroundColor: 'rgba(255,59,48,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  retiredBadgeText: {
+    color: '#FF3B30',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  retireButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,149,0,0.1)',
+  },
+  retireButtonText: {
+    color: '#FF9500',
     fontSize: 15,
     fontWeight: '600',
   },

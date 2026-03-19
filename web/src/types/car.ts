@@ -23,6 +23,7 @@ export interface CarInfo {
   eukontrollfrist: string;
   makshastighet: number;
   public_history?: boolean;
+  retired_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

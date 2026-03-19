@@ -3,6 +3,18 @@ from typing import Any, cast
 from config.database import get_supabase
 
 
+def get_car_by_id(car_id: str) -> dict[str, Any] | None:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("*")
+        .eq("id", car_id)
+        .execute()
+    )
+    data = cast(list[dict[str, Any]], result.data)
+    return data[0] if data else None
+
+
 def get_car_by_id_and_user(car_id: str, uid: str) -> dict[str, Any] | None:
     result = (
         get_supabase()
@@ -38,6 +50,29 @@ def car_exists_for_user(uid: str, registration_number: str) -> bool:
         .execute()
     )
     return bool(result.data)
+
+
+def car_exists_by_vin(chassisnummer: str) -> bool:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("id")
+        .eq("chassisnummer", chassisnummer)
+        .execute()
+    )
+    return bool(result.data)
+
+
+def get_car_by_vin(chassisnummer: str) -> dict[str, Any] | None:
+    result = (
+        get_supabase()
+        .table("cars")
+        .select("*")
+        .eq("chassisnummer", chassisnummer)
+        .execute()
+    )
+    data = cast(list[dict[str, Any]], result.data)
+    return data[0] if data else None
 
 
 def insert_car(car_data: dict[str, Any]) -> dict[str, Any] | None:

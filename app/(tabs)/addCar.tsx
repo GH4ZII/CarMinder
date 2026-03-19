@@ -94,8 +94,13 @@ export default function AddCarScreen() {
         router.replace("/(auth)/login");
         return;
       }
-      Alert.alert("Error", "Failed to save car");
-      console.error(error);
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Failed to save car';
+      Alert.alert("Cannot Register Car", msg);
     } finally {
       setSaving(false);
     }

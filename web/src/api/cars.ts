@@ -29,12 +29,26 @@ export async function saveCar(car: CarInfo, token: string): Promise<CarInfo> {
     body: JSON.stringify(car),
   });
   if (!res.ok) {
-    const errorText = await res.text();
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
-    if (res.status === 400 && errorText.includes('Car already registered to this user')) {
-      throw new Error('This car is already saved to your profile.');
+    const detail = await parseErrorDetail(res);
+    if (res.status === 400 && detail) {
+      if (detail.includes('retired')) {
+        throw new ApiError(
+          'This vehicle has been permanently retired (damaged beyond repair) and cannot be registered again.',
+          400,
+          detail,
+        );
+      }
+      if (detail.includes('already registered')) {
+        throw new ApiError(
+          'This car is already registered to another account. Ask the current owner to generate a transfer code so you can claim it.',
+          400,
+          detail,
+        );
+      }
+      throw new ApiError(detail, 400, detail);
     }
-    throw new Error(`Failed to save car: ${errorText}`);
+    throw new ApiError('Failed to save car', res.status, detail);
   }
   return res.json();
 }
@@ -267,6 +281,19 @@ export async function claimCar(
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
     const detail = await parseErrorDetail(res);
     throw new ApiError(detail ?? 'Failed to claim car', res.status, detail);
+  }
+  return res.json();
+}
+
+export async function retireCar(carId: string, token: string): Promise<CarInfo> {
+  const res = await fetch(`${API_URL}/cars/${carId}/retire`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to retire car', res.status, detail);
   }
   return res.json();
 }

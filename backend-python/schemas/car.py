@@ -40,6 +40,7 @@ class CarResponse(CarBase):
     firebase_user_id: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    retired_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
