@@ -3,11 +3,13 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthContext';
 import AddCar from '@/pages/AddCar';
 import AddEvent from '@/pages/AddEvent';
+import AddIncident from '@/pages/AddIncident';
 import Calendar from '@/pages/Calendar';
 import CarDetail from '@/pages/CarDetail';
 import ForgotPassword from '@/pages/ForgotPassword';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
+import Lookup from '@/pages/Lookup';
 import Profile from '@/pages/Profile';
 import Signup from '@/pages/Signup';
 import Welcome from '@/pages/Welcome';
@@ -40,10 +42,12 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: 'calendar', element: <Calendar /> },
+      { path: 'lookup', element: <Lookup /> },
       { path: 'profile', element: <Profile /> },
       { path: 'add-car', element: <AddCar /> },
       { path: 'car/:id', element: <CarDetail /> },
       { path: 'car/:id/add-event', element: <AddEvent /> },
+      { path: 'car/:id/add-incident', element: <AddIncident /> },
     ],
   },
   { path: '*', element: <Navigate to="/welcome" replace /> },

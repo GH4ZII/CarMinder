@@ -6,6 +6,7 @@ import type {
   CarCareScoreResponse,
   CarInfo,
   CarServiceStatus,
+  IncidentReport,
   MaintenanceEvent,
   ObdReadingResponse,
   ServiceDueStatus,
@@ -28,6 +29,18 @@ const GRADE_COLORS: Record<string, string> = {
   F: '#FF3B30',
 };
 
+const SEVERITY_COLORS: Record<string, string> = {
+  minor: '#64748b',
+  moderate: '#FF9500',
+  severe: '#FF3B30',
+};
+
+const REPAIR_STATUS_LABELS: Record<string, string> = {
+  not_repaired: 'Not repaired',
+  partially_repaired: 'Partially repaired',
+  fully_repaired: 'Fully repaired',
+};
+
 export default function CarDetail() {
   const { id } = useParams<{ id: string }>();
   const { getToken, signOut } = useAuth();
@@ -36,6 +49,7 @@ export default function CarDetail() {
   const [car, setCar] = useState<CarInfo | null>(null);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
+  const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
   const [obdReading, setObdReading] = useState<ObdReadingResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,16 +64,18 @@ export default function CarDetail() {
     try {
       const token = await getToken();
       if (!token) return;
-      const [carData, statusData, eventsData, scoreData, obdData] = await Promise.all([
+      const [carData, statusData, eventsData, incidentsData, scoreData, obdData] = await Promise.all([
         carsApi.getCar(id, token),
         carsApi.getCarServiceStatus(id, token).catch(() => null),
         carsApi.getMaintenanceEvents(id, token).catch(() => [] as MaintenanceEvent[]),
+        carsApi.getIncidents(id, token).catch(() => [] as IncidentReport[]),
         carsApi.getCarCareScore(id, token).catch(() => null),
         carsApi.getLatestObdReading(id, token).catch(() => null),
       ]);
       setCar(carData);
       setServiceStatus(statusData);
       setEvents(eventsData.sort((a, b) => b.event_date.localeCompare(a.event_date)));
+      setIncidents(incidentsData.sort((a, b) => b.incident_date.localeCompare(a.incident_date)));
       setCareScore(scoreData);
       setObdReading(obdData);
     } catch (err) {
@@ -208,6 +224,30 @@ export default function CarDetail() {
       )}
 
       {obdReading && <ObdDiagnosticsCard reading={obdReading} />}
+
+      <section className="section">
+        <div className="section-header">
+          <h2>Incidents</h2>
+          <button
+            className="button button--primary"
+            onClick={() => navigate(`/car/${id}/add-incident`)}
+          >
+            + Report Incident
+          </button>
+        </div>
+
+        {incidents.length === 0 ? (
+          <div className="empty-state empty-state--compact">
+            <p>No incidents reported.</p>
+          </div>
+        ) : (
+          <div className="incident-list">
+            {incidents.map((incident) => (
+              <IncidentCard key={incident.id} incident={incident} />
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="section">
         <div className="section-header">
@@ -463,6 +503,36 @@ function EventCard({ event }: { event: MaintenanceEvent }) {
         <div className="event-card__notes">
           <p>{event.notes}</p>
         </div>
+      )}
+    </Card>
+  );
+}
+
+function IncidentCard({ incident }: { incident: IncidentReport }) {
+  const severityColor = SEVERITY_COLORS[incident.severity] ?? '#64748b';
+
+  return (
+    <Card className="incident-card">
+      <div className="incident-card__header">
+        <span className="incident-card__severity" style={{ backgroundColor: severityColor }}>
+          {incident.severity.toUpperCase()}
+        </span>
+        <span className="incident-card__date">{formatDate(incident.incident_date)}</span>
+      </div>
+      <p className="incident-card__description">{incident.description}</p>
+
+      <div className="incident-card__meta">
+        <span>Repair: {REPAIR_STATUS_LABELS[incident.repair_status] ?? incident.repair_status}</span>
+        {incident.mileage != null && <span>{incident.mileage.toLocaleString()} km</span>}
+        {incident.repair_cost_cents != null && <span>{formatCurrency(incident.repair_cost_cents)}</span>}
+        {incident.repair_vendor && <span>{incident.repair_vendor}</span>}
+        {incident.insurance_claim && <span>Insurance claim filed</span>}
+      </div>
+
+      {incident.damage_description && (
+        <p className="incident-card__damage">
+          Damage: {incident.damage_description}
+        </p>
       )}
     </Card>
   );

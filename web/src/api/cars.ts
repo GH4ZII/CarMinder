@@ -4,10 +4,13 @@ import type {
   CarInfo,
   CarServiceStatus,
   CarUpdate,
+  IncidentReport,
+  IncidentReportCreate,
   KilometerUpdate,
   MaintenanceEvent,
   MaintenanceEventCreate,
   ObdReadingResponse,
+  PublicCarHistory,
 } from '@/types/car';
 import { API_URL, ApiError, authHeaders, parseErrorDetail } from './client';
 
@@ -211,6 +214,58 @@ export async function getCarCareScore(
   return res.json();
 }
 
+export async function getIncidentTypes(): Promise<{
+  severity_levels: string[];
+  repair_statuses: string[];
+}> {
+  const res = await fetch(`${API_URL}/incidents/types`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch incident types');
+  }
+  return res.json();
+}
+
+export async function getIncidents(
+  carId: string,
+  token: string
+): Promise<IncidentReport[]> {
+  const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError('Failed to fetch incidents', res.status, detail);
+  }
+  return res.json();
+}
+
+export async function createIncident(
+  carId: string,
+  token: string,
+  payload: IncidentReportCreate
+): Promise<IncidentReport> {
+  const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const err = await res.json().catch(() => ({}));
+    const msg = Array.isArray(err.detail)
+      ? err.detail
+          .map((e: { msg?: string }) => e.msg)
+          .filter(Boolean)
+          .join('; ') || res.statusText
+      : typeof err.detail === 'string'
+        ? err.detail
+        : res.statusText;
+    throw new ApiError(msg || 'Failed to create incident', res.status, msg);
+  }
+  return res.json();
+}
+
 export async function getLatestObdReading(
   carId: string,
   token: string
@@ -308,4 +363,13 @@ export async function getCarReportPdf(carId: string, token: string): Promise<Blo
     throw new ApiError(detail ?? 'Failed to generate car report PDF', res.status);
   }
   return res.blob();
+}
+
+export async function getPublicHistory(regNumber: string): Promise<PublicCarHistory | null> {
+  const res = await fetch(
+    `${API_URL}/public/history/${encodeURIComponent(regNumber.trim().toUpperCase())}`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Failed to fetch public history');
+  return res.json();
 }

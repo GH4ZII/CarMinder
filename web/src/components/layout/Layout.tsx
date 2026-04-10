@@ -14,6 +14,9 @@ export default function Layout() {
           <NavLink to="/calendar" className={navLinkClass}>
             Calendar
           </NavLink>
+          <NavLink to="/lookup" className={navLinkClass}>
+            Lookup
+          </NavLink>
           <NavLink to="/profile" className={navLinkClass}>
             Profile
           </NavLink>
