@@ -61,6 +61,33 @@ export interface MaintenanceEventCreate {
   notes?: string | null;
 }
 
+export interface IncidentReport {
+  id: string;
+  car_id: string;
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description: string | null;
+  repair_status: string;
+  repair_cost_cents: number | null;
+  repair_vendor: string | null;
+  insurance_claim: boolean;
+  mileage: number | null;
+  created_at: string;
+}
+
+export interface IncidentReportCreate {
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description?: string | null;
+  repair_status: string;
+  repair_cost?: number | null;
+  repair_vendor?: string | null;
+  insurance_claim: boolean;
+  mileage?: number | null;
+}
+
 export interface ServiceDueStatus {
   event_type: string;
   last_date: string | null;
@@ -138,4 +165,35 @@ export interface ObdReadingResponse {
   battery_voltage: number | null;
   dtcs: ObdDiagnosticCode[];
   created_at: string;
+}
+
+export interface PublicCarInfo {
+  registreringsnummer: string;
+  merke: string;
+  modell: string;
+  arsmodell: string;
+  farge: string;
+  kilometer: number;
+}
+
+export interface PublicMaintenanceEvent {
+  event_type: string;
+  event_date: string;
+  mileage: number | null;
+  vendor: string | null;
+}
+
+export interface PublicIncidentReport {
+  incident_date: string;
+  severity: string;
+  description: string;
+  damage_description: string | null;
+  repair_status: string;
+  mileage: number | null;
+}
+
+export interface PublicCarHistory {
+  car: PublicCarInfo;
+  maintenance_events: PublicMaintenanceEvent[];
+  incident_reports: PublicIncidentReport[];
 }
