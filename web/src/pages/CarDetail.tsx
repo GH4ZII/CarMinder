@@ -479,32 +479,35 @@ function EventCard({ event }: { event: MaintenanceEvent }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card
-      className="event-card"
-      onClick={() => setExpanded(!expanded)}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="event-card__header">
-        <div className="event-card__type-date">
-          <span className="event-card__type">{eventTypeLabel(event.event_type)}</span>
-          <span className="event-card__date">{formatDate(event.event_date)}</span>
+    <div className="timeline-item">
+      <div className="timeline-item__dot" />
+      <Card
+        className="event-card"
+        onClick={() => setExpanded(!expanded)}
+        style={{ cursor: 'pointer' }}
+      >
+        <div className="event-card__header">
+          <div className="event-card__type-date">
+            <span className="event-card__type">{eventTypeLabel(event.event_type)}</span>
+            <span className="event-card__date">{formatDate(event.event_date)}</span>
+          </div>
         </div>
-      </div>
-      <div className="event-card__tags">
-        {event.mileage != null && (
-          <span className="tag">{event.mileage.toLocaleString()} km</span>
-        )}
-        {event.cost_cents != null && (
-          <span className="tag">{formatCurrency(event.cost_cents)}</span>
-        )}
-        {event.vendor && <span className="tag">{event.vendor}</span>}
-      </div>
-      {expanded && event.notes && (
-        <div className="event-card__notes">
-          <p>{event.notes}</p>
+        <div className="event-card__tags">
+          {event.mileage != null && (
+            <span className="tag">{event.mileage.toLocaleString()} km</span>
+          )}
+          {event.cost_cents != null && (
+            <span className="tag">{formatCurrency(event.cost_cents)}</span>
+          )}
+          {event.vendor && <span className="tag">{event.vendor}</span>}
         </div>
-      )}
-    </Card>
+        {expanded && event.notes && (
+          <div className="event-card__notes">
+            <p>{event.notes}</p>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
 
