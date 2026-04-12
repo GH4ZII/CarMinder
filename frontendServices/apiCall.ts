@@ -503,6 +503,18 @@ export const api = {
     return res.json();
   },
 
+  /** Get OBD reading history for a car */
+  async listObdReadings(carId: string, token: string, limit = 50): Promise<ObdReadingResponse[]> {
+    const res = await fetch(`${API_URL}/cars/${carId}/obd-readings?limit=${limit}`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      return [];
+    }
+    return res.json();
+  },
+
   /** Initiate a car transfer — returns a transfer code the buyer uses to claim */
   async initiateTransfer(carId: string, token: string): Promise<{ transfer_code: string; expires_at: string }> {
     const res = await fetch(`${API_URL}/cars/${carId}/transfer`, {
