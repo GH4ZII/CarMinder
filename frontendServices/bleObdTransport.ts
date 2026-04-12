@@ -13,21 +13,32 @@ import type { ObdTransport } from './obdService';
 const ELM_SCAN_TIMEOUT_MS = 15000;
 const ELM_COMMAND_TIMEOUT_MS = 6000;
 const ELM_BOOT_TIMEOUT_MS = 10000;
+const BLE_BUFFER_MAX_BYTES = 1024;
 const ELM_NAME_HINTS = ['icar', 'v-link', 'vlink', 'v_link', 'elm', 'obd', 'obdii', 'obd2', 'vgate'];
-const UART_SERVICE_HINTS = [
-  '0000ffe0',
-  '0000fff0',
-  '6e400001',
-  'e7810a71',  // Vgate iCar Pro BLE 4.0
+/**
+ * Known BLE UART service/characteristic mappings for ELM327 adapters.
+ * Based on https://github.com/kkonteh97/SwiftOBD2
+ *
+ * Each entry maps a service UUID to its read (notify) and write characteristic UUIDs.
+ * - FFE0: Generic BLE-serial adapters (Veepeak, cheap clones) — single FFE1 for both
+ * - FFF0: Extended adapters — FFF1 (read) and FFF2 (write)
+ * - 18F0: Vgate iCar Pro — 2AF0 (read) and 2AF1 (write)
+ * - 6E400001: Nordic UART Service (NUS)
+ */
+type AdapterProfile = {
+  serviceUuid: string;
+  readCharUuid: string;
+  writeCharUuid: string;
+};
+
+const ADAPTER_PROFILES: AdapterProfile[] = [
+  { serviceUuid: '0000ffe0', readCharUuid: '0000ffe1', writeCharUuid: '0000ffe1' },
+  { serviceUuid: '0000fff0', readCharUuid: '0000fff1', writeCharUuid: '0000fff2' },
+  { serviceUuid: '000018f0', readCharUuid: '00002af0', writeCharUuid: '00002af1' },  // Vgate iCar Pro
+  { serviceUuid: '6e400001', readCharUuid: '6e400003', writeCharUuid: '6e400002' },  // Nordic UART
 ];
-const UART_CHAR_HINTS = [
-  '0000ffe1',
-  '0000fff1',
-  '0000fff2',  // iCar Pro write characteristic
-  '6e400002',
-  '6e400003',
-  'bef8d6c9',  // Vgate iCar Pro BLE 4.0
-];
+
+const UART_SERVICE_HINTS = ADAPTER_PROFILES.map((p) => p.serviceUuid);
 
 function normalizeUuid(value: string): string {
   return value.replace(/-/g, '').toLowerCase();
@@ -45,9 +56,9 @@ function deviceLooksLikeElm327(device: Device): boolean {
   });
 }
 
-function characteristicLooksPreferred(char: Characteristic): boolean {
-  const uuid = normalizeUuid(char.uuid);
-  return UART_CHAR_HINTS.some((hint) => uuid.includes(hint));
+function findAdapterProfile(serviceUuid: string): AdapterProfile | undefined {
+  const norm = normalizeUuid(serviceUuid);
+  return ADAPTER_PROFILES.find((p) => norm.includes(p.serviceUuid));
 }
 
 function serviceLooksPreferred(uuid: string): boolean {
@@ -216,6 +227,37 @@ export class BleElm327ObdTransport implements ObdTransport {
       throw new Error('No GATT services available from adapter.');
     }
 
+    // First pass: try to match a known adapter profile with explicit char UUIDs
+    for (const service of services) {
+      const profile = findAdapterProfile(service.uuid);
+      if (!profile) continue;
+
+      const characteristics = await device.characteristicsForService(service.uuid);
+      let writeCharacteristic: Characteristic | null = null;
+      let notifyCharacteristic: Characteristic | null = null;
+
+      for (const char of characteristics) {
+        const charNorm = normalizeUuid(char.uuid);
+        if (charNorm.includes(profile.writeCharUuid)) {
+          writeCharacteristic = char;
+        }
+        if (charNorm.includes(profile.readCharUuid)) {
+          notifyCharacteristic = char;
+        }
+        // Some profiles use same UUID for read and write (e.g. FFE1)
+        if (profile.readCharUuid === profile.writeCharUuid && charNorm.includes(profile.readCharUuid)) {
+          writeCharacteristic = char;
+          notifyCharacteristic = char;
+        }
+      }
+
+      if (writeCharacteristic && notifyCharacteristic) {
+        console.log(`Matched adapter profile: service=${profile.serviceUuid}`);
+        return { writeCharacteristic, notifyCharacteristic };
+      }
+    }
+
+    // Fallback: pick first writable + first notifiable from any preferred service
     let writeCharacteristic: Characteristic | null = null;
     let notifyCharacteristic: Characteristic | null = null;
 
@@ -227,13 +269,7 @@ export class BleElm327ObdTransport implements ObdTransport {
 
     for (const service of orderedServices) {
       const characteristics = await device.characteristicsForService(service.uuid);
-      const orderedChars = [...characteristics].sort((a, b) => {
-        const aScore = characteristicLooksPreferred(a) ? 1 : 0;
-        const bScore = characteristicLooksPreferred(b) ? 1 : 0;
-        return bScore - aScore;
-      });
-
-      for (const char of orderedChars) {
+      for (const char of characteristics) {
         if (!writeCharacteristic && (char.isWritableWithResponse || char.isWritableWithoutResponse)) {
           writeCharacteristic = char;
         }
@@ -241,7 +277,6 @@ export class BleElm327ObdTransport implements ObdTransport {
           notifyCharacteristic = char;
         }
       }
-
       if (writeCharacteristic && notifyCharacteristic) break;
     }
 
@@ -249,6 +284,7 @@ export class BleElm327ObdTransport implements ObdTransport {
       throw new Error('Could not find adapter UART characteristics.');
     }
 
+    console.log('Using fallback GATT resolution (no known profile matched).');
     return { writeCharacteristic, notifyCharacteristic };
   }
 
@@ -266,7 +302,10 @@ export class BleElm327ObdTransport implements ObdTransport {
       (error, characteristic) => {
         if (error || !characteristic?.value) return;
         try {
-          this.lineBuffer += b64Decode(characteristic.value);
+          const chunk = b64Decode(characteristic.value);
+          if (this.lineBuffer.length + chunk.length <= BLE_BUFFER_MAX_BYTES) {
+            this.lineBuffer += chunk;
+          }
         } catch {
           // Ignore malformed frames.
         }
@@ -275,12 +314,13 @@ export class BleElm327ObdTransport implements ObdTransport {
   }
 
   private async initializeElm327(): Promise<void> {
-    await this.sendElmCommand('ATZ', ELM_BOOT_TIMEOUT_MS);
-    await this.sendElmCommand('ATE0', ELM_COMMAND_TIMEOUT_MS);
-    await this.sendElmCommand('ATL0', ELM_COMMAND_TIMEOUT_MS);
-    await this.sendElmCommand('ATS0', ELM_COMMAND_TIMEOUT_MS);
-    await this.sendElmCommand('ATH0', ELM_COMMAND_TIMEOUT_MS);
-    await this.sendElmCommand('ATSP0', ELM_COMMAND_TIMEOUT_MS);
+    await this.sendElmCommand('ATZ', ELM_BOOT_TIMEOUT_MS);   // Reset adapter
+    await this.sendElmCommand('ATE0', ELM_COMMAND_TIMEOUT_MS); // Echo off
+    await this.sendElmCommand('ATL0', ELM_COMMAND_TIMEOUT_MS); // Linefeeds off
+    await this.sendElmCommand('ATS1', ELM_COMMAND_TIMEOUT_MS); // Spaces on (parsers expect space-separated bytes)
+    await this.sendElmCommand('ATH1', ELM_COMMAND_TIMEOUT_MS); // Headers on (needed for ECU identification)
+    await this.sendElmCommand('ATAT1', ELM_COMMAND_TIMEOUT_MS); // Adaptive timing on
+    await this.sendElmCommand('ATSP0', ELM_COMMAND_TIMEOUT_MS); // Auto-detect protocol
   }
 
   private async sendElmCommand(command: string, timeoutMs: number): Promise<string> {

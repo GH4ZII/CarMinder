@@ -438,15 +438,27 @@ export default function CarTimelineScreen() {
         <ThemedText type="subtitle" style={styles.section}>
           OBD-II diagnostics
         </ThemedText>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
-        >
-          <Text style={styles.addBtnText}>Open Scanner</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionActions}>
+          <TouchableOpacity
+            style={[styles.addBtn, styles.secondaryBtn]}
+            onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
+          >
+            <Text style={[styles.addBtnText, styles.secondaryBtnText]}>View Dashboard</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
+          >
+            <Text style={styles.addBtnText}>Open Scanner</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {obdSnapshot ? (
-        <View style={styles.obdCard}>
+        <TouchableOpacity
+          activeOpacity={0.92}
+          style={styles.obdCard}
+          onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
+        >
           <View style={styles.obdHeaderRow}>
             <ThemedText style={styles.obdCardTitle}>
               Latest reading {obdSnapshot.source === 'simulated' ? '(Demo)' : '(Device)'}
@@ -490,9 +502,13 @@ export default function CarTimelineScreen() {
               </View>
             ))
           )}
-        </View>
+          <ThemedText style={styles.obdTapHint}>Tap to open charts and history.</ThemedText>
+        </TouchableOpacity>
       ) : (
-        <ThemedText style={styles.obdHint}>No OBD snapshot yet.</ThemedText>
+        <View style={styles.obdEmptyCard}>
+          <ThemedText style={styles.obdHint}>No OBD snapshot yet.</ThemedText>
+          <ThemedText style={styles.obdTapHint}>The dashboard will show gauges, trends, and trouble code history after your first scan.</ThemedText>
+        </View>
       )}
 
       {/* Incidents section */}
@@ -642,11 +658,25 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   section: { marginBottom: 0 },
+  sectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   addBtn: {
     backgroundColor: '#1A1A1A',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
+  },
+  secondaryBtn: {
+    backgroundColor: 'rgba(26,26,26,0.06)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.22)',
+  },
+  secondaryBtnText: {
+    color: '#1A1A1A',
   },
   exportBtn: {
     alignSelf: 'flex-start',
@@ -655,6 +685,14 @@ const styles = StyleSheet.create({
   },
   addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   obdHint: { fontSize: 13, opacity: 0.65, marginBottom: 10 },
+  obdEmptyCard: {
+    backgroundColor: 'rgba(26,26,26,0.04)',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.15)',
+    padding: 14,
+    marginBottom: 8,
+  },
   obdCard: {
     backgroundColor: 'rgba(26,26,26,0.04)',
     borderRadius: 14,
@@ -696,6 +734,7 @@ const styles = StyleSheet.create({
   },
   obdCode: { fontSize: 13, fontWeight: '700', color: '#B00020', marginBottom: 3 },
   obdCodeDesc: { fontSize: 12, opacity: 0.85 },
+  obdTapHint: { fontSize: 12, opacity: 0.55, marginTop: 4 },
   list: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 24 },
   card: {
     backgroundColor: 'rgba(128,128,128,0.06)',
