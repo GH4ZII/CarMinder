@@ -19,6 +19,29 @@ const AUTH_USER_KEY = '@auth_user';
 const BIOMETRICS_ENABLED_KEY = '@use_biometrics';
 const SECURE_AUTH_TOKEN_KEY = 'auth_token_secure';
 
+function parseJwtExpiry(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = parts[1]
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, '=');
+    const json = atob(payload);
+    const parsed = JSON.parse(json) as { exp?: number };
+    return typeof parsed.exp === 'number' ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpired(token: string, skewSeconds = 30): boolean {
+  const exp = parseJwtExpiry(token);
+  if (!exp) return false;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return exp <= nowSeconds + skewSeconds;
+}
+
 // Google Sign-In is optional: only available in dev/build, not in Expo Go.
 // Dynamically require and configure so the app still runs if the package is missing.
 let GoogleSignin: any = null;
@@ -92,6 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const shouldUseBiometrics = biometricsFlag === 'true';
       const effectiveToken = shouldUseBiometrics && secureToken ? secureToken : t;
       if (effectiveToken && u) {
+        if (isTokenExpired(effectiveToken)) {
+          await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
+          await clearPersistedAuth();
+          setToken(null);
+          setUser(null);
+          return;
+        }
         setToken(effectiveToken);
         setUser(JSON.parse(u) as AuthUser);
         setupPushNotifications(effectiveToken);
@@ -224,8 +254,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const getToken = useCallback((): Promise<string | null> => {
-    return Promise.resolve(token);
+  const getToken = useCallback(async (): Promise<string | null> => {
+    if (!token) return null;
+    if (!isTokenExpired(token)) return token;
+
+    await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
+    await clearPersistedAuth();
+    setToken(null);
+    setUser(null);
+    return null;
   }, [token]);
 
   const forgotPassword = useCallback(async (email: string) => {
