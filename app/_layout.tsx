@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -7,7 +7,6 @@ import 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'; 
-import { useColorScheme } from '@/hooks/use-color-scheme'; 
 
 // This tells the app which screen to show first (the main tabs screen)
 export const unstable_settings = {
@@ -16,9 +15,6 @@ export const unstable_settings = {
 
 // This is the main navigation component - it decides which screen to show
 function RootLayoutNav() {
-  // Check if user has dark mode or light mode turned on
-  const colorScheme = useColorScheme();
-  
   // Get info about the logged-in user (null if no one is logged in)
   // Also check if we're still checking the login status
   const { user, loading } = useAuth();
@@ -60,8 +56,7 @@ function RootLayoutNav() {
 
   // Show the actual app with all the screens
   return (
-    // Set the theme (dark or light mode) based on user's preference
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DarkTheme}>
       {/* Create a stack of screens (like a deck of cards - you can navigate between them) */}
       <Stack>
         {/* Login and signup screens (no header shown) */}
@@ -70,7 +65,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       {/* Status bar at top of phone (changes color based on theme) */}
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }

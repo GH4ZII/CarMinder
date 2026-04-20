@@ -149,12 +149,12 @@ function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
 
 const scoreStyles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(128,128,128,0.06)',
+    backgroundColor: '#0A1A37',
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(128,128,128,0.12)',
+    borderColor: '#294263',
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   ring: {
@@ -168,25 +168,25 @@ const scoreStyles = StyleSheet.create({
   grade: { fontSize: 22, fontWeight: '800' },
   scoreNum: { fontSize: 12, fontWeight: '600', marginTop: -2 },
   summaryCol: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#1A1A1A' },
-  summary: { fontSize: 13, opacity: 0.85, marginBottom: 4 },
-  confidence: { fontSize: 12, opacity: 0.6, textTransform: 'capitalize' },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#E9EEF7' },
+  summary: { fontSize: 13, color: '#8DA0B8', marginBottom: 4 },
+  confidence: { fontSize: 12, color: '#8DA0B8', textTransform: 'capitalize' },
   details: { marginTop: 12 },
-  divider: { height: 1, backgroundColor: 'rgba(128,128,128,0.2)', marginVertical: 12 },
+  divider: { height: 1, backgroundColor: '#294263', marginVertical: 12 },
   catRow: { marginBottom: 10 },
   catLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  catLabel: { fontSize: 13, fontWeight: '500', opacity: 0.9 },
-  catScore: { fontSize: 13, fontWeight: '600', opacity: 0.8 },
-  barBg: { height: 6, backgroundColor: 'rgba(128,128,128,0.15)', borderRadius: 3, overflow: 'hidden' },
+  catLabel: { fontSize: 13, fontWeight: '500', color: '#DDE6F2' },
+  catScore: { fontSize: 13, fontWeight: '600', color: '#8DA0B8' },
+  barBg: { height: 6, backgroundColor: '#102449', borderRadius: 3, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 3 },
   recsTitle: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
   recRow: { flexDirection: 'row', marginBottom: 6, paddingRight: 8 },
-  recBullet: { fontSize: 14, marginRight: 6, opacity: 0.6 },
-  recText: { fontSize: 13, opacity: 0.85, flex: 1 },
+  recBullet: { fontSize: 14, marginRight: 6, color: '#8DA0B8' },
+  recText: { fontSize: 13, color: '#8DA0B8', flex: 1 },
 });
 
 const SEVERITY_COLORS: Record<string, string> = {
-  minor: '#1A1A1A',
+  minor: '#2DD4BF',
   moderate: '#FF9500',
   severe: '#FF3B30',
 };
@@ -518,7 +518,7 @@ export default function CarTimelineScreen() {
           Incidents ({incidents.length})
         </ThemedText>
         <TouchableOpacity
-          style={[styles.addBtn, { backgroundColor: '#1A1A1A' }]}
+          style={[styles.addBtn, { backgroundColor: '#2DD4BF' }]}
           onPress={() => router.push(`/(tabs)/car/${carId}/add-incident` as any)}
         >
           <Text style={styles.addBtnText}>Report incident</Text>
@@ -618,13 +618,13 @@ export default function CarTimelineScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#07142B' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 0, marginBottom: 8 },
-  backBtnText: { fontSize: 17, color: '#1A1A1A', fontWeight: '600' },
+  backBtnText: { fontSize: 17, color: '#2DD4BF', fontWeight: '600' },
   header: { padding: 20, paddingBottom: 16 },
   title: { marginBottom: 4 },
-  subtitle: { fontSize: 14, opacity: 0.8, marginBottom: 16 },
+  subtitle: { fontSize: 14, color: '#8DA0B8', marginBottom: 16 },
   sectionTitle: { marginTop: 8, marginBottom: 12 },
   alertBanner: {
     padding: 12,
@@ -665,39 +665,39 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   addBtn: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 10,
   },
   secondaryBtn: {
-    backgroundColor: 'rgba(26,26,26,0.06)',
+    backgroundColor: '#0A1A37',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.22)',
+    borderColor: '#294263',
   },
   secondaryBtnText: {
-    color: '#1A1A1A',
+    color: '#2DD4BF',
   },
   exportBtn: {
     alignSelf: 'flex-start',
     marginTop: 8,
     marginBottom: 8,
   },
-  addBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  obdHint: { fontSize: 13, opacity: 0.65, marginBottom: 10 },
+  addBtnText: { color: '#062B32', fontSize: 15, fontWeight: '700' },
+  obdHint: { fontSize: 13, color: '#8DA0B8', marginBottom: 10 },
   obdEmptyCard: {
-    backgroundColor: 'rgba(26,26,26,0.04)',
+    backgroundColor: '#0A1A37',
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.15)',
+    borderColor: '#294263',
     padding: 14,
     marginBottom: 8,
   },
   obdCard: {
-    backgroundColor: 'rgba(26,26,26,0.04)',
+    backgroundColor: '#0A1A37',
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.15)',
+    borderColor: '#294263',
     padding: 14,
     marginBottom: 8,
   },
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   obdCardTitle: { fontSize: 14, fontWeight: '700' },
-  obdTimestamp: { fontSize: 12, opacity: 0.6 },
+  obdTimestamp: { fontSize: 12, color: '#8DA0B8' },
   obdMetricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -718,14 +718,14 @@ const styles = StyleSheet.create({
   },
   obdMetricItem: {
     width: '48%',
-    backgroundColor: 'rgba(128,128,128,0.08)',
+    backgroundColor: '#102449',
     borderRadius: 10,
     padding: 10,
   },
-  obdMetricLabel: { fontSize: 12, opacity: 0.7, marginBottom: 2 },
+  obdMetricLabel: { fontSize: 12, color: '#8DA0B8', marginBottom: 2 },
   obdMetricValue: { fontSize: 14, fontWeight: '700' },
   obdDtcTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
-  obdNoCodes: { fontSize: 13, opacity: 0.75 },
+  obdNoCodes: { fontSize: 13, color: '#8DA0B8' },
   obdCodeItem: {
     backgroundColor: 'rgba(255,59,48,0.08)',
     borderRadius: 10,
@@ -734,24 +734,24 @@ const styles = StyleSheet.create({
   },
   obdCode: { fontSize: 13, fontWeight: '700', color: '#B00020', marginBottom: 3 },
   obdCodeDesc: { fontSize: 12, opacity: 0.85 },
-  obdTapHint: { fontSize: 12, opacity: 0.55, marginTop: 4 },
+  obdTapHint: { fontSize: 12, color: '#8DA0B8', marginTop: 4 },
   list: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 24 },
   card: {
-    backgroundColor: 'rgba(128,128,128,0.06)',
+    backgroundColor: '#0A1A37',
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.12)',
+    borderColor: '#294263',
   },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   cardType: { fontSize: 16, fontWeight: '600' },
-  cardDate: { fontSize: 14, opacity: 0.8 },
+  cardDate: { fontSize: 14, color: '#8DA0B8' },
   cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 4 },
-  meta: { fontSize: 14, opacity: 0.85 },
-  notes: { fontSize: 14, opacity: 0.8, fontStyle: 'italic', marginTop: 4 },
+  meta: { fontSize: 14, color: '#8DA0B8' },
+  notes: { fontSize: 14, color: '#8DA0B8', fontStyle: 'italic', marginTop: 4 },
   empty: { minHeight: 120, justifyContent: 'center', alignItems: 'center', paddingVertical: 24 },
-  emptyText: { fontSize: 16, textAlign: 'center', opacity: 0.8 },
+  emptyText: { fontSize: 16, textAlign: 'center', color: '#8DA0B8' },
   incidentCard: {
     backgroundColor: 'rgba(255,149,0,0.08)',
     padding: 14,

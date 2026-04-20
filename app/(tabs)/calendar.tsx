@@ -77,10 +77,10 @@ function MonthYearPicker({
   const [pickerYear, setPickerYear] = useState(currentYear);
   const yearListRef = useRef<FlatList>(null);
 
-  const bgColor = isDark ? '#1C1C1E' : '#fff';
-  const textColor = isDark ? '#ECEDEE' : '#11181C';
-  const dimColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
-  const pillBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const bgColor = '#0A1A37';
+  const textColor = '#E9EEF7';
+  const dimColor = '#8DA0B8';
+  const pillBg = '#102449';
 
   const now = new Date();
   const years = useMemo(() => {
@@ -118,11 +118,11 @@ function MonthYearPicker({
                 <TouchableOpacity
                   style={[
                     styles.yearPill,
-                    { backgroundColor: isActive ? '#1A1A1A' : pillBg },
+                    { backgroundColor: isActive ? '#2DD4BF' : pillBg },
                   ]}
                   onPress={() => setPickerYear(year)}
                 >
-                  <Text style={[styles.yearText, { color: isActive ? '#fff' : textColor }]}>
+                  <Text style={[styles.yearText, { color: isActive ? '#062B32' : textColor }]}>
                     {year}
                   </Text>
                 </TouchableOpacity>
@@ -140,14 +140,14 @@ function MonthYearPicker({
                   key={idx}
                   style={[
                     styles.monthCell,
-                    { backgroundColor: isActive ? '#1A1A1A' : pillBg },
+                    { backgroundColor: isActive ? '#2DD4BF' : pillBg },
                   ]}
                   onPress={() => {
                     onSelect(pickerYear, idx);
                     onClose();
                   }}
                 >
-                  <Text style={[styles.monthCellText, { color: isActive ? '#fff' : textColor }]}>
+                  <Text style={[styles.monthCellText, { color: isActive ? '#062B32' : textColor }]}>
                     {name.substring(0, 3)}
                   </Text>
                 </TouchableOpacity>
@@ -189,7 +189,7 @@ function CarSelector({
               styles.carPill,
               {
                 backgroundColor: isActive
-                  ? '#1A1A1A'
+                  ? '#2DD4BF'
                   : isDark
                     ? 'rgba(255,255,255,0.1)'
                     : 'rgba(0,0,0,0.06)',
@@ -202,7 +202,7 @@ function CarSelector({
               style={[
                 styles.carPillText,
                 {
-                  color: isActive ? '#fff' : isDark ? '#ECEDEE' : '#11181C',
+                  color: isActive ? '#062B32' : '#E9EEF7',
                 },
               ]}
             >
@@ -263,7 +263,7 @@ function EventEntry({
         <Text style={[styles.entryMonth, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>
           {isFirst ? month : ''}
         </Text>
-        <Text style={[styles.entryDay, { color: isDark ? '#ECEDEE' : '#11181C' }]}>
+        <Text style={[styles.entryDay, { color: '#E9EEF7' }]}>
           {isFirst ? day : ''}
         </Text>
       </TouchableOpacity>
@@ -289,8 +289,8 @@ function EventEntry({
         <View style={styles.entryCardHeader}>
           <View style={{ flex: 1 }}>
             <View style={styles.entryTitleRow}>
-              <MaterialIcons name={iconName} size={16} color={isDark ? '#ECEDEE' : '#11181C'} />
-              <Text style={[styles.entryTitle, { color: isDark ? '#ECEDEE' : '#11181C' }]}>
+              <MaterialIcons name={iconName} size={16} color="#E9EEF7" />
+              <Text style={[styles.entryTitle, { color: '#E9EEF7' }]}>
                 {label}
               </Text>
             </View>
@@ -423,12 +423,12 @@ export default function CalendarScreen() {
     events.forEach((e) => {
       marks[e.event_date] = {
         marked: true,
-        dotColor: '#1A1A1A',
-        ...(e.event_date === selectedDate && { selected: true, selectedColor: '#1A1A1A' }),
+        dotColor: '#2DD4BF',
+        ...(e.event_date === selectedDate && { selected: true, selectedColor: '#2DD4BF' }),
       };
     });
     if (selectedDate && !marks[selectedDate]) {
-      marks[selectedDate] = { selected: true, selectedColor: '#1A1A1A' };
+      marks[selectedDate] = { selected: true, selectedColor: '#2DD4BF' };
     }
     return marks;
   }, [events, selectedDate]);
@@ -509,13 +509,13 @@ export default function CalendarScreen() {
     backgroundColor: 'transparent',
     calendarBackground: 'transparent',
     textSectionTitleColor: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)',
-    dayTextColor: isDark ? '#ECEDEE' : '#11181C',
-    todayTextColor: '#1A1A1A',
-    monthTextColor: isDark ? '#ECEDEE' : '#11181C',
-    arrowColor: '#1A1A1A',
+    dayTextColor: '#E9EEF7',
+    todayTextColor: '#2DD4BF',
+    monthTextColor: '#E9EEF7',
+    arrowColor: '#2DD4BF',
     textDisabledColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-    selectedDayBackgroundColor: '#1A1A1A',
-    selectedDayTextColor: '#fff',
+    selectedDayBackgroundColor: '#2DD4BF',
+    selectedDayTextColor: '#062B32',
     textDayFontWeight: '500' as const,
     textMonthFontWeight: '700' as const,
     textDayHeaderFontWeight: '600' as const,
@@ -566,7 +566,7 @@ export default function CalendarScreen() {
                 enableSwipeMonths
                 renderHeader={(date: string) => (
                   <TouchableOpacity onPress={() => setPickerVisible(true)} activeOpacity={0.6}>
-                    <Text style={[styles.calendarHeader, { color: isDark ? '#ECEDEE' : '#11181C' }]}>
+                    <Text style={[styles.calendarHeader, { color: '#E9EEF7' }]}>
                       {MONTH_NAMES[viewMonth]} {viewYear}
                     </Text>
                   </TouchableOpacity>
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     marginVertical: 4,
   },
 

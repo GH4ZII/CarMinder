@@ -127,7 +127,7 @@ export default function ObdScanScreen() {
               disabled={scanning}
             >
               {scanning ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color="#062B32" size="small" />
               ) : null}
               <Text style={styles.scanBtnText}>{scanning ? 'Scanning…' : 'Scan adapter'}</Text>
             </TouchableOpacity>
@@ -211,33 +211,33 @@ export default function ObdScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#07142B' },
   content: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 8, marginBottom: 8 },
-  backBtnText: { fontSize: 17, color: '#1A1A1A', fontWeight: '600' },
+  backBtnText: { fontSize: 17, color: '#2DD4BF', fontWeight: '600' },
   title: { marginBottom: 16 },
   actions: { marginBottom: 20, gap: 10 },
   scanBtn: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 999,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   scanBtnDisabled: { opacity: 0.6 },
-  scanBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  demoBtn: { backgroundColor: '#F1F1F1' },
-  demoBtnText: { color: '#1A1A1A', fontSize: 16, fontWeight: '700' },
-  hint: { fontSize: 13, opacity: 0.65, marginBottom: 4 },
+  scanBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  demoBtn: { backgroundColor: '#0A1A37', borderWidth: 1, borderColor: '#294263' },
+  demoBtnText: { color: '#2DD4BF', fontSize: 16, fontWeight: '700' },
+  hint: { fontSize: 13, color: '#8DA0B8', marginBottom: 4 },
   card: {
-    backgroundColor: 'rgba(26,26,26,0.04)',
+    backgroundColor: '#0A1A37',
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.15)',
+    borderColor: '#294263',
     padding: 14,
   },
   headerRow: {
@@ -257,14 +257,14 @@ const styles = StyleSheet.create({
   },
   metricItem: {
     width: '48%',
-    backgroundColor: 'rgba(128,128,128,0.08)',
+    backgroundColor: '#102449',
     borderRadius: 10,
     padding: 10,
   },
-  metricLabel: { fontSize: 12, opacity: 0.7, marginBottom: 2 },
+  metricLabel: { fontSize: 12, color: '#8DA0B8', marginBottom: 2 },
   metricValue: { fontSize: 14, fontWeight: '700' },
   dtcTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
-  noCodes: { fontSize: 13, opacity: 0.75 },
+  noCodes: { fontSize: 13, color: '#8DA0B8' },
   codeItem: {
     backgroundColor: 'rgba(255,59,48,0.08)',
     borderRadius: 10,
