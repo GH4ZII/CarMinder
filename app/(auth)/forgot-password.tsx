@@ -1,7 +1,5 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -11,6 +9,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -20,15 +19,14 @@ export default function ForgotPasswordScreen() {
   const { forgotPassword } = useAuth();
 
   const [email, setEmail] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const borderColor = useThemeColor({}, 'text');
-  const textColor = useThemeColor({}, 'text');
-  const placeholderColor = useThemeColor({}, 'text');
-
   const handleSubmit = async () => {
+    setErrorMessage('');
+
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      setErrorMessage('Please enter your email address.');
       return;
     }
 
@@ -45,7 +43,7 @@ export default function ForgotPasswordScreen() {
         typeof error?.message === 'string' && error.message.length
           ? error.message
           : 'Something went wrong. Please try again later.';
-      Alert.alert('Error', message);
+      setErrorMessage(message);
     } finally {
       setLoading(false);
     }
@@ -57,47 +55,57 @@ export default function ForgotPasswordScreen() {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <ThemedView style={styles.content}>
-          <ThemedText type="title" style={styles.title}>
-            Forgot password
-          </ThemedText>
+        <View style={styles.card}>
+          <View style={styles.logoWrap}>
+            <AntDesign name="car" size={22} color={styles.logoIcon.color} />
+          </View>
 
-          <ThemedText style={styles.subtitle}>
-            Enter your email and we will send a password reset link.
-          </ThemedText>
+          <Text style={styles.title}>Forgot password</Text>
+          <Text style={styles.subtitle}>
+            Enter your email and we will send you a reset link.
+          </Text>
+
+          <Text style={styles.label}>Email</Text>
 
           <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Email"
-            placeholderTextColor={placeholderColor + '80'}
+            style={[styles.input, errorMessage && styles.inputError]}
+            placeholder="alex@example.com"
+            placeholderTextColor="#8DA0B8"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(value) => {
+              setEmail(value);
+              if (errorMessage) {
+                setErrorMessage('');
+              }
+            }}
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
             editable={!loading}
           />
 
+          {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.primaryButton, loading && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#00151F" />
             ) : (
-              <ThemedText style={styles.buttonText}>Send reset link</ThemedText>
+              <Text style={styles.primaryButtonText}>Send reset link</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.switchButton}
+            style={styles.backButton}
             onPress={() => router.back()}
             disabled={loading}
           >
-            <ThemedText style={styles.switchText}>Back to login</ThemedText>
+            <Text style={styles.backButtonText}>Back to login</Text>
           </TouchableOpacity>
-        </ThemedView>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -106,58 +114,98 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#07142B',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#07142B',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
-  content: {
+  card: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 430,
     alignSelf: 'center',
+    backgroundColor: '#07142B',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  logoWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#2DD4BF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  logoIcon: {
+    color: '#072033',
   },
   title: {
+    color: '#E9EEF7',
+    fontSize: 34,
+    fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    marginBottom: 32,
+    color: '#93A3B8',
+    fontSize: 18,
+    marginBottom: 24,
     textAlign: 'center',
-    opacity: 0.7,
+  },
+  label: {
+    color: '#DDE6F2',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   input: {
+    backgroundColor: '#0A1A37',
+    borderColor: '#294263',
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 16,
-    minHeight: 50,
+    color: '#DDE6F2',
+    minHeight: 52,
+    marginBottom: 10,
   },
-  button: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 999,
-    padding: 16,
+  inputError: {
+    borderColor: '#F55252',
+    backgroundColor: '#171B33',
+  },
+  errorText: {
+    color: '#F55252',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  primaryButton: {
+    backgroundColor: '#2DD4BF',
+    borderRadius: 10,
+    minHeight: 52,
     alignItems: 'center',
-    marginTop: 8,
-    minHeight: 50,
     justifyContent: 'center',
+    marginTop: 6,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  primaryButtonText: {
+    color: '#062B32',
+    fontSize: 15,
     fontWeight: '600',
   },
-  switchButton: {
-    marginTop: 24,
+  backButton: {
+    marginTop: 20,
     alignItems: 'center',
   },
-  switchText: {
-    color: '#1A1A1A',
-    fontSize: 14,
-    fontWeight: '500',
+  backButtonText: {
+    color: '#2DD4BF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 })
