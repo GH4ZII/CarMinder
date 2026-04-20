@@ -55,17 +55,16 @@ export default function AddMaintenanceEventScreen() {
   const scheme = useColorScheme();
 
   const colors = useMemo(() => {
-    const dark = scheme === 'dark';
     return {
-      bg: dark ? '#0B0B0F' : '#F5F5F5',
-      card: dark ? '#121218' : '#FFFFFF',
-      text: dark ? '#FFFFFF' : '#111111',
-      subtext: dark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
-      border: dark ? '#2A2A35' : '#DDDDDD',
-      placeholder: dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
-      chip: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
-      primary: '#1A1A1A',
-      success: '#1A1A1A',
+      bg: '#07142B',
+      card: '#0A1A37',
+      text: '#E9EEF7',
+      subtext: '#8DA0B8',
+      border: '#294263',
+      placeholder: '#8DA0B8',
+      chip: '#102449',
+      primary: '#2DD4BF',
+      success: '#2DD4BF',
     };
   }, [scheme]);
 
@@ -320,7 +319,7 @@ export default function AddMaintenanceEventScreen() {
                       style={[
                         styles.typeChipText,
                         { color: colors.text },
-                        eventType === t && { color: '#fff' },
+                        eventType === t && { color: '#062B32' },
                       ]}
                     >
                       {EVENT_LABELS[t] ?? t}
@@ -513,7 +512,7 @@ export default function AddMaintenanceEventScreen() {
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#062B32" />
               ) : (
                 <Text style={styles.submitBtnText}>Save event</Text>
               )}
@@ -589,7 +588,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  modalDoneText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  modalDoneText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
 
   input: {
     borderWidth: 1,
@@ -608,5 +607,5 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  submitBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
 });

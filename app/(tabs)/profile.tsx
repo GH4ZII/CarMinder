@@ -433,7 +433,7 @@ export default function ProfileScreen() {
                 <Switch
                   value={biometricsEnabled}
                   onValueChange={handleToggleBiometrics}
-                  trackColor={{ false: '#E8E8E8', true: '#1A1A1A' }}
+                  trackColor={{ false: '#294263', true: '#2DD4BF' }}
                   thumbColor="#fff"
                 />
               </View>
@@ -548,7 +548,7 @@ export default function ProfileScreen() {
                 <Switch
                   value={item.public_history ?? false}
                   onValueChange={(val) => handleTogglePublic(item.id!, val)}
-                  trackColor={{ false: '#E8E8E8', true: '#1A1A1A' }}
+                  trackColor={{ false: '#294263', true: '#2DD4BF' }}
                   thumbColor="#fff"
                 />
               </View>
@@ -685,18 +685,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     marginBottom: 20,
-    paddingVertical: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: '#102449',
+    borderWidth: 1,
+    borderColor: '#294263',
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#fff',
+    color: '#062B32',
     fontSize: 22,
     fontWeight: '700',
   },
@@ -713,13 +718,14 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   avatarHint: {
-    fontSize: 12,
-    opacity: 0.45,
-    marginTop: 2,
+    fontSize: 14,
+    color: '#B8C6DA',
+    marginTop: 4,
+    fontWeight: '600',
   },
   avatarChevron: {
-    fontSize: 20,
-    opacity: 0.45,
+    fontSize: 24,
+    color: '#B8C6DA',
     marginLeft: 8,
   },
   // Stats
@@ -780,13 +786,13 @@ const styles = StyleSheet.create({
   },
   profileInput: {
     borderWidth: 1,
-    borderColor: '#E3E3E3',
+    borderColor: '#294263',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    backgroundColor: '#fff',
-    color: '#111',
+    backgroundColor: '#07142B',
+    color: '#E9EEF7',
   },
   profileActionRow: {
     flexDirection: 'row',
@@ -809,10 +815,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
   },
   profileSaveBtnText: {
-    color: '#fff',
+    color: '#062B32',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -870,13 +876,13 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   addCarButton: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
   },
   addCarButtonText: {
-    color: '#fff',
+    color: '#062B32',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -930,7 +936,7 @@ const styles = StyleSheet.create({
   mileageBadgeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#DDE6F2',
   },
   mileageEditRow: {
     flexDirection: 'row',
@@ -940,7 +946,7 @@ const styles = StyleSheet.create({
   mileageInput: {
     width: 90,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: '#294263',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 6,
@@ -948,7 +954,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   mileageSaveBtn: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -956,7 +962,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mileageSaveBtnText: {
-    color: '#fff',
+    color: '#062B32',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1002,7 +1008,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26,26,26,0.1)',
   },
   viewButtonText: {
-    color: '#1A1A1A',
+    color: '#2DD4BF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1061,7 +1067,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,122,255,0.1)',
   },
   transferButtonText: {
-    color: '#007AFF',
+    color: '#2DD4BF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1077,7 +1083,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,122,255,0.1)',
   },
   claimCarButtonText: {
-    color: '#007AFF',
+    color: '#2DD4BF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1090,7 +1096,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0A1A37',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -1099,17 +1105,17 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111',
+    color: '#E9EEF7',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#8DA0B8',
     lineHeight: 20,
     marginBottom: 20,
   },
   codeBox: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#07142B',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -1119,12 +1125,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     fontFamily: 'Courier',
-    color: '#111',
+    color: '#E9EEF7',
     letterSpacing: 1,
   },
   modalHint: {
     fontSize: 12,
-    color: '#999',
+    color: '#8DA0B8',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -1137,10 +1143,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
   },
   copyButtonText: {
-    color: '#fff',
+    color: '#062B32',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1153,17 +1159,17 @@ const styles = StyleSheet.create({
   modalCloseButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#8DA0B8',
   },
   claimInput: {
     borderWidth: 1,
-    borderColor: '#E3E3E3',
+    borderColor: '#294263',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    backgroundColor: '#F9F9F9',
-    color: '#111',
+    backgroundColor: '#07142B',
+    color: '#E9EEF7',
     marginBottom: 20,
     fontFamily: 'Courier',
   },

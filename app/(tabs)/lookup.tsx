@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, PublicCarHistory } from '../../frontendServices/apiCall';
 
 const SEVERITY_COLORS: Record<string, string> = {
-  minor: '#1A1A1A',
+  minor: '#2DD4BF',
   moderate: '#FF9500',
   severe: '#FF3B30',
 };
@@ -51,15 +51,14 @@ export default function LookupScreen() {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const colors = useMemo(() => {
-    const dark = scheme === 'dark';
     return {
-      bg: dark ? '#0B0B0F' : '#F5F5F5',
-      card: dark ? '#121218' : '#FFFFFF',
-      text: dark ? '#FFFFFF' : '#111111',
-      subtext: dark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
-      border: dark ? '#2A2A35' : '#DDDDDD',
-      placeholder: dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
-      primary: '#1A1A1A',
+      bg: '#07142B',
+      card: '#0A1A37',
+      text: '#E9EEF7',
+      subtext: '#8DA0B8',
+      border: '#294263',
+      placeholder: '#8DA0B8',
+      primary: '#2DD4BF',
     };
   }, [scheme]);
 
@@ -121,7 +120,7 @@ export default function LookupScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color="#062B32" size="small" />
             ) : (
               <Text style={styles.searchBtnText}>Search</Text>
             )}
@@ -237,7 +236,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   searchBtn: { paddingHorizontal: 20, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
-  searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  searchBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
   emptyContainer: { paddingVertical: 40, alignItems: 'center' },
   emptyText: { fontSize: 15, textAlign: 'center', opacity: 0.7 },
   resultsContainer: { gap: 0 },

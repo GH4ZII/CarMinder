@@ -30,14 +30,14 @@ export default function AddCarScreen() {
   const { user, getToken, signOut } = useAuth();
 
   const colors = useMemo(() => ({
-    bg: isDark ? '#151718' : '#f5f5f5',
-    card: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
-    text: isDark ? '#ECEDEE' : '#333',
-    subtext: isDark ? 'rgba(255,255,255,0.6)' : '#666',
-    border: isDark ? 'rgba(255,255,255,0.15)' : '#ddd',
-    inputBg: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
-    sectionBorder: isDark ? '#1A1A1A' : '#1A1A1A',
-    rowBorder: isDark ? 'rgba(255,255,255,0.08)' : '#eee',
+    bg: '#07142B',
+    card: '#0A1A37',
+    text: '#E9EEF7',
+    subtext: '#8DA0B8',
+    border: '#294263',
+    inputBg: '#0A1A37',
+    sectionBorder: '#294263',
+    rowBorder: '#294263',
   }), [isDark]);
 
   const fetchCarInfo = async () => {
@@ -144,7 +144,7 @@ export default function AddCarScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#062B32" />
             ) : (
               <Text style={styles.buttonText}>Fetch Car Info</Text>
             )}
@@ -189,7 +189,7 @@ export default function AddCarScreen() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#062B32" />
               ) : (
                 <Text style={styles.buttonText}>Save Car to your profile</Text>
               )}
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 17,
-    color: '#1A1A1A',
+    color: '#2DD4BF',
     fontWeight: '600',
   },
   title: {
@@ -232,15 +232,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   button: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     padding: 15,
-    borderRadius: 999,
+    borderRadius: 10,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
+    color: '#062B32',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   carInfoContainer: {
     padding: 20,
@@ -260,12 +260,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: '#DDE6F2',
     marginTop: 15,
     marginBottom: 8,
     paddingBottom: 5,
     borderBottomWidth: 2,
-    borderBottomColor: '#E8E8E8',
+    borderBottomColor: '#294263',
   },
   infoRow: {
     flexDirection: 'row',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 20,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
   },
 });
 

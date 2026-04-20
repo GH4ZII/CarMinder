@@ -68,13 +68,13 @@ function Gauge({ value, min, max, label, unit, color, warningThreshold, dark }: 
   const displayColor =
     warningThreshold != null && value != null && value >= warningThreshold ? '#FF3B30' : color;
 
-  const textColor = dark ? '#ECEDEE' : '#0F172A';
-  const subColor = dark ? '#9BA1A6' : '#6B7280';
+  const textColor = dark ? '#E9EEF7' : '#E9EEF7';
+  const subColor = dark ? '#8DA0B8' : '#8DA0B8';
 
   return (
-    <View style={[gaugeStyles.container, { width: size, height: size, backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderColor: dark ? '#2A2A35' : '#E8E8E8' }]}>
+    <View style={[gaugeStyles.container, { width: size, height: size, backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
       <Svg width={size} height={size}>
-        <Path d={bgArc} stroke={dark ? '#2A2A35' : '#E8E8E8'} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
+        <Path d={bgArc} stroke="#294263" strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
         {valArc ? (
           <Path d={valArc} stroke={displayColor} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
         ) : null}
@@ -134,7 +134,7 @@ type LineChartProps = {
 function MiniLineChart({ data, color, label, unit, dark }: LineChartProps) {
   if (data.length < 2) {
     return (
-      <View style={[chartStyles.container, { backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderColor: dark ? '#2A2A35' : '#E8E8E8' }]}>
+      <View style={[chartStyles.container, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
         <ThemedText style={chartStyles.label}>{label}</ThemedText>
         <ThemedText style={chartStyles.noData}>Not enough data for chart</ThemedText>
       </View>
@@ -162,8 +162,8 @@ function MiniLineChart({ data, color, label, unit, dark }: LineChartProps) {
   // Fill area under curve
   const fillD = `${pathD} L ${points[points.length - 1].x} ${padY + h} L ${points[0].x} ${padY + h} Z`;
 
-  const textColor = dark ? '#9BA1A6' : '#6B7280';
-  const gridColor = dark ? '#2A2A35' : '#E8E8E8';
+  const textColor = dark ? '#8DA0B8' : '#8DA0B8';
+  const gridColor = dark ? '#294263' : '#294263';
 
   // Y-axis labels (3 ticks)
   const yTicks = [minVal, (minVal + maxVal) / 2, maxVal];
@@ -179,7 +179,7 @@ function MiniLineChart({ data, color, label, unit, dark }: LineChartProps) {
       : data.map((d, i) => ({ idx: i, label: formatShortDate(d.date) }));
 
   return (
-    <View style={[chartStyles.container, { backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderColor: dark ? '#2A2A35' : '#E8E8E8' }]}>
+    <View style={[chartStyles.container, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
       <View style={chartStyles.headerRow}>
         <ThemedText style={chartStyles.label}>{label}</ThemedText>
         <ThemedText style={chartStyles.unitLabel}>{unit}</ThemedText>
@@ -378,11 +378,11 @@ export default function ObdDashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={[styles.backBtnText, dark && { color: '#ECEDEE' }]}>{'<-'} Back</Text>
+            <Text style={[styles.backBtnText, dark && { color: '#2DD4BF' }]}>{'<-'} Back</Text>
           </TouchableOpacity>
           <View style={styles.headerRight}>
             <TouchableOpacity
-              style={[styles.scanBtn, { backgroundColor: '#C5E636' }]}
+              style={[styles.scanBtn, { backgroundColor: '#2DD4BF' }]}
               onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
             >
               <Text style={styles.scanBtnText}>New Scan</Text>
@@ -408,7 +408,7 @@ export default function ObdDashboardScreen() {
             <ThemedText style={styles.emptyTitle}>Diagnostics unavailable</ThemedText>
             <ThemedText style={styles.emptyHint}>{loadError}</ThemedText>
             <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: '#C5E636' }]}
+              style={[styles.emptyBtn, { backgroundColor: '#2DD4BF' }]}
               onPress={refresh}
             >
               <Text style={styles.emptyBtnText}>Try Again</Text>
@@ -421,7 +421,7 @@ export default function ObdDashboardScreen() {
               Connect your OBD-II adapter and scan your car to see diagnostics here.
             </ThemedText>
             <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: '#C5E636' }]}
+              style={[styles.emptyBtn, { backgroundColor: '#2DD4BF' }]}
               onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
             >
               <Text style={styles.emptyBtnText}>Start First Scan</Text>
@@ -432,14 +432,14 @@ export default function ObdDashboardScreen() {
             {/* Live Gauges */}
             <ThemedText style={styles.sectionTitle}>Current Metrics</ThemedText>
             <View style={styles.gaugeGrid}>
-              <Gauge value={latest?.rpm ?? null} min={0} max={8000} label="RPM" unit="rev/min" color="#C5E636" warningThreshold={6000} dark={dark} />
+              <Gauge value={latest?.rpm ?? null} min={0} max={8000} label="RPM" unit="rev/min" color="#2DD4BF" warningThreshold={6000} dark={dark} />
               <Gauge value={latest?.coolant_temp_c ?? null} min={-40} max={150} label="Coolant" unit="°C" color="#34C759" warningThreshold={110} dark={dark} />
-              <Gauge value={latest?.speed_kph ?? null} min={0} max={260} label="Speed" unit="km/h" color="#007AFF" dark={dark} />
+              <Gauge value={latest?.speed_kph ?? null} min={0} max={260} label="Speed" unit="km/h" color="#22D3EE" dark={dark} />
               <Gauge value={latest?.engine_load_pct ?? null} min={0} max={100} label="Load" unit="%" color="#FF9500" warningThreshold={85} dark={dark} />
             </View>
 
             {/* Battery - full width */}
-            <View style={[styles.batteryCard, { backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderColor: dark ? '#2A2A35' : '#E8E8E8' }]}>
+            <View style={[styles.batteryCard, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
               <View style={styles.batteryRow}>
                 <ThemedText style={styles.batteryLabel}>Battery</ThemedText>
                 <ThemedText style={styles.batteryValue}>
@@ -474,14 +474,14 @@ export default function ObdDashboardScreen() {
               <>
                 <ThemedText style={styles.sectionTitle}>Trends ({readings.length} readings)</ThemedText>
                 <TouchableOpacity onPress={refresh} disabled={refreshing} style={styles.refreshBtn}>
-                  <Text style={[styles.refreshBtnText, dark && { color: '#C5E636' }]}>
+                  <Text style={[styles.refreshBtnText, dark && { color: '#2DD4BF' }]}>
                     {refreshing ? 'Refreshing...' : 'Refresh'}
                   </Text>
                 </TouchableOpacity>
 
-                <MiniLineChart data={chartData.rpm} color="#C5E636" label="RPM" unit="rev/min" dark={dark} />
+                <MiniLineChart data={chartData.rpm} color="#2DD4BF" label="RPM" unit="rev/min" dark={dark} />
                 <MiniLineChart data={chartData.coolant} color="#34C759" label="Coolant Temperature" unit="°C" dark={dark} />
-                <MiniLineChart data={chartData.speed} color="#007AFF" label="Speed" unit="km/h" dark={dark} />
+                <MiniLineChart data={chartData.speed} color="#22D3EE" label="Speed" unit="km/h" dark={dark} />
                 <MiniLineChart data={chartData.load} color="#FF9500" label="Engine Load" unit="%" dark={dark} />
                 <MiniLineChart data={chartData.battery} color="#34C759" label="Battery Voltage" unit="V" dark={dark} />
               </>
@@ -492,7 +492,7 @@ export default function ObdDashboardScreen() {
               Trouble Codes {latest?.dtcs?.length ? `(${latest.dtcs.length})` : ''}
             </ThemedText>
             {!latest?.dtcs?.length ? (
-              <View style={[styles.noDtcCard, { backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderColor: dark ? '#2A2A35' : '#E8E8E8' }]}>
+              <View style={[styles.noDtcCard, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
                 <Text style={{ fontSize: 28 }}>{'✓'}</Text>
                 <ThemedText style={styles.noDtcText}>No trouble codes detected</ThemedText>
                 <ThemedText style={styles.noDtcHint}>Your vehicle systems are operating normally.</ThemedText>
@@ -510,7 +510,7 @@ export default function ObdDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#07142B' },
   content: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   header: {
@@ -521,15 +521,15 @@ const styles = StyleSheet.create({
   },
   headerRight: { flexDirection: 'row', gap: 8 },
   backBtn: { paddingVertical: 8 },
-  backBtnText: { fontSize: 17, color: '#1A1A1A', fontWeight: '600' },
+  backBtnText: { fontSize: 17, color: '#2DD4BF', fontWeight: '600' },
   scanBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: 10,
   },
-  scanBtnText: { color: '#1A1A1A', fontSize: 14, fontWeight: '700' },
+  scanBtnText: { color: '#062B32', fontSize: 14, fontWeight: '700' },
   title: { marginBottom: 4 },
-  subtitle: { fontSize: 12, opacity: 0.5, marginBottom: 20 },
+  subtitle: { fontSize: 12, color: '#8DA0B8', marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 24, marginBottom: 12 },
 
   // Gauges
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   batteryBarBg: {
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(128,128,128,0.12)',
+    backgroundColor: '#102449',
     overflow: 'hidden',
   },
   batteryBarFill: {
@@ -570,11 +570,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 4,
   },
-  batteryRangeLabel: { fontSize: 9, opacity: 0.4 },
+  batteryRangeLabel: { fontSize: 9, color: '#8DA0B8' },
 
   // Refresh
   refreshBtn: { marginBottom: 12 },
-  refreshBtnText: { fontSize: 13, fontWeight: '600', color: '#C5E636' },
+  refreshBtnText: { fontSize: 13, fontWeight: '600', color: '#2DD4BF' },
 
   // DTCs
   noDtcCard: {
@@ -585,17 +585,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noDtcText: { fontSize: 16, fontWeight: '700' },
-  noDtcHint: { fontSize: 12, opacity: 0.5, textAlign: 'center' },
+  noDtcHint: { fontSize: 12, color: '#8DA0B8', textAlign: 'center' },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700' },
-  emptyHint: { fontSize: 14, opacity: 0.6, textAlign: 'center', maxWidth: 280 },
+  emptyHint: { fontSize: 14, color: '#8DA0B8', textAlign: 'center', maxWidth: 280 },
   emptyBtn: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 999,
+    borderRadius: 10,
     marginTop: 8,
   },
-  emptyBtnText: { color: '#1A1A1A', fontSize: 15, fontWeight: '700' },
+  emptyBtnText: { color: '#062B32', fontSize: 15, fontWeight: '700' },
 });

@@ -1,10 +1,7 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiError } from '@/frontendServices/apiCall';
-import { useThemeColor } from '@/hooks/use-theme-color';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,56 +12,40 @@ import {
     Platform,
     ScrollView,
     StyleSheet,
-    Switch,
+  Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 
-const REMEMBER_ME_KEY = '@remember_me';
-const SAVED_EMAIL_KEY = '@saved_email';
-
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
-  const [appleCheckError, setAppleCheckError] = useState<string | null>(null);
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
 
-  const borderColor = useThemeColor({}, 'text');
-  const textColor = useThemeColor({}, 'text');
-  const placeholderColor = useThemeColor({}, 'text');
-
-  // Load remembered credentials on mount
-  useEffect(() => {
-    loadRememberedCredentials();
-  }, []);
-
-  // Check if Apple Sign-In is actually available on this device/build
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        console.log('LoginScreen: Platform.OS =', Platform.OS);
+        if (Platform.OS !== 'ios') {
+          if (mounted) {
+            setAppleAvailable(false);
+          }
+          return;
+        }
         const isAvailable = await AppleAuthentication.isAvailableAsync();
-        console.log('LoginScreen: AppleAuthentication.isAvailableAsync() =', isAvailable);
         if (mounted) {
           setAppleAvailable(isAvailable);
-          setAppleCheckError(null);
         }
-      } catch (e: any) {
-        console.log('LoginScreen: AppleAuthentication.isAvailableAsync() error', e);
+      } catch {
         if (mounted) {
           setAppleAvailable(false);
-          setAppleCheckError(
-            typeof e?.message === 'string'
-              ? e.message
-              : 'Apple Sign-In is not available on this build/device.',
-          );
         }
       }
     })();
@@ -73,66 +54,43 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // Load remembered credentials from AsyncStorage
-  const loadRememberedCredentials = async () => {
-    try {
-      const remembered = await AsyncStorage.getItem(REMEMBER_ME_KEY);
-      if (remembered === 'true') {
-        setRememberMe(true);
-        const savedEmail = await AsyncStorage.getItem(SAVED_EMAIL_KEY);
-        if (savedEmail) {
-          setEmail(savedEmail);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading remembered credentials:', error);
-    }
-  };
-
   const handleSubmit = async () => {
+    setErrorMessage('');
+
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorMessage('Please fill in both email and password.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setErrorMessage('Password must be at least 6 characters.');
       return;
     }
 
     setLoading(true);
     try {
       await signIn(email.trim(), password);
-      
-      // Save credentials if remember me is checked
-      if (rememberMe) {
-        await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
-        await AsyncStorage.setItem(SAVED_EMAIL_KEY, email.trim());
-      } else {
-        await AsyncStorage.removeItem(REMEMBER_ME_KEY);
-        await AsyncStorage.removeItem(SAVED_EMAIL_KEY);
-      }
-      
       router.replace('/(tabs)');
     } catch (error: any) {
-      let errorMessage = 'An error occurred';
+      let parsedMessage = 'Login failed. Please try again.';
       const d = error?.detail ?? error?.message ?? '';
       if (d.includes('EMAIL_NOT_FOUND') || d.includes('INVALID_LOGIN')) {
-        errorMessage = 'User not found';
+        parsedMessage = 'User not found. Please check your email.';
       } else if (d.includes('INVALID_PASSWORD')) {
-        errorMessage = 'Incorrect password';
-      } else if (d.includes('INVALID_EMAIL') || d.includes('invalid') && d.includes('email')) {
-        errorMessage = 'Invalid email address';
+        parsedMessage = 'Incorrect password. Please try again.';
+      } else if (d.includes('INVALID_EMAIL') || (d.includes('invalid') && d.includes('email'))) {
+        parsedMessage = 'Invalid email address.';
       } else if (typeof d === 'string' && d.length) {
-        errorMessage = d;
+        parsedMessage = d;
       }
-      Alert.alert('Error', errorMessage);
+      setErrorMessage(parsedMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setErrorMessage('');
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
@@ -154,6 +112,7 @@ export default function LoginScreen() {
   };
 
   const handleAppleSignIn = async () => {
+    setErrorMessage('');
     setAppleLoading(true);
     try {
       await signInWithApple();
@@ -183,130 +142,133 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <ThemedView style={styles.content}>
-          <ThemedText type="title" style={styles.title}>
-            Log in
-          </ThemedText>
+        <View style={styles.card}>
+          <View style={styles.logoWrap}>
+            <AntDesign name="car" size={24} color={styles.logoIcon.color} />
+          </View>
 
-          <ThemedText style={styles.subtitle}>
-            Log in to continue
-          </ThemedText>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.subtitle}>Log in to manage your vehicles</Text>
 
+          <Text style={styles.label}>Email</Text>
           <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Email"
-            placeholderTextColor={placeholderColor + '80'}
+            style={styles.input}
+            placeholder="alex@example.com"
+            placeholderTextColor="#8DA0B8"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(value) => {
+              setEmail(value);
+              if (errorMessage) {
+                setErrorMessage('');
+              }
+            }}
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
             editable={!loading}
           />
 
-          <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
-            placeholder="Password"
-            placeholderTextColor={placeholderColor + '80'}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password"
-            editable={!loading}
-          />
+          <Text style={[styles.label, errorMessage && styles.labelError]}>Password</Text>
+          <View style={[styles.passwordWrap, errorMessage && styles.passwordWrapError]}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter your password"
+              placeholderTextColor="#8DA0B8"
+              value={password}
+              onChangeText={(value) => {
+                setPassword(value);
+                if (errorMessage) {
+                  setErrorMessage('');
+                }
+              }}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoComplete="password"
+              editable={!loading}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword((prev) => !prev)}
+              disabled={loading}
+              style={styles.passwordToggle}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={18}
+                color={errorMessage ? '#F55252' : '#8DA0B8'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
           <TouchableOpacity
             style={styles.forgotPasswordButton}
             onPress={() => router.push('/(auth)/forgot-password')}
             disabled={loading}
           >
-            <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
+            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
           </TouchableOpacity>
 
-          <View style={styles.rememberMeContainer}>
-            <Switch
-              value={rememberMe}
-              onValueChange={setRememberMe}
-              disabled={loading}
-              trackColor={{ false: '#767577', true: '#1A1A1A' }}
-              thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
-            />
-            <ThemedText style={styles.rememberMeText}>
-              Remember me
-            </ThemedText>
-          </View>
-
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.loginButton, loading && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#00151F" />
             ) : (
-              <ThemedText style={styles.buttonText}>
-                Log in
-              </ThemedText>
+              <Text style={styles.loginButtonText}>Log In</Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { borderColor }]} />
-            <ThemedText style={styles.dividerText}>or</ThemedText>
-            <View style={[styles.divider, { borderColor }]} />
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>Or continue with</Text>
+            <View style={styles.divider} />
           </View>
 
-          {!appleAvailable && appleCheckError && (
-            <ThemedText style={styles.appleDebugText}>
-              Apple sign-in unavailable: {appleCheckError}
-            </ThemedText>
-          )}
-
           <TouchableOpacity
-            style={[styles.googleButton, (loading || googleLoading) && styles.buttonDisabled]}
+            style={[styles.socialButton, (loading || googleLoading) && styles.buttonDisabled]}
             onPress={handleGoogleSignIn}
             disabled={loading || googleLoading}
           >
             {googleLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#D8E1EE" />
             ) : (
               <>
-                <AntDesign name="google" size={18} color="#1A1A1A" />
-                <ThemedText style={styles.googleButtonText}>
-                  Continue with Google
-                </ThemedText>
+                <Ionicons name="logo-google" size={18} color="#D8E1EE" />
+                <Text style={styles.socialButtonText}>Continue with Google</Text>
               </>
             )}
           </TouchableOpacity>
 
           {appleAvailable && (
-            <View style={styles.appleButtonContainer}>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={999}
-                style={styles.appleButton}
-                onPress={handleAppleSignIn}
-              />
-              {appleLoading && (
-                <View style={styles.appleLoadingOverlay}>
-                  <ActivityIndicator color="#fff" />
-                </View>
+            <TouchableOpacity
+              style={[styles.socialButton, styles.appleButton, (loading || appleLoading) && styles.buttonDisabled]}
+              onPress={handleAppleSignIn}
+              disabled={loading || appleLoading}
+            >
+              {appleLoading ? (
+                <ActivityIndicator color="#D8E1EE" />
+              ) : (
+                <>
+                  <Ionicons name="logo-apple" size={18} color="#D8E1EE" />
+                  <Text style={styles.socialButtonText}>Continue with Apple</Text>
+                </>
               )}
-            </View>
+            </TouchableOpacity>
           )}
 
           <TouchableOpacity
             style={styles.switchButton}
             onPress={() => router.push('/(auth)/signup')}
-            disabled={loading || googleLoading}
+            disabled={loading || googleLoading || appleLoading}
           >
-            <ThemedText style={styles.switchText}>
-              Don't have an account? Create account
-            </ThemedText>
+            <Text style={styles.switchText}>
+              Don't have an account? <Text style={styles.switchTextAccent}>Sign up</Text>
+            </Text>
           </TouchableOpacity>
-        </ThemedView>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -315,129 +277,171 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#07142B',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#07142B',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
-  content: {
+  card: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 430,
     alignSelf: 'center',
+    backgroundColor: '#07142B',
+    borderRadius: 0,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  logoWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#2DD4BF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  logoIcon: {
+    color: '#072033',
   },
   title: {
+    color: '#E9EEF7',
+    fontSize: 34,
+    fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    marginBottom: 32,
+    color: '#93A3B8',
+    fontSize: 20,
+    marginBottom: 24,
     textAlign: 'center',
-    opacity: 0.7,
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    minHeight: 50,
-  },
-  rememberMeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  label: {
+    color: '#DDE6F2',
+    fontSize: 18,
+    fontWeight: '600',
     marginBottom: 8,
   },
-  rememberMeText: {
-    marginLeft: 12,
-    fontSize: 14,
+  labelError: {
+    color: '#F55252',
   },
-  button: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 999,
-    padding: 16,
+  input: {
+    backgroundColor: '#0A1A37',
+    borderColor: '#294263',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: '#DDE6F2',
+    minHeight: 52,
+    marginBottom: 16,
+  },
+  passwordWrap: {
+    backgroundColor: '#0A1A37',
+    borderColor: '#294263',
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 52,
+  },
+  passwordWrapError: {
+    borderColor: '#F55252',
+    backgroundColor: '#171B33',
+  },
+  passwordInput: {
+    flex: 1,
+    color: '#DDE6F2',
+    fontSize: 16,
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 10,
+  },
+  passwordToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  errorText: {
+    color: '#F55252',
+    fontSize: 13,
     marginTop: 8,
-    minHeight: 50,
-    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  switchButton: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  switchText: {
-    color: '#1A1A1A',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
-    marginBottom: 8,
+    marginTop: 10,
+    marginBottom: 20,
   },
   forgotPasswordText: {
-    color: '#1A1A1A',
-    fontSize: 14,
-    fontWeight: '500',
+    color: '#2DD4BF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  loginButton: {
+    backgroundColor: '#2DD4BF',
+    borderRadius: 10,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  loginButtonText: {
+    color: '#062B32',
+    fontSize: 15,
+    fontWeight: '600',
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginBottom: 20,
   },
   divider: {
     flex: 1,
     borderTopWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#213755',
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    opacity: 0.7,
+    marginHorizontal: 14,
+    color: '#7D8EA6',
+    fontSize: 13,
   },
-  googleButton: {
+  socialButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 999,
-    padding: 16,
+    borderColor: '#294263',
+    borderRadius: 12,
+    minHeight: 52,
     alignItems: 'center',
-    minHeight: 50,
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 12,
   },
-  googleButtonText: {
-    color: '#1A1A1A',
-    fontSize: 16,
+  socialButtonText: {
+    color: '#DDE6F2',
+    fontSize: 15,
     fontWeight: '600',
   },
-  appleButtonContainer: {
-    marginTop: 12,
-    marginBottom: 4,
-    position: 'relative',
-  },
   appleButton: {
-    width: '100%',
-    height: 50,
-    borderRadius: 999,
+    marginBottom: 20,
   },
-  appleLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+  switchButton: {
     alignItems: 'center',
   },
-  appleDebugText: {
-    marginBottom: 12,
-    fontSize: 12,
-    opacity: 0.7,
-    textAlign: 'center',
+  switchText: {
+    color: '#8392A6',
+    fontSize: 14,
+  },
+  switchTextAccent: {
+    color: '#2DD4BF',
+    fontWeight: '700',
   },
 });

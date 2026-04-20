@@ -279,7 +279,7 @@ export default function HomeScreen() {
   // Not logged in
   if (!user) {
     return (
-      <ThemedView style={styles.center}>
+      <View style={styles.center}>
         <ThemedText type="title" style={styles.welcomeTitle}>
           Welcome to CarMinder
         </ThemedText>
@@ -292,7 +292,7 @@ export default function HomeScreen() {
         >
           <Text style={styles.loginBtnText}>Sign In</Text>
         </TouchableOpacity>
-      </ThemedView>
+      </View>
     );
   }
 
@@ -397,51 +397,57 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 40 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  title: { marginBottom: 16 },
+  container: { flex: 1, backgroundColor: '#07142B' },
+  content: { paddingHorizontal: 20, paddingBottom: 40, backgroundColor: '#07142B' },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#07142B',
+  },
+  title: { marginBottom: 16, color: '#E9EEF7', fontSize: 30, fontWeight: '700' },
 
   // Welcome (logged out)
-  welcomeTitle: { marginBottom: 12, textAlign: 'center' },
-  welcomeText: { fontSize: 16, textAlign: 'center', opacity: 0.8, marginBottom: 24 },
+  welcomeTitle: { marginBottom: 12, textAlign: 'center', color: '#E9EEF7' },
+  welcomeText: { fontSize: 16, textAlign: 'center', color: '#93A3B8', marginBottom: 24 },
   loginBtn: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     paddingHorizontal: 32,
     paddingVertical: 14,
-    borderRadius: 999,
+    borderRadius: 12,
   },
-  loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  loginBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
 
   // Summary Banner
   summaryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(128,128,128,0.06)',
+    backgroundColor: '#0A1A37',
     padding: 16,
     borderRadius: 14,
     marginBottom: 20,
     gap: 12,
     borderWidth: 1,
-    borderColor: 'rgba(128,128,128,0.12)',
+    borderColor: '#294263',
   },
-  summaryText: { fontSize: 16, fontWeight: '600' },
-  summarySubtext: { fontSize: 14, opacity: 0.7, marginTop: 2 },
+  summaryText: { fontSize: 16, fontWeight: '600', color: '#E9EEF7' },
+  summarySubtext: { fontSize: 14, color: '#8DA0B8', marginTop: 2 },
 
   // Loading/Error/Empty
   loadingContainer: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { marginTop: 12, opacity: 0.7 },
+  loadingText: { marginTop: 12, color: '#8DA0B8' },
   errorContainer: { alignItems: 'center', paddingVertical: 40 },
-  errorText: { textAlign: 'center', opacity: 0.8 },
+  errorText: { textAlign: 'center', color: '#F55252' },
   emptyContainer: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 16, opacity: 0.8, marginBottom: 16 },
+  emptyText: { fontSize: 16, color: '#8DA0B8', marginBottom: 16 },
   addCarBtn: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2DD4BF',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 999,
+    borderRadius: 10,
   },
-  addCarBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  addCarBtnText: { color: '#062B32', fontSize: 15, fontWeight: '700' },
 
   // Score Card
   scoreCard: {
@@ -451,21 +457,21 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     marginBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.2)',
+    borderBottomColor: '#2E4668',
   },
   scoreDetails: { flex: 1 },
   scoreTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  scoreSummary: { fontSize: 13, opacity: 0.8, lineHeight: 18 },
+  scoreSummary: { fontSize: 13, color: '#8DA0B8', lineHeight: 18 },
   confidenceNote: { fontSize: 11, color: '#FF9500', marginTop: 4 },
 
   // Car Card
   carCard: {
-    backgroundColor: 'rgba(128,128,128,0.06)',
+    backgroundColor: '#0A1A37',
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(128,128,128,0.12)',
+    borderColor: '#294263',
   },
   carCardUrgent: {
     borderLeftWidth: 4,
@@ -477,9 +483,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  carName: { fontSize: 18, fontWeight: '700' },
-  carReg: { fontSize: 14, opacity: 0.7, marginTop: 2 },
-  carMileage: { fontSize: 14, opacity: 0.8 },
+  carName: { fontSize: 18, fontWeight: '700', color: '#E9EEF7' },
+  carReg: { fontSize: 14, color: '#8DA0B8', marginTop: 2 },
+  carMileage: { fontSize: 14, color: '#8DA0B8' },
 
   // Next Service Alert
   nextServiceBanner: {
@@ -514,24 +520,23 @@ const styles = StyleSheet.create({
   badgeContent: { flex: 1 },
   badgeType: { fontSize: 13, fontWeight: '600' },
   badgeStatus: { fontSize: 12, fontWeight: '500', marginTop: 2 },
-  badgeMeta: { fontSize: 11, opacity: 0.8, marginTop: 2 },
+  badgeMeta: { fontSize: 11, color: '#8DA0B8', marginTop: 2 },
 
   tapHint: {
     fontSize: 12,
-    color: '#1A1A1A',
+    color: '#2DD4BF',
     textAlign: 'right',
     marginTop: 12,
-    opacity: 0.6,
   },
 
   // Add More Button
   addMoreBtn: {
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(128,128,128,0.3)',
-    borderStyle: 'dashed',
+    borderColor: '#294263',
+    backgroundColor: '#0A1A37',
   },
-  addMoreBtnText: { fontSize: 15, color: '#1A1A1A', fontWeight: '600' },
+  addMoreBtnText: { fontSize: 15, color: '#2DD4BF', fontWeight: '600' },
 });

@@ -5,35 +5,33 @@
 
 import { Platform } from 'react-native';
 
-// Neobank-inspired palette
-const tintColorLight = '#1A1A1A';
-const tintColorDark = '#fff';
-const accentColor = '#C5E636';
+const tintColor = '#2DD4BF';
+const accentColor = '#2DD4BF';
 
 export const Colors = {
   light: {
-    text: '#0F172A',
-    background: '#F5F5F7',
-    tint: tintColorLight,
+    text: '#E9EEF7',
+    background: '#07142B',
+    tint: tintColor,
     accent: accentColor,
-    icon: '#6B7280',
-    tabIconDefault: '#9CA3AF',
-    tabIconSelected: tintColorLight,
-    card: '#FFFFFF',
-    border: '#E8E8E8',
-    surface: '#FFFFFF',
+    icon: '#8DA0B8',
+    tabIconDefault: '#7F90A7',
+    tabIconSelected: tintColor,
+    card: '#0A1A37',
+    border: '#294263',
+    surface: '#0A1A37',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
+    text: '#E9EEF7',
+    background: '#07142B',
+    tint: tintColor,
     accent: accentColor,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-    card: '#1C1C1E',
-    border: '#2A2A35',
-    surface: '#1C1C1E',
+    icon: '#8DA0B8',
+    tabIconDefault: '#7F90A7',
+    tabIconSelected: tintColor,
+    card: '#0A1A37',
+    border: '#294263',
+    surface: '#0A1A37',
   },
 };
 

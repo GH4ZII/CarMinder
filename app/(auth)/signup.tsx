@@ -1,7 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -13,6 +11,7 @@ import {
     StyleSheet,
     TextInput,
     TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function SignupScreen() {
@@ -22,10 +21,6 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
-
-  const borderColor = useThemeColor({}, 'text');
-  const textColor = useThemeColor({}, 'text');
-  const placeholderColor = useThemeColor({}, 'text');
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -79,7 +74,7 @@ export default function SignupScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <ThemedView style={styles.content}>
+        <View style={styles.content}>
           <ThemedText type="title" style={styles.title}>
             Create account
           </ThemedText>
@@ -89,9 +84,9 @@ export default function SignupScreen() {
           </ThemedText>
 
           <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
+            style={styles.input}
             placeholder="Name"
-            placeholderTextColor={placeholderColor + '80'}
+            placeholderTextColor="#8DA0B8"
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -100,9 +95,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
+            style={styles.input}
             placeholder="Email"
-            placeholderTextColor={placeholderColor + '80'}
+            placeholderTextColor="#8DA0B8"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -112,9 +107,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
+            style={styles.input}
             placeholder="Password"
-            placeholderTextColor={placeholderColor + '80'}
+            placeholderTextColor="#8DA0B8"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -124,9 +119,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={[styles.input, { borderColor, color: textColor }]}
+            style={styles.input}
             placeholder="Confirm password"
-            placeholderTextColor={placeholderColor + '80'}
+            placeholderTextColor="#8DA0B8"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -141,7 +136,7 @@ export default function SignupScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#062B32" />
             ) : (
               <ThemedText style={styles.buttonText}>
                 Create account
@@ -158,7 +153,7 @@ export default function SignupScreen() {
               Already have an account? Log in
             </ThemedText>
           </TouchableOpacity>
-        </ThemedView>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -167,49 +162,59 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#07142B',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#07142B',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   content: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 430,
     alignSelf: 'center',
+    backgroundColor: '#07142B',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   title: {
+    color: '#E9EEF7',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
+    color: '#8DA0B8',
     marginBottom: 32,
     textAlign: 'center',
-    opacity: 0.7,
   },
   input: {
+    backgroundColor: '#0A1A37',
+    borderColor: '#294263',
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    color: '#DDE6F2',
     fontSize: 16,
     marginBottom: 16,
-    minHeight: 50,
+    minHeight: 52,
   },
   button: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 999,
+    backgroundColor: '#2DD4BF',
+    borderRadius: 10,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
-    minHeight: 50,
+    minHeight: 52,
     justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#062B32',
+    fontSize: 15,
     fontWeight: '600',
   },
   switchButton: {
@@ -217,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
-    color: '#1A1A1A',
+    color: '#2DD4BF',
     fontSize: 14,
     fontWeight: '500',
   },
