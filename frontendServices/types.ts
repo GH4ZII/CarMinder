@@ -165,6 +165,9 @@ export interface PublicIncidentReport {
   damage_description: string | null;
   repair_status: string;
   mileage: number | null;
+  before_image_url: string | null;
+  after_image_url: string | null;
+  receipt_pdf_url: string | null;
 }
 
 export interface PublicCarHistory {

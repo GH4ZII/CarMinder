@@ -8,7 +8,8 @@ from services import storage_service
 
 def list_incidents(uid: str, car_id: str) -> list[dict[str, Any]]:
     _ensure_car_ownership(uid, car_id)
-    return incident_repository.list_incidents_for_car(car_id)
+    incidents = incident_repository.list_incidents_for_car(car_id)
+    return [_serialize_incident_attachments(incident) for incident in incidents]
 
 
 def create_incident(
@@ -61,10 +62,24 @@ def create_incident(
     result = incident_repository.insert_incident(row)
     if not result:
         raise ValidationError("Failed to create incident report")
-    return result
+    return _serialize_incident_attachments(result)
 
 
 def _ensure_car_ownership(uid: str, car_id: str) -> None:
     car = car_repository.get_car_by_id_and_user(car_id, uid)
     if not car:
         raise NotFoundError("Car not found")
+
+
+def _serialize_incident_attachments(incident: dict[str, Any]) -> dict[str, Any]:
+    serialized = dict(incident)
+    serialized["before_image_url"] = storage_service.sign_incident_attachment_url(
+        incident.get("before_image_url")
+    )
+    serialized["after_image_url"] = storage_service.sign_incident_attachment_url(
+        incident.get("after_image_url")
+    )
+    serialized["receipt_pdf_url"] = storage_service.sign_incident_attachment_url(
+        incident.get("receipt_pdf_url")
+    )
+    return serialized

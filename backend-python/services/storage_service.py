@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from fastapi import UploadFile
@@ -10,6 +11,7 @@ from config.settings import get_settings
 from exceptions import ValidationError
 
 DEFAULT_BUCKET = "incident-attachments"
+SIGNED_URL_TTL_SECONDS = 60 * 60
 IMAGE_MIME_TYPES = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -63,4 +65,40 @@ def upload_incident_attachment(car_id: str, attachment_kind: str, file: UploadFi
     except Exception as exc:  # pragma: no cover - storage client errors vary
         raise ValidationError(f"Failed to upload {attachment_kind}") from exc
 
-    return get_supabase().storage.from_(bucket_name).get_public_url(path)
+    return path
+
+
+def sign_incident_attachment_url(stored_value: str | None) -> str | None:
+    if not stored_value:
+        return None
+
+    bucket_name = get_settings().get("SUPABASE_INCIDENT_ATTACHMENTS_BUCKET") or DEFAULT_BUCKET
+    path = _extract_object_path(stored_value, bucket_name)
+    if not path:
+        return None
+
+    try:
+        response = get_supabase().storage.from_(bucket_name).create_signed_url(
+            path,
+            SIGNED_URL_TTL_SECONDS,
+        )
+    except Exception:  # pragma: no cover - storage client errors vary
+        return None
+
+    signed_url = getattr(response, "signedURL", None) or getattr(response, "signedUrl", None)
+    if isinstance(signed_url, str) and signed_url:
+        return signed_url
+    return None
+
+
+def _extract_object_path(stored_value: str, bucket_name: str) -> str | None:
+    if stored_value.startswith("http://") or stored_value.startswith("https://"):
+        parsed = urlparse(stored_value)
+        marker = f"/object/public/{bucket_name}/"
+        signed_marker = f"/object/sign/{bucket_name}/"
+        if marker in parsed.path:
+            return parsed.path.split(marker, 1)[1]
+        if signed_marker in parsed.path:
+            return parsed.path.split(signed_marker, 1)[1]
+        return None
+    return stored_value.lstrip("/")

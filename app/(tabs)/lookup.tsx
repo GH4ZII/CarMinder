@@ -1,10 +1,10 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -100,7 +100,7 @@ export default function LookupScreen() {
       >
         <ThemedText type="title" style={styles.pageTitle}>Car History Lookup</ThemedText>
         <ThemedText style={[styles.subtitle, { color: colors.subtext }]}>
-          Search for a car's public maintenance and incident history by registration number.
+          Search for a car history by registration number. Results include public maintenance and incident records.
         </ThemedText>
 
         <View style={styles.searchRow}>
@@ -181,6 +181,25 @@ export default function LookupScreen() {
                       {inc.mileage.toLocaleString()} km
                     </ThemedText>
                   )}
+                  {(inc.before_image_url || inc.after_image_url || inc.receipt_pdf_url) && (
+                    <View style={styles.incidentAttachmentRow}>
+                      {inc.before_image_url && (
+                        <TouchableOpacity onPress={() => Linking.openURL(inc.before_image_url!)}>
+                          <ThemedText style={[styles.incidentLink, { color: colors.primary }]}>Before photo</ThemedText>
+                        </TouchableOpacity>
+                      )}
+                      {inc.after_image_url && (
+                        <TouchableOpacity onPress={() => Linking.openURL(inc.after_image_url!)}>
+                          <ThemedText style={[styles.incidentLink, { color: colors.primary }]}>After photo</ThemedText>
+                        </TouchableOpacity>
+                      )}
+                      {inc.receipt_pdf_url && (
+                        <TouchableOpacity onPress={() => Linking.openURL(inc.receipt_pdf_url!)}>
+                          <ThemedText style={[styles.incidentLink, { color: colors.primary }]}>Receipt PDF</ThemedText>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -257,6 +276,8 @@ const styles = StyleSheet.create({
   incidentDate: { fontSize: 14, opacity: 0.8 },
   incidentDesc: { fontSize: 15, marginBottom: 6 },
   incidentMeta: { fontSize: 13, marginBottom: 2 },
+  incidentAttachmentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8, marginBottom: 2 },
+  incidentLink: { fontSize: 13, fontWeight: '600' },
   eventRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   eventType: { fontSize: 15, fontWeight: '600' },
   eventDate: { fontSize: 14, opacity: 0.8 },

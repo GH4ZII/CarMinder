@@ -18,6 +18,9 @@ class PublicIncidentReport(BaseModel):
     damage_description: Optional[str] = None
     repair_status: str
     mileage: Optional[int] = None
+    before_image_url: Optional[str] = None
+    after_image_url: Optional[str] = None
+    receipt_pdf_url: Optional[str] = None
 
 
 class PublicCarInfo(BaseModel):
