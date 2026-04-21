@@ -858,6 +858,46 @@ a:hover {
   color: var(--color-text-muted);
 }
 
+.incident-card__images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.incident-card__image-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.incident-card__image-link:hover {
+  text-decoration: none;
+}
+
+.incident-card__image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.incident-card__attachments {
+  margin-top: 0.85rem;
+}
+
+.incident-card__receipt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
 /* ===== Car Care Score Card ===== */
 .score-card {
   margin-bottom: 1.5rem;
@@ -1664,6 +1704,12 @@ a:hover {
 .incident-checkbox input {
   width: 16px;
   height: 16px;
+}
+
+.attachment-name {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
 }
 
 /* ===== Button ===== */

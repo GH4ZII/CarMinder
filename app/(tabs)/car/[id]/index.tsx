@@ -548,6 +548,25 @@ export default function CarTimelineScreen() {
             {inc.insurance_claim && (
               <ThemedText style={styles.incidentMeta}>Insurance claim filed</ThemedText>
             )}
+            {(inc.before_image_url || inc.after_image_url || inc.receipt_pdf_url) && (
+              <View style={styles.incidentAttachmentRow}>
+                {inc.before_image_url && (
+                  <TouchableOpacity onPress={() => Linking.openURL(inc.before_image_url!)}>
+                    <ThemedText style={styles.incidentLink}>Before photo</ThemedText>
+                  </TouchableOpacity>
+                )}
+                {inc.after_image_url && (
+                  <TouchableOpacity onPress={() => Linking.openURL(inc.after_image_url!)}>
+                    <ThemedText style={styles.incidentLink}>After photo</ThemedText>
+                  </TouchableOpacity>
+                )}
+                {inc.receipt_pdf_url && (
+                  <TouchableOpacity onPress={() => Linking.openURL(inc.receipt_pdf_url!)}>
+                    <ThemedText style={styles.incidentLink}>Receipt PDF</ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         ))
       )}
@@ -768,5 +787,7 @@ const styles = StyleSheet.create({
   severityText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   incidentDesc: { fontSize: 14, marginBottom: 4 },
   incidentMeta: { fontSize: 13, opacity: 0.7, marginBottom: 2 },
+  incidentAttachmentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+  incidentLink: { fontSize: 13, color: '#1A1A1A', fontWeight: '600' },
   noIncidents: { fontSize: 14, opacity: 0.6, marginBottom: 8 },
 });

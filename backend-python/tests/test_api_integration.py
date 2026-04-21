@@ -187,6 +187,69 @@ def test_create_maintenance_event_rejects_invalid_payload(
     assert any("event_date cannot be in the future" in message for message in messages)
 
 
+def test_create_incident_with_attachments_success(
+    authenticated_client: TestClient, monkeypatch
+) -> None:
+    def fake_create_incident(uid: str, car_id: str, payload, **attachments) -> dict:
+        assert uid == "test-user-123"
+        assert car_id == "car-123"
+        assert payload.description == "Rear bumper damage"
+        assert attachments["before_image"] is not None
+        assert attachments["after_image"] is not None
+        assert attachments["receipt_pdf"] is not None
+        assert attachments["before_image"].filename == "before.jpg"
+        assert attachments["receipt_pdf"].filename == "receipt.pdf"
+        return {
+            "id": "incident-123",
+            "car_id": car_id,
+            "incident_date": payload.incident_date,
+            "severity": payload.severity,
+            "description": payload.description,
+            "damage_description": payload.damage_description,
+            "repair_status": payload.repair_status,
+            "repair_cost_cents": 349900,
+            "repair_vendor": payload.repair_vendor,
+            "insurance_claim": payload.insurance_claim,
+            "mileage": payload.mileage,
+            "before_image_url": "https://cdn.example.com/before.jpg",
+            "after_image_url": "https://cdn.example.com/after.jpg",
+            "receipt_pdf_url": "https://cdn.example.com/receipt.pdf",
+            "created_at": datetime(2026, 4, 16, 12, 0, tzinfo=timezone.utc),
+        }
+
+    monkeypatch.setattr(
+        "routers.incident_report.incident_service.create_incident",
+        fake_create_incident,
+    )
+
+    response = authenticated_client.post(
+        "/cars/car-123/incidents",
+        data={
+            "incident_date": "2026-04-10",
+            "severity": "moderate",
+            "description": "Rear bumper damage",
+            "damage_description": "Rear bumper dent and paint damage",
+            "repair_status": "fully_repaired",
+            "repair_cost": "3499.0",
+            "repair_vendor": "Workshop A",
+            "insurance_claim": "true",
+            "mileage": "55000",
+        },
+        files={
+            "before_image": ("before.jpg", b"before", "image/jpeg"),
+            "after_image": ("after.jpg", b"after", "image/jpeg"),
+            "receipt_pdf": ("receipt.pdf", b"%PDF-1.4", "application/pdf"),
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == "incident-123"
+    assert body["before_image_url"] == "https://cdn.example.com/before.jpg"
+    assert body["after_image_url"] == "https://cdn.example.com/after.jpg"
+    assert body["receipt_pdf_url"] == "https://cdn.example.com/receipt.pdf"
+
+
 def test_create_maintenance_event_returns_404(
     authenticated_client: TestClient, monkeypatch
 ) -> None:

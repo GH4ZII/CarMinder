@@ -117,6 +117,9 @@ export interface IncidentReport {
   repair_vendor: string | null;
   insurance_claim: boolean;
   mileage: number | null;
+  before_image_url: string | null;
+  after_image_url: string | null;
+  receipt_pdf_url: string | null;
   created_at: string;
 }
 
@@ -130,6 +133,12 @@ export interface IncidentReportCreate {
   repair_vendor?: string | null;
   insurance_claim: boolean;
   mileage?: number | null;
+}
+
+export interface IncidentAttachmentUpload {
+  uri: string;
+  name: string;
+  type?: string | null;
 }
 
 // Public history types
