@@ -243,12 +243,31 @@ export async function getIncidents(
 export async function createIncident(
   carId: string,
   token: string,
-  payload: IncidentReportCreate
+  payload: IncidentReportCreate,
+  attachments?: {
+    beforeImage?: File | null;
+    afterImage?: File | null;
+    receiptPdf?: File | null;
+  }
 ): Promise<IncidentReport> {
+  const form = new FormData();
+  appendIncidentFormField(form, 'incident_date', payload.incident_date);
+  appendIncidentFormField(form, 'severity', payload.severity);
+  appendIncidentFormField(form, 'description', payload.description);
+  appendIncidentFormField(form, 'damage_description', payload.damage_description);
+  appendIncidentFormField(form, 'repair_status', payload.repair_status);
+  appendIncidentFormField(form, 'repair_cost', payload.repair_cost);
+  appendIncidentFormField(form, 'repair_vendor', payload.repair_vendor);
+  appendIncidentFormField(form, 'insurance_claim', payload.insurance_claim);
+  appendIncidentFormField(form, 'mileage', payload.mileage);
+  if (attachments?.beforeImage) form.append('before_image', attachments.beforeImage);
+  if (attachments?.afterImage) form.append('after_image', attachments.afterImage);
+  if (attachments?.receiptPdf) form.append('receipt_pdf', attachments.receiptPdf);
+
   const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
-    body: JSON.stringify(payload),
+    headers: authHeaders(token),
+    body: form,
   });
   if (!res.ok) {
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
@@ -264,6 +283,13 @@ export async function createIncident(
     throw new ApiError(msg || 'Failed to create incident', res.status, msg);
   }
   return res.json();
+}
+
+function appendIncidentFormField(form: FormData, key: string, value: unknown): void {
+  if (value === undefined || value === null || value === '') {
+    return;
+  }
+  form.append(key, String(value));
 }
 
 export async function getLatestObdReading(

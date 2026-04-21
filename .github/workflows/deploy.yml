@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backend deploy hook
+        if: ${{ secrets.BACKEND_DEPLOY_HOOK_URL != '' }}
+        run: curl -fsSL -X POST "${{ secrets.BACKEND_DEPLOY_HOOK_URL }}"
+
+      - name: Skip when backend hook is not configured
+        if: ${{ secrets.BACKEND_DEPLOY_HOOK_URL == '' }}
+        run: echo "BACKEND_DEPLOY_HOOK_URL is not configured. Skipping backend deploy."
+
+  deploy-web:
+    name: Deploy Web
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger web deploy hook
+        if: ${{ secrets.WEB_DEPLOY_HOOK_URL != '' }}
+        run: curl -fsSL -X POST "${{ secrets.WEB_DEPLOY_HOOK_URL }}"
+
+      - name: Skip when web hook is not configured
+        if: ${{ secrets.WEB_DEPLOY_HOOK_URL == '' }}
+        run: echo "WEB_DEPLOY_HOOK_URL is not configured. Skipping web deploy."

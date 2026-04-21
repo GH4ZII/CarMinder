@@ -6,6 +6,7 @@ from schemas.public_history import (
     PublicIncidentReport,
     PublicMaintenanceEvent,
 )
+from services import storage_service
 
 
 def get_public_history(registration_number: str) -> PublicCarHistory:
@@ -43,6 +44,9 @@ def get_public_history(registration_number: str) -> PublicCarHistory:
                 damage_description=i.get("damage_description"),
                 repair_status=i["repair_status"],
                 mileage=i.get("mileage"),
+                before_image_url=storage_service.sign_incident_attachment_url(i.get("before_image_url")),
+                after_image_url=storage_service.sign_incident_attachment_url(i.get("after_image_url")),
+                receipt_pdf_url=storage_service.sign_incident_attachment_url(i.get("receipt_pdf_url")),
             )
             for i in incidents
         ],

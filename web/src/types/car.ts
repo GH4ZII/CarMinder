@@ -73,6 +73,9 @@ export interface IncidentReport {
   repair_vendor: string | null;
   insurance_claim: boolean;
   mileage: number | null;
+  before_image_url: string | null;
+  after_image_url: string | null;
+  receipt_pdf_url: string | null;
   created_at: string;
 }
 
@@ -190,6 +193,9 @@ export interface PublicIncidentReport {
   damage_description: string | null;
   repair_status: string;
   mileage: number | null;
+  before_image_url: string | null;
+  after_image_url: string | null;
+  receipt_pdf_url: string | null;
 }
 
 export interface PublicCarHistory {

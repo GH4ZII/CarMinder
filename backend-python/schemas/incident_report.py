@@ -76,6 +76,9 @@ class IncidentReportResponse(BaseModel):
     repair_vendor: Optional[str] = None
     insurance_claim: bool
     mileage: Optional[int] = None
+    before_image_url: Optional[str] = None
+    after_image_url: Optional[str] = None
+    receipt_pdf_url: Optional[str] = None
     created_at: datetime
 
     class Config:

@@ -126,6 +126,46 @@ export default function Lookup() {
                         <span>{incident.mileage.toLocaleString()} km</span>
                       )}
                     </div>
+
+                    {(incident.before_image_url || incident.after_image_url) && (
+                      <div className="incident-card__images">
+                        {incident.before_image_url && (
+                          <a
+                            href={incident.before_image_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="incident-card__image-link"
+                          >
+                            <img src={incident.before_image_url} alt="Before repair" className="incident-card__image" />
+                            <span>Before</span>
+                          </a>
+                        )}
+                        {incident.after_image_url && (
+                          <a
+                            href={incident.after_image_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="incident-card__image-link"
+                          >
+                            <img src={incident.after_image_url} alt="After repair" className="incident-card__image" />
+                            <span>After</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {incident.receipt_pdf_url && (
+                      <div className="incident-card__attachments">
+                        <a
+                          href={incident.receipt_pdf_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="incident-card__receipt-link"
+                        >
+                          Open repair receipt PDF
+                        </a>
+                      </div>
+                    )}
                   </Card>
                 ))}
               </div>

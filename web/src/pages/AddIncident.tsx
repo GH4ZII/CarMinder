@@ -39,6 +39,9 @@ export default function AddIncident() {
   const [repairVendor, setRepairVendor] = useState('');
   const [mileage, setMileage] = useState('');
   const [insuranceClaim, setInsuranceClaim] = useState(false);
+  const [beforeImage, setBeforeImage] = useState<File | null>(null);
+  const [afterImage, setAfterImage] = useState<File | null>(null);
+  const [receiptPdf, setReceiptPdf] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,17 +85,26 @@ export default function AddIncident() {
         return;
       }
 
-      await carsApi.createIncident(id, token, {
-        incident_date: incidentDate,
-        severity,
-        description: description.trim(),
-        damage_description: damageDescription.trim() || null,
-        repair_status: repairStatus,
-        repair_cost: repairCost ? parseFloat(repairCost) : null,
-        repair_vendor: repairVendor.trim() || null,
-        insurance_claim: insuranceClaim,
-        mileage: mileage ? parseInt(mileage, 10) : null,
-      });
+      await carsApi.createIncident(
+        id,
+        token,
+        {
+          incident_date: incidentDate,
+          severity,
+          description: description.trim(),
+          damage_description: damageDescription.trim() || null,
+          repair_status: repairStatus,
+          repair_cost: repairCost ? parseFloat(repairCost) : null,
+          repair_vendor: repairVendor.trim() || null,
+          insurance_claim: insuranceClaim,
+          mileage: mileage ? parseInt(mileage, 10) : null,
+        },
+        {
+          beforeImage,
+          afterImage,
+          receiptPdf,
+        }
+      );
 
       navigate(`/car/${id}`, { replace: true });
     } catch (err) {
@@ -224,6 +236,51 @@ export default function AddIncident() {
             />
             <span>Insurance claim filed</span>
           </label>
+
+          <div className="input-wrap">
+            <label htmlFor="before-image" className="input-label">
+              Before Image
+            </label>
+            <input
+              id="before-image"
+              className="input"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setBeforeImage(e.target.files?.[0] ?? null)}
+              disabled={submitting}
+            />
+            {beforeImage && <p className="attachment-name">{beforeImage.name}</p>}
+          </div>
+
+          <div className="input-wrap">
+            <label htmlFor="after-image" className="input-label">
+              After Image
+            </label>
+            <input
+              id="after-image"
+              className="input"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setAfterImage(e.target.files?.[0] ?? null)}
+              disabled={submitting}
+            />
+            {afterImage && <p className="attachment-name">{afterImage.name}</p>}
+          </div>
+
+          <div className="input-wrap">
+            <label htmlFor="receipt-pdf" className="input-label">
+              Repair Receipt (PDF)
+            </label>
+            <input
+              id="receipt-pdf"
+              className="input"
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setReceiptPdf(e.target.files?.[0] ?? null)}
+              disabled={submitting}
+            />
+            {receiptPdf && <p className="attachment-name">{receiptPdf.name}</p>}
+          </div>
 
           {error && (
             <p className="form-error" role="alert">

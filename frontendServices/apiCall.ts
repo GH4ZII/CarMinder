@@ -433,14 +433,34 @@ export const api = {
   },
 
   /** Create an incident report */
-  async createIncident(carId: string, token: string, payload: IncidentReportCreate): Promise<IncidentReport> {
+  async createIncident(
+    carId: string,
+    token: string,
+    payload: IncidentReportCreate,
+    attachments?: {
+      beforeImage?: IncidentAttachmentUpload | null;
+      afterImage?: IncidentAttachmentUpload | null;
+      receiptPdf?: IncidentAttachmentUpload | null;
+    }
+  ): Promise<IncidentReport> {
+    const form = new FormData();
+    appendIncidentFormField(form, 'incident_date', payload.incident_date);
+    appendIncidentFormField(form, 'severity', payload.severity);
+    appendIncidentFormField(form, 'description', payload.description);
+    appendIncidentFormField(form, 'damage_description', payload.damage_description);
+    appendIncidentFormField(form, 'repair_status', payload.repair_status);
+    appendIncidentFormField(form, 'repair_cost', payload.repair_cost);
+    appendIncidentFormField(form, 'repair_vendor', payload.repair_vendor);
+    appendIncidentFormField(form, 'insurance_claim', payload.insurance_claim);
+    appendIncidentFormField(form, 'mileage', payload.mileage);
+    appendIncidentAttachment(form, 'before_image', attachments?.beforeImage);
+    appendIncidentAttachment(form, 'after_image', attachments?.afterImage);
+    appendIncidentAttachment(form, 'receipt_pdf', attachments?.receiptPdf);
+
     const res = await fetch(`${API_URL}/cars/${carId}/incidents`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders(token),
-      },
-      body: JSON.stringify(payload),
+      headers: authHeaders(token),
+      body: form,
     });
     if (!res.ok) {
       if (res.status === 401) throw new ApiError('Unauthorized', 401);
@@ -588,6 +608,28 @@ export const api = {
   },
 };
 
+function appendIncidentFormField(form: FormData, key: string, value: unknown): void {
+  if (value === undefined || value === null || value === '') {
+    return;
+  }
+  form.append(key, String(value));
+}
+
+function appendIncidentAttachment(
+  form: FormData,
+  field: string,
+  file?: IncidentAttachmentUpload | null
+): void {
+  if (!file?.uri) {
+    return;
+  }
+  form.append(field, {
+    uri: file.uri,
+    name: file.name,
+    type: file.type ?? 'application/octet-stream',
+  } as any);
+}
+
 /** Convert an ObdSnapshot (from obdService) into the flat backend payload */
 export function snapshotToObdPayload(snapshot: import('./obdService').ObdSnapshot): ObdReadingCreate {
   return {
@@ -642,6 +684,9 @@ export interface IncidentReport {
   repair_vendor: string | null;
   insurance_claim: boolean;
   mileage: number | null;
+  before_image_url: string | null;
+  after_image_url: string | null;
+  receipt_pdf_url: string | null;
   created_at: string;
 }
 
@@ -655,6 +700,12 @@ export interface IncidentReportCreate {
   repair_vendor?: string | null;
   insurance_claim: boolean;
   mileage?: number | null;
+}
+
+export interface IncidentAttachmentUpload {
+  uri: string;
+  name: string;
+  type?: string | null;
 }
 
 // Public history interfaces
@@ -714,4 +765,3 @@ export interface ObdReadingCreate {
   battery_voltage: number | null;
   dtcs: { code: string; description: string }[];
 }
-

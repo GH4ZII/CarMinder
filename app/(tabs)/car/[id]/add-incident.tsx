@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -24,7 +26,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, IncidentReportCreate } from '../../../../frontendServices/apiCall';
+import { api, IncidentAttachmentUpload, IncidentReportCreate } from '../../../../frontendServices/apiCall';
 
 const SEVERITY_LABELS: Record<string, string> = {
   minor: 'Minor',
@@ -83,6 +85,9 @@ export default function AddIncidentScreen() {
   const [repairVendor, setRepairVendor] = useState('');
   const [mileage, setMileage] = useState('');
   const [insuranceClaim, setInsuranceClaim] = useState(false);
+  const [beforeImage, setBeforeImage] = useState<IncidentAttachmentUpload | null>(null);
+  const [afterImage, setAfterImage] = useState<IncidentAttachmentUpload | null>(null);
+  const [receiptPdf, setReceiptPdf] = useState<IncidentAttachmentUpload | null>(null);
 
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
@@ -154,6 +159,53 @@ export default function AddIncidentScreen() {
     );
   }, [isIOS]);
 
+  const pickImage = useCallback(async (kind: 'before' | 'after') => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to attach incident images.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets.length) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    const attachment: IncidentAttachmentUpload = {
+      uri: asset.uri,
+      name: asset.fileName ?? `incident-${kind}-${Date.now()}.jpg`,
+      type: asset.mimeType ?? 'image/jpeg',
+    };
+
+    if (kind === 'before') {
+      setBeforeImage(attachment);
+    } else {
+      setAfterImage(attachment);
+    }
+  }, []);
+
+  const pickReceiptPdf = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/pdf',
+      multiple: false,
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets.length) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    setReceiptPdf({
+      uri: asset.uri,
+      name: asset.name,
+      type: asset.mimeType ?? 'application/pdf',
+    });
+  }, []);
+
   const handleSubmit = async () => {
     if (!carId || !user) return;
     if (!description.trim()) {
@@ -194,7 +246,11 @@ export default function AddIncidentScreen() {
       }
       if (repairVendor.trim()) payload.repair_vendor = repairVendor.trim();
 
-      await api.createIncident(carId, token, payload);
+      await api.createIncident(carId, token, payload, {
+        beforeImage,
+        afterImage,
+        receiptPdf,
+      });
       router.back();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to create incident.';
@@ -431,6 +487,51 @@ export default function AddIncidentScreen() {
             placeholderTextColor={colors.placeholder}
           />
 
+          <ThemedText style={[styles.label, { color: colors.subtext }]}>Attachments (optional)</ThemedText>
+          <TouchableOpacity
+            style={[styles.selectButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => pickImage('before')}
+          >
+            <Text style={[styles.selectButtonText, { color: colors.text }]}>
+              {beforeImage ? `Before image: ${beforeImage.name}` : 'Choose before image'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.selectButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => pickImage('after')}
+          >
+            <Text style={[styles.selectButtonText, { color: colors.text }]}>
+              {afterImage ? `After image: ${afterImage.name}` : 'Choose after image'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.selectButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={pickReceiptPdf}
+          >
+            <Text style={[styles.selectButtonText, { color: colors.text }]}>
+              {receiptPdf ? `Receipt PDF: ${receiptPdf.name}` : 'Choose repair receipt PDF'}
+            </Text>
+          </TouchableOpacity>
+          {(beforeImage || afterImage || receiptPdf) && (
+            <View style={styles.attachmentActions}>
+              {beforeImage && (
+                <TouchableOpacity onPress={() => setBeforeImage(null)}>
+                  <Text style={[styles.attachmentActionText, { color: colors.primary }]}>Remove before image</Text>
+                </TouchableOpacity>
+              )}
+              {afterImage && (
+                <TouchableOpacity onPress={() => setAfterImage(null)}>
+                  <Text style={[styles.attachmentActionText, { color: colors.primary }]}>Remove after image</Text>
+                </TouchableOpacity>
+              )}
+              {receiptPdf && (
+                <TouchableOpacity onPress={() => setReceiptPdf(null)}>
+                  <Text style={[styles.attachmentActionText, { color: colors.primary }]}>Remove receipt PDF</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Submit */}
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: colors.success }, submitting && styles.submitBtnDisabled]}
@@ -493,6 +594,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
+  attachmentActions: { gap: 8, marginBottom: 16 },
+  attachmentActionText: { fontSize: 14, fontWeight: '500' },
   submitBtn: { padding: 16, borderRadius: 999, alignItems: 'center', marginTop: 8, marginBottom: 32 },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
