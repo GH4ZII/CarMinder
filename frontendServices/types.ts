@@ -11,7 +11,7 @@ export interface TokenResponse {
   user: AuthUser;
 }
 
-// Vehicle types
+// Vehicle types and things
 export interface CarInfo {
   id?: string;
   firebase_user_id?: string;
