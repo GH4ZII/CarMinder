@@ -16,6 +16,8 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "CarMinder uses Bluetooth to connect to your OBD-II adapter and read vehicle diagnostics.",
         "NSBluetoothPeripheralUsageDescription": "CarMinder uses Bluetooth to connect to your OBD-II adapter and read vehicle diagnostics.",
+        "NSCameraUsageDescription": "CarMinder uses the camera to scan receipt details for maintenance events.",
+        "NSPhotoLibraryUsageDescription": "CarMinder can access photos if you choose a receipt image from your library.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -63,7 +65,14 @@
       ],
       "expo-secure-store",
       "react-native-ble-plx",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "CarMinder uses the camera to scan receipt details for maintenance events.",
+          "photosPermission": "CarMinder can access photos if you choose a receipt image from your library."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

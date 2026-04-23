@@ -74,3 +74,6 @@ yarl==1.22.0
 pydantic[email]==2.12.5
 reportlab==4.2.5
 xhtml2pdf
+Pillow==11.3.0
+pytesseract==0.3.13
+python-multipart==0.0.20

@@ -24,7 +24,7 @@ Then use the CLI to open in a [development build](https://docs.expo.dev/develop/
 
 ```bash
 cd backend-python
-python -m venv .venv
+py -3.12 -m venv .venv
 # Windows (PowerShell):
 .\.venv\Scripts\Activate.ps1
 # macOS/Linux:

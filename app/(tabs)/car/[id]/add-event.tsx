@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -23,7 +24,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, MaintenanceEventCreate } from '../../../../frontendServices/apiCall';
+import { api, MaintenanceEventCreate, ReceiptOcrResult } from '../../../../frontendServices/apiCall';
 
 const EVENT_LABELS: Record<string, string> = {
   oil_change: 'Oil change',
@@ -71,6 +72,7 @@ export default function AddMaintenanceEventScreen() {
   const [eventTypes, setEventTypes] = useState<string[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [scanningReceipt, setScanningReceipt] = useState(false);
   const [eventType, setEventType] = useState<string | null>(null);
 
   const [eventDate, setEventDate] = useState<string>(() => toYYYYMMDD(new Date()));
@@ -239,6 +241,83 @@ export default function AddMaintenanceEventScreen() {
       setSubmitting(false);
     }
   };
+
+  const applyOcrPrefill = useCallback((result: ReceiptOcrResult) => {
+    let updates = 0;
+
+    if (result.event_date) {
+      setEventDate(result.event_date);
+      updates += 1;
+    }
+
+    if (typeof result.cost === 'number' && Number.isFinite(result.cost)) {
+      setCost(String(result.cost));
+      updates += 1;
+    }
+
+    if (result.vendor) {
+      setVendor(result.vendor);
+      updates += 1;
+    }
+
+    if (result.notes) {
+      setNotes(result.notes);
+      updates += 1;
+    }
+
+    if (typeof result.mileage === 'number' && Number.isFinite(result.mileage)) {
+      setMileage(String(result.mileage));
+      updates += 1;
+    }
+
+    if (updates === 0) {
+      Alert.alert('No fields detected', 'OCR could not confidently extract values from this receipt.');
+    }
+  }, []);
+
+  const handleScanReceipt = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setScanningReceipt(true);
+
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Could not get auth token. Please sign in again.');
+        return;
+      }
+
+      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!cameraPermission.granted) {
+        Alert.alert('Camera permission required', 'Please allow camera access to scan receipts.');
+        return;
+      }
+
+      const cameraResult = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.75,
+      });
+
+      if (cameraResult.canceled || !cameraResult.assets?.length) {
+        return;
+      }
+
+      const asset = cameraResult.assets[0];
+      const ocrResult = await api.scanReceipt(token, {
+        uri: asset.uri,
+        name: asset.fileName ?? 'receipt.jpg',
+        type: asset.mimeType ?? 'image/jpeg',
+      });
+
+      applyOcrPrefill(ocrResult);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to scan receipt.';
+      Alert.alert('OCR scan failed', msg);
+    } finally {
+      setScanningReceipt(false);
+    }
+  }, [applyOcrPrefill, getToken, user]);
 
   if (!carId || !user) {
     return (
@@ -449,6 +528,22 @@ export default function AddMaintenanceEventScreen() {
               </>
             )}
 
+            <TouchableOpacity
+              style={[
+                styles.scanBtn,
+                { borderColor: colors.primary },
+                scanningReceipt && styles.submitBtnDisabled,
+              ]}
+              onPress={handleScanReceipt}
+              disabled={scanningReceipt || submitting}
+            >
+              {scanningReceipt ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text style={[styles.scanBtnText, { color: colors.primary }]}>Scan receipt (OCR)</Text>
+              )}
+            </TouchableOpacity>
+
             <ThemedText style={[styles.label, { color: colors.subtext }]}>Mileage (optional)</ThemedText>
             <TextInput
               style={[
@@ -608,4 +703,15 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  scanBtn: {
+    borderWidth: 1,
+    borderRadius: 999,
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  scanBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });

@@ -100,6 +100,29 @@ export interface MaintenanceEventCreate {
   notes?: string | null;
 }
 
+export interface ReceiptOcrConfidence {
+  event_date: number | null;
+  cost: number | null;
+  vendor: number | null;
+  notes: number | null;
+  mileage: number | null;
+}
+
+export interface ReceiptOcrResult {
+  event_date: string | null;
+  cost: number | null;
+  vendor: string | null;
+  notes: string | null;
+  mileage: number | null;
+  confidence: ReceiptOcrConfidence;
+}
+
+export interface ReceiptOcrImageInput {
+  uri: string;
+  name?: string;
+  type?: string;
+}
+
 /** Service due status computed by backend */
 export interface ServiceDueStatus {
   event_type: string;
@@ -368,6 +391,27 @@ export const api = {
         ? err.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join('; ') || res.statusText
         : (typeof err.detail === 'string' ? err.detail : res.statusText);
       throw new Error(msg || 'Failed to create maintenance event');
+    }
+    return res.json();
+  },
+
+  async scanReceipt(token: string, image: ReceiptOcrImageInput): Promise<ReceiptOcrResult> {
+    const formData = new FormData();
+    formData.append('image', {
+      uri: image.uri,
+      name: image.name ?? 'receipt.jpg',
+      type: image.type ?? 'image/jpeg',
+    } as any);
+
+    const res = await fetch(`${API_URL}/ocr/receipt`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to scan receipt', res.status, detail);
     }
     return res.json();
   },

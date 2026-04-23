@@ -15,4 +15,8 @@ def get_settings() -> dict[str, str | None]:
         "FIREBASE_WEB_API_KEY": os.getenv("FIREBASE_WEB_API_KEY"),
         "VEHICLE_API_KEY": os.getenv("VEHICLE_API_KEY"),
         "CRON_SECRET": os.getenv("CRON_SECRET"),
+        "OCR_LANG": os.getenv("OCR_LANG"),
+        "OCR_TESSERACT_CMD": os.getenv("OCR_TESSERACT_CMD"),
+        "OCR_MAX_FILE_SIZE_BYTES": os.getenv("OCR_MAX_FILE_SIZE_BYTES"),
+        "OCR_ALLOWED_MIME_TYPES": os.getenv("OCR_ALLOWED_MIME_TYPES"),
     }
