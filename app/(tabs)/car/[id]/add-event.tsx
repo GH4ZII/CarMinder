@@ -42,12 +42,6 @@ function toYYYYMMDD(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function toHHMM(d: Date): string {
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
-}
-
 export default function AddMaintenanceEventScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -76,18 +70,14 @@ export default function AddMaintenanceEventScreen() {
   const [eventType, setEventType] = useState<string | null>(null);
 
   const [eventDate, setEventDate] = useState<string>(() => toYYYYMMDD(new Date()));
-  const [eventTime, setEventTime] = useState<string>(() => toHHMM(new Date()));
 
   const [pickerDate, setPickerDate] = useState(() => new Date());
-  const [pickerTime, setPickerTime] = useState(() => new Date());
 
   // Memoize maximumDate to prevent spinner jumping
   const maximumDate = useMemo(() => new Date(), []);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDateIOSModal, setShowDateIOSModal] = useState(false);
-  const [showTimeIOSModal, setShowTimeIOSModal] = useState(false);
 
   const [mileage, setMileage] = useState('');
   const [cost, setCost] = useState('');
@@ -135,21 +125,6 @@ export default function AddMaintenanceEventScreen() {
     }
   }, [eventDate, isIOS]);
 
-  const openTimePicker = useCallback(() => {
-    const base = new Date();
-    const [hh, mm] = (eventTime || '12:00').split(':').map((x) => parseInt(x, 10));
-    if (!Number.isNaN(hh)) base.setHours(hh);
-    if (!Number.isNaN(mm)) base.setMinutes(mm);
-    base.setSeconds(0);
-    base.setMilliseconds(0);
-    setPickerTime(base);
-    if (isIOS) {
-      setShowTimeIOSModal(true);
-    } else {
-      setShowTimePicker(true);
-    }
-  }, [eventTime, isIOS]);
-
   const handleDateChange = useCallback(
     (event: DateTimePickerEvent, selectedDate?: Date) => {
       if (Platform.OS === 'android') {
@@ -165,26 +140,6 @@ export default function AddMaintenanceEventScreen() {
       if (date) {
         setPickerDate(date);
         setEventDate(toYYYYMMDD(date));
-      }
-    },
-    []
-  );
-
-  const handleTimeChange = useCallback(
-    (event: DateTimePickerEvent, selectedTime?: Date) => {
-      if (Platform.OS === 'android') {
-        setShowTimePicker(false);
-        if (event.type === 'set' && selectedTime) {
-          setPickerTime(selectedTime);
-          setEventTime(toHHMM(selectedTime));
-        }
-        return;
-      }
-      // iOS - use event.nativeEvent.timestamp for v8.x compatibility
-      const time = selectedTime ?? (event.nativeEvent.timestamp ? new Date(event.nativeEvent.timestamp) : null);
-      if (time) {
-        setPickerTime(time);
-        setEventTime(toHHMM(time));
       }
     },
     []
@@ -214,10 +169,6 @@ export default function AddMaintenanceEventScreen() {
         event_type: eventType,
         event_date: eventDate.trim(),
       };
-
-      // If your backend supports time, add an explicit field there and include it here.
-      // Example:
-      // (payload as any).event_time = eventTime;
 
       const m = mileage.trim();
       if (m) {
@@ -461,63 +412,6 @@ export default function AddMaintenanceEventScreen() {
                         <TouchableOpacity
                           style={[styles.modalDone, { backgroundColor: colors.primary }]}
                           onPress={() => setShowDateIOSModal(false)}
-                        >
-                          <Text style={styles.modalDoneText}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </Modal>
-                )}
-              </>
-            )}
-
-            <ThemedText style={[styles.label, { color: colors.subtext }]}>Time</ThemedText>
-            {isWeb ? (
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-                ]}
-                value={eventTime}
-                onChangeText={setEventTime}
-                placeholder="HH:MM"
-                placeholderTextColor={colors.placeholder}
-                inputMode="numeric"
-              />
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.selectButton,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                  onPress={openTimePicker}
-                >
-                  <Text style={[styles.selectButtonText, { color: colors.text }]}>{eventTime}</Text>
-                </TouchableOpacity>
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={pickerTime}
-                    mode="time"
-                    display="default"
-                    onChange={handleTimeChange}
-                  />
-                )}
-                {isIOS && (
-                  <Modal visible={showTimeIOSModal} transparent animationType="slide">
-                    <View style={styles.modalOverlay}>
-                      <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-                        <DateTimePicker
-                          value={pickerTime}
-                          mode="time"
-                          display="spinner"
-                          onChange={handleTimeChange}
-                          themeVariant={scheme === 'dark' ? 'dark' : 'light'}
-                          style={styles.iosPicker}
-                        />
-                        <TouchableOpacity
-                          style={[styles.modalDone, { backgroundColor: colors.primary }]}
-                          onPress={() => setShowTimeIOSModal(false)}
                         >
                           <Text style={styles.modalDoneText}>Done</Text>
                         </TouchableOpacity>
