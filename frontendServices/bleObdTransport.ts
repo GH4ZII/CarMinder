@@ -1,4 +1,3 @@
-import { decode as b64Decode, encode as b64Encode } from 'base-64';
 import {
   BleError,
   BleManager,
@@ -14,7 +13,25 @@ const ELM_SCAN_TIMEOUT_MS = 15000;
 const ELM_COMMAND_TIMEOUT_MS = 6000;
 const ELM_BOOT_TIMEOUT_MS = 10000;
 const BLE_BUFFER_MAX_BYTES = 1024;
-const ELM_NAME_HINTS = ['icar', 'v-link', 'vlink', 'v_link', 'elm', 'obd', 'obdii', 'obd2', 'vgate'];
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+const ELM_NAME_HINTS = [
+  'bafx',
+  'carista',
+  'elm',
+  'icar',
+  'konnwei',
+  'kw903',
+  'lelink',
+  'obd',
+  'obdii',
+  'obd2',
+  'obdlink',
+  'veepeak',
+  'vgate',
+  'v-link',
+  'v_link',
+  'vlink',
+];
 /**
  * Known BLE UART service/characteristic mappings for ELM327 adapters.
  * Based on https://github.com/kkonteh97/SwiftOBD2
@@ -44,6 +61,49 @@ function normalizeUuid(value: string): string {
   return value.replace(/-/g, '').toLowerCase();
 }
 
+function encodeBase64Ascii(value: string): string {
+  let output = '';
+  for (let i = 0; i < value.length; i += 3) {
+    const byte1 = value.charCodeAt(i) & 0xff;
+    const hasByte2 = i + 1 < value.length;
+    const byte2 = hasByte2 ? value.charCodeAt(i + 1) & 0xff : 0;
+    const hasByte3 = i + 2 < value.length;
+    const byte3 = hasByte3 ? value.charCodeAt(i + 2) & 0xff : 0;
+
+    output += BASE64_ALPHABET.charAt(byte1 >> 2);
+    output += BASE64_ALPHABET.charAt(((byte1 & 0x03) << 4) | (byte2 >> 4));
+    output += hasByte2
+      ? BASE64_ALPHABET.charAt(((byte2 & 0x0f) << 2) | (byte3 >> 6))
+      : '=';
+    output += hasByte3 ? BASE64_ALPHABET.charAt(byte3 & 0x3f) : '=';
+  }
+  return output;
+}
+
+function decodeBase64Ascii(value: string): string {
+  const clean = value.replace(/[^A-Za-z0-9+/=]/g, '');
+  let output = '';
+
+  for (let i = 0; i < clean.length; i += 4) {
+    const enc1 = BASE64_ALPHABET.indexOf(clean.charAt(i));
+    const enc2 = BASE64_ALPHABET.indexOf(clean.charAt(i + 1));
+    const enc3 = BASE64_ALPHABET.indexOf(clean.charAt(i + 2));
+    const enc4 = BASE64_ALPHABET.indexOf(clean.charAt(i + 3));
+
+    if (enc1 < 0 || enc2 < 0) continue;
+
+    output += String.fromCharCode((enc1 << 2) | (enc2 >> 4));
+    if (enc3 >= 0 && enc3 !== 64) {
+      output += String.fromCharCode(((enc2 & 0x0f) << 4) | (enc3 >> 2));
+    }
+    if (enc4 >= 0 && enc4 !== 64) {
+      output += String.fromCharCode(((enc3 & 0x03) << 6) | enc4);
+    }
+  }
+
+  return output;
+}
+
 function deviceLooksLikeElm327(device: Device): boolean {
   const maybeName = `${device.name ?? ''} ${device.localName ?? ''}`.toLowerCase();
   if (ELM_NAME_HINTS.some((hint) => maybeName.includes(hint))) return true;
@@ -71,13 +131,25 @@ type ResolvedGatt = {
   notifyCharacteristic: Characteristic;
 };
 
+function canWrite(char: Characteristic): boolean {
+  return char.isWritableWithResponse || char.isWritableWithoutResponse;
+}
+
+function canReceiveNotifications(char: Characteristic): boolean {
+  return char.isNotifiable || char.isIndicatable;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class BleElm327ObdTransport implements ObdTransport {
   private manager = new BleManager();
   private device: Device | null = null;
   private gatt: ResolvedGatt | null = null;
   private monitorSub: Subscription | null = null;
   private lineBuffer = '';
-  private connecting = false;
+  private connectPromise: Promise<void> | null = null;
   private activeCommandTimer: ReturnType<typeof setInterval> | null = null;
 
   async isSupported(): Promise<boolean> {
@@ -86,9 +158,9 @@ export class BleElm327ObdTransport implements ObdTransport {
 
   async connect(): Promise<void> {
     if (this.device && this.gatt) return;
-    if (this.connecting) return;
-    this.connecting = true;
-    try {
+    if (this.connectPromise) return this.connectPromise;
+
+    this.connectPromise = (async () => {
       const supported = await this.isSupported();
       if (!supported) {
         throw new Error('Bluetooth OBD is supported only on iOS and Android.');
@@ -97,13 +169,21 @@ export class BleElm327ObdTransport implements ObdTransport {
       await this.ensurePermissions();
       await this.ensureBluetoothOn();
       const found = await this.scanForElmDevice();
-      const connected = await found.connect({ timeout: ELM_SCAN_TIMEOUT_MS / 1000 });
+      const connected = await found.connect({ timeout: ELM_SCAN_TIMEOUT_MS });
       this.device = await connected.discoverAllServicesAndCharacteristics();
       this.gatt = await this.resolveGatt(this.device);
       this.startMonitor();
+      await delay(250);
       await this.initializeElm327();
+    })();
+
+    try {
+      await this.connectPromise;
+    } catch (error) {
+      await this.disconnect();
+      throw error;
     } finally {
-      this.connecting = false;
+      this.connectPromise = null;
     }
   }
 
@@ -188,6 +268,7 @@ export class BleElm327ObdTransport implements ObdTransport {
       const timeout = setTimeout(() => {
         this.manager.stopDeviceScan();
         if (!resolved) {
+          resolved = true;
           const debugInfo = seenDevices.length
             ? `\nDevices found nearby:\n${seenDevices.join('\n')}`
             : '\nNo BLE devices detected at all. Is Bluetooth on?';
@@ -196,7 +277,10 @@ export class BleElm327ObdTransport implements ObdTransport {
       }, ELM_SCAN_TIMEOUT_MS);
 
       this.manager.startDeviceScan(null, { allowDuplicates: false }, (error: BleError | null, scanned: Device | null) => {
+        if (resolved) return;
+
         if (error) {
+          resolved = true;
           clearTimeout(timeout);
           this.manager.stopDeviceScan();
           reject(new Error(error.message));
@@ -238,14 +322,19 @@ export class BleElm327ObdTransport implements ObdTransport {
 
       for (const char of characteristics) {
         const charNorm = normalizeUuid(char.uuid);
-        if (charNorm.includes(profile.writeCharUuid)) {
+        if (charNorm.includes(profile.writeCharUuid) && canWrite(char)) {
           writeCharacteristic = char;
         }
-        if (charNorm.includes(profile.readCharUuid)) {
+        if (charNorm.includes(profile.readCharUuid) && canReceiveNotifications(char)) {
           notifyCharacteristic = char;
         }
         // Some profiles use same UUID for read and write (e.g. FFE1)
-        if (profile.readCharUuid === profile.writeCharUuid && charNorm.includes(profile.readCharUuid)) {
+        if (
+          profile.readCharUuid === profile.writeCharUuid &&
+          charNorm.includes(profile.readCharUuid) &&
+          canWrite(char) &&
+          canReceiveNotifications(char)
+        ) {
           writeCharacteristic = char;
           notifyCharacteristic = char;
         }
@@ -258,9 +347,6 @@ export class BleElm327ObdTransport implements ObdTransport {
     }
 
     // Fallback: pick first writable + first notifiable from any preferred service
-    let writeCharacteristic: Characteristic | null = null;
-    let notifyCharacteristic: Characteristic | null = null;
-
     const orderedServices = [...services].sort((a, b) => {
       const aScore = serviceLooksPreferred(a.uuid) ? 1 : 0;
       const bScore = serviceLooksPreferred(b.uuid) ? 1 : 0;
@@ -268,24 +354,24 @@ export class BleElm327ObdTransport implements ObdTransport {
     });
 
     for (const service of orderedServices) {
+      let writeCharacteristic: Characteristic | null = null;
+      let notifyCharacteristic: Characteristic | null = null;
       const characteristics = await device.characteristicsForService(service.uuid);
       for (const char of characteristics) {
-        if (!writeCharacteristic && (char.isWritableWithResponse || char.isWritableWithoutResponse)) {
+        if (!writeCharacteristic && canWrite(char)) {
           writeCharacteristic = char;
         }
-        if (!notifyCharacteristic && (char.isNotifiable || char.isIndicatable || char.isReadable)) {
+        if (!notifyCharacteristic && canReceiveNotifications(char)) {
           notifyCharacteristic = char;
         }
       }
-      if (writeCharacteristic && notifyCharacteristic) break;
+      if (writeCharacteristic && notifyCharacteristic) {
+        console.log('Using fallback GATT resolution (no known profile matched).');
+        return { writeCharacteristic, notifyCharacteristic };
+      }
     }
 
-    if (!writeCharacteristic || !notifyCharacteristic) {
-      throw new Error('Could not find adapter UART characteristics.');
-    }
-
-    console.log('Using fallback GATT resolution (no known profile matched).');
-    return { writeCharacteristic, notifyCharacteristic };
+    throw new Error('Could not find adapter UART characteristics.');
   }
 
   private startMonitor(): void {
@@ -302,7 +388,7 @@ export class BleElm327ObdTransport implements ObdTransport {
       (error, characteristic) => {
         if (error || !characteristic?.value) return;
         try {
-          const chunk = b64Decode(characteristic.value);
+          const chunk = decodeBase64Ascii(characteristic.value);
           if (this.lineBuffer.length + chunk.length <= BLE_BUFFER_MAX_BYTES) {
             this.lineBuffer += chunk;
           }
@@ -318,7 +404,8 @@ export class BleElm327ObdTransport implements ObdTransport {
     await this.sendElmCommand('ATE0', ELM_COMMAND_TIMEOUT_MS); // Echo off
     await this.sendElmCommand('ATL0', ELM_COMMAND_TIMEOUT_MS); // Linefeeds off
     await this.sendElmCommand('ATS1', ELM_COMMAND_TIMEOUT_MS); // Spaces on (parsers expect space-separated bytes)
-    await this.sendElmCommand('ATH1', ELM_COMMAND_TIMEOUT_MS); // Headers on (needed for ECU identification)
+    await this.sendElmCommand('ATH0', ELM_COMMAND_TIMEOUT_MS); // Headers off; current parsers only need payload bytes
+    await this.sendElmCommand('ATCAF1', ELM_COMMAND_TIMEOUT_MS); // Let ELM format CAN frames into OBD payloads
     await this.sendElmCommand('ATAT1', ELM_COMMAND_TIMEOUT_MS); // Adaptive timing on
     await this.sendElmCommand('ATSP0', ELM_COMMAND_TIMEOUT_MS); // Auto-detect protocol
   }
@@ -329,7 +416,7 @@ export class BleElm327ObdTransport implements ObdTransport {
     }
 
     const payload = `${command.trim().toUpperCase()}\r`;
-    const encodedPayload = b64Encode(payload);
+    const encodedPayload = encodeBase64Ascii(payload);
     this.lineBuffer = '';
 
     if (this.gatt.writeCharacteristic.isWritableWithResponse) {
@@ -363,11 +450,11 @@ export class BleElm327ObdTransport implements ObdTransport {
         const raw = this.lineBuffer;
         this.lineBuffer = '';
         const cleaned = raw
-          .replace(/>/g, ' ')
-          .replace(/\r/g, ' ')
-          .replace(/\n/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
+          .replace(/>/g, '\n')
+          .split(/[\r\n]+/)
+          .map((line) => line.replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .join('\n');
         resolve(cleaned || 'NO DATA');
       }, 35);
       this.activeCommandTimer = timer;

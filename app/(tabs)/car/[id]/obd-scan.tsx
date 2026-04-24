@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,6 +41,22 @@ export default function ObdScanScreen() {
   const [supported, setSupported] = useState(false);
   const [checking, setChecking] = useState(true);
 
+  const uploadIfDeviceReading = useCallback((result: ObdSnapshot) => {
+    if (result.source !== 'device' || !carId) return;
+
+    // Upload to backend (fire-and-forget)
+    (async () => {
+      try {
+        const token = await getToken();
+        if (token) {
+          await api.uploadObdReading(carId, token, snapshotToObdPayload(result));
+        }
+      } catch (err) {
+        console.warn('OBD upload failed (cached locally):', err);
+      }
+    })();
+  }, [carId, getToken]);
+
   // Check support + load cached snapshot on mount
   useEffect(() => {
     if (!carId) return;
@@ -64,42 +80,27 @@ export default function ObdScanScreen() {
     try {
       const result = await obdService.scanCar(carId);
       setSnapshot(result);
-
-      // Upload to backend (fire-and-forget)
-      (async () => {
-        try {
-          const token = await getToken();
-          if (token) {
-            await api.uploadObdReading(carId, token, snapshotToObdPayload(result));
-          }
-        } catch (err) {
-          console.warn('OBD upload failed (cached locally):', err);
-        }
-      })();
-
-      if (result.source === 'simulated') {
-        Alert.alert('Demo scan complete', 'This is simulated OBD data. Connect a native transport for real adapter reads.');
-      }
+      uploadIfDeviceReading(result);
     } catch (e: any) {
       Alert.alert('OBD scan failed', e?.message ?? 'Could not read OBD data.');
     } finally {
       setScanning(false);
     }
-  }, [carId, getToken]);
+  }, [carId, uploadIfDeviceReading]);
 
   const runDemo = useCallback(async () => {
-    obdService.useSimulator();
-    setSupported(true);
-    await scan();
-  }, [scan]);
-
-  // Auto-scan once when adapter is detected
-  const hasAutoScanned = useRef(false);
-  useEffect(() => {
-    if (hasAutoScanned.current || !supported || checking) return;
-    hasAutoScanned.current = true;
-    scan();
-  }, [supported, checking, scan]);
+    if (!carId) return;
+    setScanning(true);
+    try {
+      const result = await obdService.scanDemo(carId);
+      setSnapshot(result);
+      Alert.alert('Demo scan complete', 'This simulated reading was cached locally only.');
+    } catch (e: any) {
+      Alert.alert('Demo scan failed', e?.message ?? 'Could not run demo scan.');
+    } finally {
+      setScanning(false);
+    }
+  }, [carId]);
 
   if (!carId) {
     return (
