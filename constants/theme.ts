@@ -10,16 +10,16 @@ const accentColor = '#2DD4BF';
 
 export const Colors = {
   light: {
-    text: '#E9EEF7',
-    background: '#07142B',
+    text: '#102016',
+    background: '#F7FBF8',
     tint: tintColor,
     accent: accentColor,
-    icon: '#8DA0B8',
-    tabIconDefault: '#7F90A7',
+    icon: '#5F7768',
+    tabIconDefault: '#6E8578',
     tabIconSelected: tintColor,
-    card: '#0A1A37',
-    border: '#294263',
-    surface: '#0A1A37',
+    card: '#FFFFFF',
+    border: '#D8E5DD',
+    surface: '#EFF6F1',
   },
   dark: {
     text: '#E9EEF7',

@@ -1,4 +1,4 @@
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'; 
+import { useAppTheme, ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
 
 // This tells the app which screen to show first (the main tabs screen)
 export const unstable_settings = {
@@ -24,6 +25,8 @@ function RootLayoutNav() {
   
   // Get the router so we can send users to different pages
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const navigationTheme = theme === 'dark' ? DarkTheme : DefaultTheme;
 
   // This runs every time the user, loading status, or current page changes
   useEffect(() => {
@@ -56,7 +59,7 @@ function RootLayoutNav() {
 
   // Show the actual app with all the screens
   return (
-    <ThemeProvider value={DarkTheme}>
+    <ThemeProvider value={navigationTheme}>
       {/* Create a stack of screens (like a deck of cards - you can navigate between them) */}
       <Stack>
         {/* Login and signup screens (no header shown) */}
@@ -65,7 +68,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       {/* Status bar at top of phone (changes color based on theme) */}
-      <StatusBar style="light" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }
@@ -97,8 +100,10 @@ export default function RootLayout() {
   return (
     // Wrap everything with AuthProvider so all screens can access login functions
     <AuthProvider>
-      {/* Show the main navigation component */}
-      <RootLayoutNav />
+      <AppThemeProvider>
+        {/* Show the main navigation component */}
+        <RootLayoutNav />
+      </AppThemeProvider>
     </AuthProvider>
   );
 }

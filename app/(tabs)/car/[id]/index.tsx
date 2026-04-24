@@ -1,22 +1,24 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { File, Paths } from 'expo-file-system';
 import * as Linking from 'expo-linking';
-import * as Sharing from 'expo-sharing';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError, CarCareScoreResponse, CarInfo, CarServiceStatus, IncidentReport, MaintenanceEvent, ServiceDueStatus, api } from '../../../../frontendServices/apiCall';
@@ -73,13 +75,23 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
   );
 }
 
-function CategoryBar({ label, score, weight }: { label: string; score: number; weight: number }) {
+function CategoryBar({
+  label,
+  score,
+  weight,
+  isLight,
+}: {
+  label: string;
+  score: number;
+  weight: number;
+  isLight: boolean;
+}) {
   const barColor = score >= 75 ? '#34C759' : score >= 50 ? '#FF9500' : '#FF3B30';
   return (
     <View style={scoreStyles.catRow}>
       <View style={scoreStyles.catLabelRow}>
-        <Text style={scoreStyles.catLabel}>{label}</Text>
-        <Text style={scoreStyles.catScore}>{score}/100</Text>
+        <Text style={[scoreStyles.catLabel, isLight && { color: '#102016' }]}>{label}</Text>
+        <Text style={[scoreStyles.catScore, isLight && { color: '#102016' }]}>{score}/100</Text>
       </View>
       <View style={scoreStyles.barBg}>
         <View style={[scoreStyles.barFill, { width: `${score}%`, backgroundColor: barColor }]} />
@@ -97,46 +109,57 @@ function formatObdValue(value: number | null, unit: string): string {
   return `${value.toLocaleString()} ${unit}`.trim();
 }
 
-function CarCareScoreCard({ data }: { data: CarCareScoreResponse }) {
+function CarCareScoreCard({
+  data,
+  isLight,
+}: {
+  data: CarCareScoreResponse;
+  isLight: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const cats = data.categories;
   return (
-    <View style={scoreStyles.card}>
+    <View
+      style={[
+        scoreStyles.card,
+        isLight && { backgroundColor: '#FFFFFF', borderColor: '#BFE9CD' },
+      ]}
+    >
       <TouchableOpacity activeOpacity={0.8} onPress={() => setExpanded(!expanded)}>
         <View style={scoreStyles.topRow}>
           <ScoreRing score={data.overall_score} grade={data.grade} />
           <View style={scoreStyles.summaryCol}>
-            <Text style={scoreStyles.cardTitle}>Car Care Score</Text>
-            <Text style={scoreStyles.summary}>{data.summary}</Text>
-            <Text style={scoreStyles.confidence}>
+            <Text style={[scoreStyles.cardTitle, isLight && { color: '#102016' }]}>Car Care Score</Text>
+            <Text style={[scoreStyles.summary, isLight && { color: '#5F7768' }]}>{data.summary}</Text>
+            <Text style={[scoreStyles.confidence, isLight && { color: '#5F7768' }]}>
               Confidence: {data.confidence_label.replace('_', ' ')}
             </Text>
           </View>
           <MaterialIcons
             name={expanded ? 'expand-less' : 'expand-more'}
             size={24}
-            color="#8E8E93"
+            color={isLight ? '#5F7768' : '#8E8E93'}
           />
         </View>
       </TouchableOpacity>
 
       {expanded && (
         <View style={scoreStyles.details}>
-          <View style={scoreStyles.divider} />
-          <CategoryBar label={cats.maintenance_regularity.label} score={cats.maintenance_regularity.score} weight={cats.maintenance_regularity.weight} />
-          <CategoryBar label={cats.eu_inspection.label} score={cats.eu_inspection.score} weight={cats.eu_inspection.weight} />
-          <CategoryBar label={cats.incident_history.label} score={cats.incident_history.score} weight={cats.incident_history.weight} />
-          <CategoryBar label={cats.mileage_tracking.label} score={cats.mileage_tracking.score} weight={cats.mileage_tracking.weight} />
-          <CategoryBar label={cats.documentation_quality.label} score={cats.documentation_quality.score} weight={cats.documentation_quality.weight} />
+          <View style={[scoreStyles.divider, isLight && { backgroundColor: '#D8E5DD' }]} />
+          <CategoryBar label={cats.maintenance_regularity.label} score={cats.maintenance_regularity.score} weight={cats.maintenance_regularity.weight} isLight={isLight} />
+          <CategoryBar label={cats.eu_inspection.label} score={cats.eu_inspection.score} weight={cats.eu_inspection.weight} isLight={isLight} />
+          <CategoryBar label={cats.incident_history.label} score={cats.incident_history.score} weight={cats.incident_history.weight} isLight={isLight} />
+          <CategoryBar label={cats.mileage_tracking.label} score={cats.mileage_tracking.score} weight={cats.mileage_tracking.weight} isLight={isLight} />
+          <CategoryBar label={cats.documentation_quality.label} score={cats.documentation_quality.score} weight={cats.documentation_quality.weight} isLight={isLight} />
 
           {data.recommendations.length > 0 && (
             <>
-              <View style={scoreStyles.divider} />
-              <Text style={scoreStyles.recsTitle}>Recommendations</Text>
+              <View style={[scoreStyles.divider, isLight && { backgroundColor: '#D8E5DD' }]} />
+              <Text style={[scoreStyles.recsTitle, isLight && { color: '#102016' }]}>Recommendations</Text>
               {data.recommendations.map((r, i) => (
                 <View key={i} style={scoreStyles.recRow}>
-                  <Text style={scoreStyles.recBullet}>•</Text>
-                  <Text style={scoreStyles.recText}>{r}</Text>
+                  <Text style={[scoreStyles.recBullet, isLight && { color: '#102016' }]}>•</Text>
+                  <Text style={[scoreStyles.recText, isLight && { color: '#102016' }]}>{r}</Text>
                 </View>
               ))}
             </>
@@ -197,10 +220,16 @@ const REPAIR_STATUS_LABELS: Record<string, string> = {
   fully_repaired: 'Fully repaired',
 };
 
-function ServiceStatusCard({ status }: { status: ServiceDueStatus }) {
+function ServiceStatusCard({ status, isLight }: { status: ServiceDueStatus; isLight: boolean }) {
   const config = URGENCY_CONFIG[status.urgency];
   return (
-    <View style={[styles.serviceCard, { backgroundColor: config.bg }]}>
+    <View
+      style={[
+        styles.serviceCard,
+        { backgroundColor: config.bg },
+        isLight && { borderWidth: 1, borderColor: '#BFE9CD' },
+      ]}
+    >
       <View style={styles.serviceHeader}>
         <ThemedText style={styles.serviceType}>{eventTypeLabel(status.event_type)}</ThemedText>
         <View style={styles.serviceUrgencyRow}>
@@ -250,6 +279,9 @@ export default function CarTimelineScreen() {
   const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { user, getToken } = useAuth();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const isLight = scheme === 'light';
   const [car, setCar] = useState<CarInfo | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
@@ -259,6 +291,10 @@ export default function CarTimelineScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [serviceOpen, setServiceOpen] = useState(false);
+  const [obdOpen, setObdOpen] = useState(false);
+  const [incidentsOpen, setIncidentsOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
 
   const handleExportPdf = useCallback(async () => {
     if (!carId) return;
@@ -390,9 +426,6 @@ export default function CarTimelineScreen() {
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Text style={styles.backBtnText}>← Back</Text>
-      </TouchableOpacity>
       <ThemedText type="title" style={styles.title}>
         {car ? `${car.merke} ${car.modell}` : '…'}
       </ThemedText>
@@ -403,15 +436,15 @@ export default function CarTimelineScreen() {
       ) : null}
 
       <TouchableOpacity
-        style={[styles.addBtn, styles.exportBtn]}
+        style={[styles.addBtn, styles.exportBtn, isLight && { backgroundColor: '#DFF7E8' }]}
         onPress={handleExportPdf}
         disabled={exporting}
       >
-        <Text style={styles.addBtnText}>{exporting ? 'Generating…' : 'Export PDF'}</Text>
+        <Text style={[styles.addBtnText, isLight && { color: '#1C5A34' }]}>{exporting ? 'Generating…' : 'Export PDF'}</Text>
       </TouchableOpacity>
 
       {/* Car Care Score */}
-      {careScore && <CarCareScoreCard data={careScore} />}
+      {careScore && <CarCareScoreCard data={careScore} isLight={isLight} />}
 
       {/* Alert banner for urgent services */}
       {serviceStatus?.next_service && (
@@ -426,150 +459,178 @@ export default function CarTimelineScreen() {
 
       {/* Service Status Section */}
       <SectionDivider />
-      <ThemedText type="subtitle" style={styles.sectionTitle}>
-        Service Status
-      </ThemedText>
-      {serviceStatus?.services.map((s) => (
-        <ServiceStatusCard key={s.event_type} status={s} />
+      <TouchableOpacity
+        style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
+        onPress={() => setServiceOpen((prev) => !prev)}
+        activeOpacity={0.75}
+      >
+        <ThemedText type="subtitle" style={styles.sectionTitle}>Service Status</ThemedText>
+        <MaterialIcons name={serviceOpen ? 'expand-less' : 'expand-more'} size={22} color={isLight ? '#1C5A34' : '#8DA0B8'} />
+      </TouchableOpacity>
+      {serviceOpen && serviceStatus?.services.map((s) => (
+        <ServiceStatusCard key={s.event_type} status={s} isLight={isLight} />
       ))}
 
       <SectionDivider />
-      <View style={styles.sectionRow}>
-        <ThemedText type="subtitle" style={styles.section}>
-          OBD-II diagnostics
-        </ThemedText>
-        <View style={styles.sectionActions}>
-          <TouchableOpacity
-            style={[styles.addBtn, styles.secondaryBtn]}
-            onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
-          >
-            <Text style={[styles.addBtnText, styles.secondaryBtnText]}>View Dashboard</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
-          >
-            <Text style={styles.addBtnText}>Open Scanner</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      {obdSnapshot ? (
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={styles.obdCard}
-          onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
-        >
-          <View style={styles.obdHeaderRow}>
-            <ThemedText style={styles.obdCardTitle}>
-              Latest reading {obdSnapshot.source === 'simulated' ? '(Demo)' : '(Device)'}
-            </ThemedText>
-            <ThemedText style={styles.obdTimestamp}>{formatDate(obdSnapshot.capturedAt)}</ThemedText>
+      <TouchableOpacity
+        style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
+        onPress={() => setObdOpen((prev) => !prev)}
+        activeOpacity={0.75}
+      >
+        <ThemedText type="subtitle" style={styles.section}>OBD-II diagnostics</ThemedText>
+        <MaterialIcons name={obdOpen ? 'expand-less' : 'expand-more'} size={22} color={isLight ? '#1C5A34' : '#8DA0B8'} />
+      </TouchableOpacity>
+      {obdOpen && (
+        <>
+          <View style={styles.sectionActions}>
+            <TouchableOpacity
+              style={[
+                styles.addBtn,
+                styles.secondaryBtn,
+                isLight && { backgroundColor: '#EFF6F1', borderColor: '#BFE9CD' },
+              ]}
+              onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
+            >
+              <Text style={[styles.addBtnText, styles.secondaryBtnText, isLight && { color: '#1C5A34' }]}>View Dashboard</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.addBtn, isLight && { backgroundColor: '#DFF7E8' }]}
+              onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
+            >
+              <Text style={[styles.addBtnText, isLight && { color: '#1C5A34' }]}>Open Scanner</Text>
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.obdMetricsGrid}>
-            <View style={styles.obdMetricItem}>
-              <ThemedText style={styles.obdMetricLabel}>RPM</ThemedText>
-              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.rpm, '')}</ThemedText>
-            </View>
-            <View style={styles.obdMetricItem}>
-              <ThemedText style={styles.obdMetricLabel}>Coolant</ThemedText>
-              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.coolantTempC, '°C')}</ThemedText>
-            </View>
-            <View style={styles.obdMetricItem}>
-              <ThemedText style={styles.obdMetricLabel}>Speed</ThemedText>
-              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.speedKph, 'km/h')}</ThemedText>
-            </View>
-            <View style={styles.obdMetricItem}>
-              <ThemedText style={styles.obdMetricLabel}>Engine Load</ThemedText>
-              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.engineLoadPct, '%')}</ThemedText>
-            </View>
-            <View style={styles.obdMetricItem}>
-              <ThemedText style={styles.obdMetricLabel}>Battery</ThemedText>
-              <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.batteryVoltage, 'V')}</ThemedText>
-            </View>
-          </View>
-
-          <ThemedText style={styles.obdDtcTitle}>
-            Error codes ({obdSnapshot.dtcs.length})
-          </ThemedText>
-          {obdSnapshot.dtcs.length === 0 ? (
-            <ThemedText style={styles.obdNoCodes}>No stored trouble codes.</ThemedText>
-          ) : (
-            obdSnapshot.dtcs.map((dtc) => (
-              <View key={dtc.code} style={styles.obdCodeItem}>
-                <Text style={styles.obdCode}>{dtc.code}</Text>
-                <ThemedText style={styles.obdCodeDesc}>{dtc.description}</ThemedText>
+          {obdSnapshot ? (
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={[styles.obdCard, isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' }]}
+              onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
+            >
+              <View style={styles.obdHeaderRow}>
+                <ThemedText style={styles.obdCardTitle}>
+                  Latest reading {obdSnapshot.source === 'simulated' ? '(Demo)' : '(Device)'}
+                </ThemedText>
+                <ThemedText style={styles.obdTimestamp}>{formatDate(obdSnapshot.capturedAt)}</ThemedText>
               </View>
-            ))
+
+              <View style={styles.obdMetricsGrid}>
+                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
+                  <ThemedText style={styles.obdMetricLabel}>RPM</ThemedText>
+                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.rpm, '')}</ThemedText>
+                </View>
+                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
+                  <ThemedText style={styles.obdMetricLabel}>Coolant</ThemedText>
+                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.coolantTempC, '°C')}</ThemedText>
+                </View>
+                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
+                  <ThemedText style={styles.obdMetricLabel}>Speed</ThemedText>
+                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.speedKph, 'km/h')}</ThemedText>
+                </View>
+                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
+                  <ThemedText style={styles.obdMetricLabel}>Engine Load</ThemedText>
+                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.engineLoadPct, '%')}</ThemedText>
+                </View>
+                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
+                  <ThemedText style={styles.obdMetricLabel}>Battery</ThemedText>
+                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.batteryVoltage, 'V')}</ThemedText>
+                </View>
+              </View>
+
+              <ThemedText style={styles.obdDtcTitle}>
+                Error codes ({obdSnapshot.dtcs.length})
+              </ThemedText>
+              {obdSnapshot.dtcs.length === 0 ? (
+                <ThemedText style={styles.obdNoCodes}>No stored trouble codes.</ThemedText>
+              ) : (
+                obdSnapshot.dtcs.map((dtc) => (
+                  <View key={dtc.code} style={styles.obdCodeItem}>
+                    <Text style={styles.obdCode}>{dtc.code}</Text>
+                    <ThemedText style={styles.obdCodeDesc}>{dtc.description}</ThemedText>
+                  </View>
+                ))
+              )}
+              <ThemedText style={styles.obdTapHint}>Tap to open charts and history.</ThemedText>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.obdEmptyCard, isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' }]}>
+              <ThemedText style={styles.obdHint}>No OBD snapshot yet.</ThemedText>
+              <ThemedText style={styles.obdTapHint}>The dashboard will show gauges, trends, and trouble code history after your first scan.</ThemedText>
+            </View>
           )}
-          <ThemedText style={styles.obdTapHint}>Tap to open charts and history.</ThemedText>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.obdEmptyCard}>
-          <ThemedText style={styles.obdHint}>No OBD snapshot yet.</ThemedText>
-          <ThemedText style={styles.obdTapHint}>The dashboard will show gauges, trends, and trouble code history after your first scan.</ThemedText>
-        </View>
+        </>
       )}
 
       {/* Incidents section */}
       <SectionDivider />
-      <View style={styles.sectionRow}>
-        <ThemedText type="subtitle" style={styles.section}>
-          Incidents ({incidents.length})
-        </ThemedText>
-        <TouchableOpacity
-          style={[styles.addBtn, { backgroundColor: '#2DD4BF' }]}
-          onPress={() => router.push(`/(tabs)/car/${carId}/add-incident` as any)}
-        >
-          <Text style={styles.addBtnText}>Report incident</Text>
-        </TouchableOpacity>
-      </View>
-      {incidents.length === 0 ? (
-        <ThemedText style={styles.noIncidents}>No incidents reported.</ThemedText>
-      ) : (
-        incidents.map((inc) => (
-          <View key={inc.id} style={styles.incidentCard}>
-            <View style={styles.incidentHeader}>
-              <View style={[styles.severityBadge, { backgroundColor: SEVERITY_COLORS[inc.severity] ?? '#8E8E93' }]}>
-                <Text style={styles.severityText}>{inc.severity.toUpperCase()}</Text>
+      <TouchableOpacity
+        style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
+        onPress={() => setIncidentsOpen((prev) => !prev)}
+        activeOpacity={0.75}
+      >
+        <ThemedText type="subtitle" style={styles.section}>Incidents ({incidents.length})</ThemedText>
+        <MaterialIcons name={incidentsOpen ? 'expand-less' : 'expand-more'} size={22} color={isLight ? '#1C5A34' : '#8DA0B8'} />
+      </TouchableOpacity>
+      {incidentsOpen && (
+        <>
+          <TouchableOpacity
+            style={[styles.addBtn, isLight && { backgroundColor: '#DFF7E8' }]}
+            onPress={() => router.push(`/(tabs)/car/${carId}/add-incident` as any)}
+          >
+            <Text style={[styles.addBtnText, isLight && { color: '#1C5A34' }]}>Report incident</Text>
+          </TouchableOpacity>
+          {incidents.length === 0 ? (
+            <ThemedText style={styles.noIncidents}>No incidents reported.</ThemedText>
+          ) : (
+            incidents.map((inc) => (
+              <View key={inc.id} style={[styles.incidentCard, isLight && { backgroundColor: '#FFF7EB', borderWidth: 1, borderColor: '#F4DDB6' }]}>
+                <View style={styles.incidentHeader}>
+                  <View style={[styles.severityBadge, { backgroundColor: SEVERITY_COLORS[inc.severity] ?? '#8E8E93' }]}>
+                    <Text style={styles.severityText}>{inc.severity.toUpperCase()}</Text>
+                  </View>
+                  <ThemedText style={styles.cardDate}>{formatDate(inc.incident_date)}</ThemedText>
+                </View>
+                <ThemedText style={styles.incidentDesc}>{inc.description}</ThemedText>
+                {inc.damage_description && (
+                  <ThemedText style={styles.incidentMeta}>Damage: {inc.damage_description}</ThemedText>
+                )}
+                <ThemedText style={styles.incidentMeta}>
+                  Repair: {REPAIR_STATUS_LABELS[inc.repair_status] ?? inc.repair_status}
+                </ThemedText>
+                {inc.mileage != null && (
+                  <ThemedText style={styles.incidentMeta}>{inc.mileage.toLocaleString()} km</ThemedText>
+                )}
+                {inc.insurance_claim && (
+                  <ThemedText style={styles.incidentMeta}>Insurance claim filed</ThemedText>
+                )}
               </View>
-              <ThemedText style={styles.cardDate}>{formatDate(inc.incident_date)}</ThemedText>
-            </View>
-            <ThemedText style={styles.incidentDesc}>{inc.description}</ThemedText>
-            {inc.damage_description && (
-              <ThemedText style={styles.incidentMeta}>Damage: {inc.damage_description}</ThemedText>
-            )}
-            <ThemedText style={styles.incidentMeta}>
-              Repair: {REPAIR_STATUS_LABELS[inc.repair_status] ?? inc.repair_status}
-            </ThemedText>
-            {inc.mileage != null && (
-              <ThemedText style={styles.incidentMeta}>{inc.mileage.toLocaleString()} km</ThemedText>
-            )}
-            {inc.insurance_claim && (
-              <ThemedText style={styles.incidentMeta}>Insurance claim filed</ThemedText>
-            )}
-          </View>
-        ))
+            ))
+          )}
+        </>
       )}
 
       <SectionDivider />
-      <View style={styles.sectionRow}>
-        <ThemedText type="subtitle" style={styles.section}>
-          Maintenance timeline
-        </ThemedText>
+      <TouchableOpacity
+        style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
+        onPress={() => setTimelineOpen((prev) => !prev)}
+        activeOpacity={0.75}
+      >
+        <ThemedText type="subtitle" style={styles.section}>Maintenance timeline</ThemedText>
+        <MaterialIcons name={timelineOpen ? 'expand-less' : 'expand-more'} size={22} color={isLight ? '#1C5A34' : '#8DA0B8'} />
+      </TouchableOpacity>
+      {timelineOpen && (
         <TouchableOpacity
-          style={styles.addBtn}
+          style={[styles.addBtn, isLight && { backgroundColor: '#DFF7E8' }]}
           onPress={() => router.push(`/(tabs)/car/${carId}/add-event` as any)}
         >
-          <Text style={styles.addBtnText}>Add event</Text>
+          <Text style={[styles.addBtnText, isLight && { color: '#1C5A34' }]}>Add event</Text>
         </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 
   const empty = (
     <View style={styles.empty}>
-      {loading ? (
+      {!timelineOpen ? null : loading ? (
         <ActivityIndicator size="large" />
       ) : error ? (
         <ThemedText style={styles.emptyText}>Couldn’t load. Pull down to retry.</ThemedText>
@@ -580,14 +641,14 @@ export default function CarTimelineScreen() {
   );
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: palette.background }]}>
       <FlatList
-        data={events}
+        data={timelineOpen ? events : []}
         keyExtractor={(e) => e.id}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' }]}>
             <View style={styles.cardRow}>
               <ThemedText style={styles.cardType}>{eventTypeLabel(item.event_type)}</ThemedText>
               <ThemedText style={styles.cardDate}>{formatDate(item.event_date)}</ThemedText>
@@ -663,6 +724,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
+  },
+  expandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  expandCard: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#0A1A37',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#294263',
+  },
+  expandCardLight: {
+    backgroundColor: '#F7FBF8',
+    borderColor: '#BFE9CD',
   },
   addBtn: {
     backgroundColor: '#2DD4BF',

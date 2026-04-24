@@ -1,5 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,7 +13,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,18 +50,21 @@ function formatDate(s: string) {
 
 export default function LookupScreen() {
   const insets = useSafeAreaInsets();
-  const scheme = useColorScheme();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const isLight = scheme === 'light';
   const colors = useMemo(() => {
     return {
-      bg: '#07142B',
-      card: '#0A1A37',
-      text: '#E9EEF7',
-      subtext: '#8DA0B8',
-      border: '#294263',
-      placeholder: '#8DA0B8',
-      primary: '#2DD4BF',
+      bg: palette.background,
+      card: isLight ? '#FFFFFF' : palette.card,
+      text: palette.text,
+      subtext: palette.icon,
+      border: isLight ? '#BFE9CD' : palette.border,
+      placeholder: palette.icon,
+      primary: isLight ? '#DFF7E8' : palette.accent,
+      primaryText: isLight ? '#1C5A34' : '#062B32',
     };
-  }, [scheme]);
+  }, [isLight, palette]);
 
   const [regNumber, setRegNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -120,9 +124,9 @@ export default function LookupScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#062B32" size="small" />
+              <ActivityIndicator color={colors.primaryText} size="small" />
             ) : (
-              <Text style={styles.searchBtnText}>Search</Text>
+              <Text style={[styles.searchBtnText, { color: colors.primaryText }]}>Search</Text>
             )}
           </TouchableOpacity>
         </View>

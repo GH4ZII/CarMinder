@@ -1,4 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -17,6 +19,8 @@ import {
 
 export default function ForgotPasswordScreen() {
   const { forgotPassword } = useAuth();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -52,25 +56,25 @@ export default function ForgotPasswordScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: palette.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.card}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { backgroundColor: palette.background }]} keyboardShouldPersistTaps="handled">
+        <View style={[styles.card, { backgroundColor: palette.background }]}>
           <View style={styles.logoWrap}>
             <AntDesign name="car" size={22} color={styles.logoIcon.color} />
           </View>
 
-          <Text style={styles.title}>Forgot password</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: palette.text }]}>Forgot password</Text>
+          <Text style={[styles.subtitle, { color: palette.icon }]}>
             Enter your email and we will send you a reset link.
           </Text>
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={[styles.label, { color: palette.text }]}>Email</Text>
 
           <TextInput
-            style={[styles.input, errorMessage && styles.inputError]}
+            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }, errorMessage && styles.inputError]}
             placeholder="alex@example.com"
-            placeholderTextColor="#8DA0B8"
+            placeholderTextColor={palette.icon}
             value={email}
             onChangeText={(value) => {
               setEmail(value);
@@ -103,7 +107,7 @@ export default function ForgotPasswordScreen() {
             onPress={() => router.back()}
             disabled={loading}
           >
-            <Text style={styles.backButtonText}>Back to login</Text>
+            <Text style={[styles.backButtonText, { color: palette.accent }]}>Back to login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -2,17 +2,23 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const isLight = scheme === 'light';
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2DD4BF',
-        tabBarInactiveTintColor: '#7F90A7',
+        tabBarActiveTintColor: isLight ? '#1C5A34' : palette.tabIconSelected,
+        tabBarInactiveTintColor: isLight ? '#5F7768' : palette.tabIconDefault,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0A1A37',
-          borderTopColor: '#294263',
+          backgroundColor: isLight ? '#EFF6F1' : palette.card,
+          borderTopColor: isLight ? '#BFE9CD' : palette.border,
           borderTopWidth: 1,
           height: 76,
           paddingTop: 8,

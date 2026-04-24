@@ -1,4 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ApiError } from '@/frontendServices/apiCall';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -28,6 +30,8 @@ export default function LoginScreen() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   useEffect(() => {
     let mounted = true;
@@ -136,25 +140,25 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: palette.background }]}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: palette.background }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: palette.background }]}>
           <View style={styles.logoWrap}>
             <AntDesign name="car" size={24} color={styles.logoIcon.color} />
           </View>
 
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Log in to manage your vehicles</Text>
+          <Text style={[styles.title, { color: palette.text }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: palette.icon }]}>Log in to manage your vehicles</Text>
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={[styles.label, { color: palette.text }]}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
             placeholder="alex@example.com"
-            placeholderTextColor="#8DA0B8"
+            placeholderTextColor={palette.icon}
             value={email}
             onChangeText={(value) => {
               setEmail(value);
@@ -169,11 +173,11 @@ export default function LoginScreen() {
           />
 
           <Text style={[styles.label, errorMessage && styles.labelError]}>Password</Text>
-          <View style={[styles.passwordWrap, errorMessage && styles.passwordWrapError]}>
+          <View style={[styles.passwordWrap, { backgroundColor: palette.card, borderColor: palette.border }, errorMessage && styles.passwordWrapError]}>
             <TextInput
-              style={styles.passwordInput}
+              style={[styles.passwordInput, { color: palette.text }]}
               placeholder="Enter your password"
-              placeholderTextColor="#8DA0B8"
+              placeholderTextColor={palette.icon}
               value={password}
               onChangeText={(value) => {
                 setPassword(value);
@@ -194,7 +198,7 @@ export default function LoginScreen() {
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                 size={18}
-                color={errorMessage ? '#F55252' : '#8DA0B8'}
+                color={errorMessage ? '#F55252' : palette.icon}
               />
             </TouchableOpacity>
           </View>
@@ -222,13 +226,13 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>Or continue with</Text>
-            <View style={styles.divider} />
+            <View style={[styles.divider, { borderColor: palette.border }]} />
+            <Text style={[styles.dividerText, { color: palette.icon }]}>Or continue with</Text>
+            <View style={[styles.divider, { borderColor: palette.border }]} />
           </View>
 
           <TouchableOpacity
-            style={[styles.socialButton, (loading || googleLoading) && styles.buttonDisabled]}
+            style={[styles.socialButton, { borderColor: palette.border }, (loading || googleLoading) && styles.buttonDisabled]}
             onPress={handleGoogleSignIn}
             disabled={loading || googleLoading}
           >
@@ -236,15 +240,15 @@ export default function LoginScreen() {
               <ActivityIndicator color="#D8E1EE" />
             ) : (
               <>
-                <Ionicons name="logo-google" size={18} color="#D8E1EE" />
-                <Text style={styles.socialButtonText}>Continue with Google</Text>
+                <Ionicons name="logo-google" size={18} color={palette.text} />
+                <Text style={[styles.socialButtonText, { color: palette.text }]}>Continue with Google</Text>
               </>
             )}
           </TouchableOpacity>
 
           {appleAvailable && (
             <TouchableOpacity
-              style={[styles.socialButton, styles.appleButton, (loading || appleLoading) && styles.buttonDisabled]}
+              style={[styles.socialButton, { borderColor: palette.border }, styles.appleButton, (loading || appleLoading) && styles.buttonDisabled]}
               onPress={handleAppleSignIn}
               disabled={loading || appleLoading}
             >
@@ -252,8 +256,8 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#D8E1EE" />
               ) : (
                 <>
-                  <Ionicons name="logo-apple" size={18} color="#D8E1EE" />
-                  <Text style={styles.socialButtonText}>Continue with Apple</Text>
+                  <Ionicons name="logo-apple" size={18} color={palette.text} />
+                  <Text style={[styles.socialButtonText, { color: palette.text }]}>Continue with Apple</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -264,8 +268,8 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/signup')}
             disabled={loading || googleLoading || appleLoading}
           >
-            <Text style={styles.switchText}>
-              Don't have an account? <Text style={styles.switchTextAccent}>Sign up</Text>
+            <Text style={[styles.switchText, { color: palette.icon }]}>
+              Don't have an account? <Text style={[styles.switchTextAccent, { color: palette.accent }]}>Sign up</Text>
             </Text>
           </TouchableOpacity>
         </View>

@@ -47,6 +47,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.venv/
 
 # Backend env and config
 backend-python/.env

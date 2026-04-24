@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -12,7 +14,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
@@ -68,13 +69,15 @@ function Gauge({ value, min, max, label, unit, color, warningThreshold, dark }: 
   const displayColor =
     warningThreshold != null && value != null && value >= warningThreshold ? '#FF3B30' : color;
 
-  const textColor = dark ? '#E9EEF7' : '#E9EEF7';
-  const subColor = dark ? '#8DA0B8' : '#8DA0B8';
+  const textColor = dark ? '#E9EEF7' : '#102016';
+  const subColor = dark ? '#8DA0B8' : '#5F7768';
+  const cardBg = dark ? '#0A1A37' : '#FFFFFF';
+  const cardBorder = dark ? '#294263' : '#D8E5DD';
 
   return (
-    <View style={[gaugeStyles.container, { width: size, height: size, backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
+    <View style={[gaugeStyles.container, { width: size, height: size, backgroundColor: cardBg, borderColor: cardBorder }]}>
       <Svg width={size} height={size}>
-        <Path d={bgArc} stroke="#294263" strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
+        <Path d={bgArc} stroke={cardBorder} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
         {valArc ? (
           <Path d={valArc} stroke={displayColor} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
         ) : null}
@@ -132,9 +135,12 @@ type LineChartProps = {
 };
 
 function MiniLineChart({ data, color, label, unit, dark }: LineChartProps) {
+  const cardBg = dark ? '#0A1A37' : '#FFFFFF';
+  const cardBorder = dark ? '#294263' : '#D8E5DD';
+
   if (data.length < 2) {
     return (
-      <View style={[chartStyles.container, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
+      <View style={[chartStyles.container, { backgroundColor: cardBg, borderColor: cardBorder }]}>
         <ThemedText style={chartStyles.label}>{label}</ThemedText>
         <ThemedText style={chartStyles.noData}>Not enough data for chart</ThemedText>
       </View>
@@ -162,8 +168,8 @@ function MiniLineChart({ data, color, label, unit, dark }: LineChartProps) {
   // Fill area under curve
   const fillD = `${pathD} L ${points[points.length - 1].x} ${padY + h} L ${points[0].x} ${padY + h} Z`;
 
-  const textColor = dark ? '#8DA0B8' : '#8DA0B8';
-  const gridColor = dark ? '#294263' : '#294263';
+  const textColor = dark ? '#8DA0B8' : '#5F7768';
+  const gridColor = dark ? '#294263' : '#D8E5DD';
 
   // Y-axis labels (3 ticks)
   const yTicks = [minVal, (minVal + maxVal) / 2, maxVal];
@@ -179,7 +185,7 @@ function MiniLineChart({ data, color, label, unit, dark }: LineChartProps) {
       : data.map((d, i) => ({ idx: i, label: formatShortDate(d.date) }));
 
   return (
-    <View style={[chartStyles.container, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
+    <View style={[chartStyles.container, { backgroundColor: cardBg, borderColor: cardBorder }]}>
       <View style={chartStyles.headerRow}>
         <ThemedText style={chartStyles.label}>{label}</ThemedText>
         <ThemedText style={chartStyles.unitLabel}>{unit}</ThemedText>
@@ -311,6 +317,9 @@ export default function ObdDashboardScreen() {
   const { getToken } = useAuth();
   const scheme = useColorScheme();
   const dark = scheme === 'dark';
+  const palette = Colors[scheme ?? 'light'];
+  const primaryBtnBg = dark ? '#2DD4BF' : '#DFF7E8';
+  const primaryBtnText = dark ? '#062B32' : '#1C5A34';
 
   const [readings, setReadings] = useState<ObdReadingResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,7 +378,7 @@ export default function ObdDashboardScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
@@ -377,15 +386,12 @@ export default function ObdDashboardScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={[styles.backBtnText, dark && { color: '#2DD4BF' }]}>{'<-'} Back</Text>
-          </TouchableOpacity>
           <View style={styles.headerRight}>
             <TouchableOpacity
-              style={[styles.scanBtn, { backgroundColor: '#2DD4BF' }]}
+              style={[styles.scanBtn, { backgroundColor: primaryBtnBg }]}
               onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
             >
-              <Text style={styles.scanBtnText}>New Scan</Text>
+              <Text style={[styles.primaryBtnText, { color: primaryBtnText }]}>New Scan</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -393,7 +399,7 @@ export default function ObdDashboardScreen() {
         <ThemedText type="title" style={styles.title}>Diagnostics</ThemedText>
 
         {latest && (
-          <ThemedText style={styles.subtitle}>
+          <ThemedText style={[styles.subtitle, { color: palette.icon }]}>
             Last scan: {formatFullDate(latest.captured_at)} ({latest.source})
           </ThemedText>
         )}
@@ -408,10 +414,10 @@ export default function ObdDashboardScreen() {
             <ThemedText style={styles.emptyTitle}>Diagnostics unavailable</ThemedText>
             <ThemedText style={styles.emptyHint}>{loadError}</ThemedText>
             <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: '#2DD4BF' }]}
+              style={[styles.emptyBtn, { backgroundColor: primaryBtnBg }]}
               onPress={refresh}
             >
-              <Text style={styles.emptyBtnText}>Try Again</Text>
+              <Text style={[styles.primaryBtnText, { color: primaryBtnText }]}>Try Again</Text>
             </TouchableOpacity>
           </View>
         ) : readings.length === 0 ? (
@@ -421,10 +427,10 @@ export default function ObdDashboardScreen() {
               Connect your OBD-II adapter and scan your car to see diagnostics here.
             </ThemedText>
             <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: '#2DD4BF' }]}
+              style={[styles.emptyBtn, { backgroundColor: primaryBtnBg }]}
               onPress={() => router.push(`/(tabs)/car/${carId}/obd-scan` as any)}
             >
-              <Text style={styles.emptyBtnText}>Start First Scan</Text>
+              <Text style={[styles.primaryBtnText, { color: primaryBtnText }]}>Start First Scan</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -434,12 +440,17 @@ export default function ObdDashboardScreen() {
             <View style={styles.gaugeGrid}>
               <Gauge value={latest?.rpm ?? null} min={0} max={8000} label="RPM" unit="rev/min" color="#2DD4BF" warningThreshold={6000} dark={dark} />
               <Gauge value={latest?.coolant_temp_c ?? null} min={-40} max={150} label="Coolant" unit="°C" color="#34C759" warningThreshold={110} dark={dark} />
-              <Gauge value={latest?.speed_kph ?? null} min={0} max={260} label="Speed" unit="km/h" color="#22D3EE" dark={dark} />
+              <Gauge value={latest?.speed_kph ?? null} min={0} max={260} label="Speed" unit="km/h" color="#2DD4BF" dark={dark} />
               <Gauge value={latest?.engine_load_pct ?? null} min={0} max={100} label="Load" unit="%" color="#FF9500" warningThreshold={85} dark={dark} />
             </View>
 
             {/* Battery - full width */}
-            <View style={[styles.batteryCard, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
+            <View
+              style={[
+                styles.batteryCard,
+                { backgroundColor: dark ? '#0A1A37' : '#FFFFFF', borderColor: dark ? '#294263' : '#D8E5DD' },
+              ]}
+            >
               <View style={styles.batteryRow}>
                 <ThemedText style={styles.batteryLabel}>Battery</ThemedText>
                 <ThemedText style={styles.batteryValue}>
@@ -474,14 +485,14 @@ export default function ObdDashboardScreen() {
               <>
                 <ThemedText style={styles.sectionTitle}>Trends ({readings.length} readings)</ThemedText>
                 <TouchableOpacity onPress={refresh} disabled={refreshing} style={styles.refreshBtn}>
-                  <Text style={[styles.refreshBtnText, dark && { color: '#2DD4BF' }]}>
+                  <Text style={[styles.refreshBtnText, { color: palette.accent }]}>
                     {refreshing ? 'Refreshing...' : 'Refresh'}
                   </Text>
                 </TouchableOpacity>
 
                 <MiniLineChart data={chartData.rpm} color="#2DD4BF" label="RPM" unit="rev/min" dark={dark} />
                 <MiniLineChart data={chartData.coolant} color="#34C759" label="Coolant Temperature" unit="°C" dark={dark} />
-                <MiniLineChart data={chartData.speed} color="#22D3EE" label="Speed" unit="km/h" dark={dark} />
+                <MiniLineChart data={chartData.speed} color="#2DD4BF" label="Speed" unit="km/h" dark={dark} />
                 <MiniLineChart data={chartData.load} color="#FF9500" label="Engine Load" unit="%" dark={dark} />
                 <MiniLineChart data={chartData.battery} color="#34C759" label="Battery Voltage" unit="V" dark={dark} />
               </>
@@ -492,7 +503,12 @@ export default function ObdDashboardScreen() {
               Trouble Codes {latest?.dtcs?.length ? `(${latest.dtcs.length})` : ''}
             </ThemedText>
             {!latest?.dtcs?.length ? (
-              <View style={[styles.noDtcCard, { backgroundColor: '#0A1A37', borderColor: '#294263' }]}>
+              <View
+                style={[
+                  styles.noDtcCard,
+                  { backgroundColor: dark ? '#0A1A37' : '#FFFFFF', borderColor: dark ? '#294263' : '#D8E5DD' },
+                ]}
+              >
                 <Text style={{ fontSize: 28 }}>{'✓'}</Text>
                 <ThemedText style={styles.noDtcText}>No trouble codes detected</ThemedText>
                 <ThemedText style={styles.noDtcHint}>Your vehicle systems are operating normally.</ThemedText>
@@ -504,6 +520,12 @@ export default function ObdDashboardScreen() {
             )}
           </>
         )}
+        <TouchableOpacity
+          style={[styles.emptyBtn, styles.backBottomBtn, { backgroundColor: primaryBtnBg }]}
+          onPress={() => router.back()}
+        >
+          <Text style={[styles.primaryBtnText, { color: primaryBtnText }]}>Back</Text>
+        </TouchableOpacity>
       </ScrollView>
     </ThemedView>
   );
@@ -515,19 +537,18 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 8,
   },
   headerRight: { flexDirection: 'row', gap: 8 },
-  backBtn: { paddingVertical: 8 },
-  backBtnText: { fontSize: 17, color: '#2DD4BF', fontWeight: '600' },
   scanBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  scanBtnText: { color: '#062B32', fontSize: 14, fontWeight: '700' },
+  primaryBtnText: { color: '#062B32', fontSize: 15, fontWeight: '700' },
+  backBottomBtn: { alignSelf: 'center', marginTop: 20 },
   title: { marginBottom: 4 },
   subtitle: { fontSize: 12, color: '#8DA0B8', marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 24, marginBottom: 12 },
@@ -558,7 +579,7 @@ const styles = StyleSheet.create({
   batteryBarBg: {
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#102449',
+    backgroundColor: '#EFF6F1',
     overflow: 'hidden',
   },
   batteryBarFill: {

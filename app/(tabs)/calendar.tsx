@@ -1,20 +1,21 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,10 +78,10 @@ function MonthYearPicker({
   const [pickerYear, setPickerYear] = useState(currentYear);
   const yearListRef = useRef<FlatList>(null);
 
-  const bgColor = '#0A1A37';
-  const textColor = '#E9EEF7';
-  const dimColor = '#8DA0B8';
-  const pillBg = '#102449';
+  const bgColor = isDark ? '#0F2A1E' : '#FFFFFF';
+  const textColor = isDark ? '#E9EEF7' : '#102016';
+  const dimColor = isDark ? '#9EBCA9' : '#5F7768';
+  const pillBg = isDark ? '#163827' : '#EFF6F1';
 
   const now = new Date();
   const years = useMemo(() => {
@@ -167,11 +168,15 @@ function CarSelector({
   selectedId,
   onSelect,
   isDark,
+  primaryPillBg,
+  primaryPillText,
 }: {
   cars: CarInfo[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   isDark: boolean;
+  primaryPillBg: string;
+  primaryPillText: string;
 }) {
   return (
     <ScrollView
@@ -189,10 +194,10 @@ function CarSelector({
               styles.carPill,
               {
                 backgroundColor: isActive
-                  ? '#2DD4BF'
+                  ? primaryPillBg
                   : isDark
                     ? 'rgba(255,255,255,0.1)'
-                    : 'rgba(0,0,0,0.06)',
+                    : '#EFF6F1',
               },
             ]}
             onPress={() => car.id && onSelect(car.id)}
@@ -202,7 +207,7 @@ function CarSelector({
               style={[
                 styles.carPillText,
                 {
-                  color: isActive ? '#062B32' : '#E9EEF7',
+                  color: isActive ? primaryPillText : isDark ? '#E9EEF7' : '#102016',
                 },
               ]}
             >
@@ -213,7 +218,9 @@ function CarSelector({
                 styles.carPillReg,
                 {
                   color: isActive
-                    ? 'rgba(255,255,255,0.8)'
+                    ? isDark
+                      ? 'rgba(255,255,255,0.8)'
+                      : '#102016'
                     : isDark
                       ? 'rgba(255,255,255,0.5)'
                       : 'rgba(0,0,0,0.5)',
@@ -248,6 +255,7 @@ function EventEntry({
   const { month, day } = formatShortDate(event.event_date);
   const iconName = EVENT_TYPE_ICONS[event.event_type] ?? 'assignment';
   const label = EVENT_TYPE_LABELS[event.event_type] ?? event.event_type;
+  const titleColor = isDark ? '#E9EEF7' : '#102016';
 
   const tags: string[] = [];
   if (event.vendor) tags.push(event.vendor);
@@ -263,16 +271,16 @@ function EventEntry({
         <Text style={[styles.entryMonth, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>
           {isFirst ? month : ''}
         </Text>
-        <Text style={[styles.entryDay, { color: '#E9EEF7' }]}>
+        <Text style={[styles.entryDay, { color: isDark ? '#E9EEF7' : '#102016' }]}>
           {isFirst ? day : ''}
         </Text>
       </TouchableOpacity>
 
       {/* Timeline Column — continuous line, tap to navigate */}
       <TouchableOpacity style={styles.timelineCol} onPress={onPress} activeOpacity={0.6}>
-        <View style={[styles.timelineLine, { backgroundColor: isFirst ? 'transparent' : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)') }]} />
+        <View style={[styles.timelineLine, { backgroundColor: isFirst ? 'transparent' : (isDark ? 'rgba(255,255,255,0.15)' : '#CDE9D5') }]} />
         <View style={styles.timelineDot} />
-        <View style={[styles.timelineLineBottom, { backgroundColor: isLast ? 'transparent' : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)') }]} />
+        <View style={[styles.timelineLineBottom, { backgroundColor: isLast ? 'transparent' : (isDark ? 'rgba(255,255,255,0.15)' : '#CDE9D5') }]} />
       </TouchableOpacity>
 
       {/* Card */}
@@ -280,7 +288,7 @@ function EventEntry({
         style={[
           styles.entryCard,
           {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
           },
         ]}
         activeOpacity={0.7}
@@ -289,8 +297,8 @@ function EventEntry({
         <View style={styles.entryCardHeader}>
           <View style={{ flex: 1 }}>
             <View style={styles.entryTitleRow}>
-              <MaterialIcons name={iconName} size={16} color="#E9EEF7" />
-              <Text style={[styles.entryTitle, { color: '#E9EEF7' }]}>
+              <MaterialIcons name={iconName} size={16} color={titleColor} />
+              <Text style={[styles.entryTitle, { color: titleColor }]}>
                 {label}
               </Text>
             </View>
@@ -302,7 +310,7 @@ function EventEntry({
                     style={[
                       styles.entryTag,
                       {
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#EFF6F1',
                       },
                     ]}
                   >
@@ -347,6 +355,7 @@ export default function CalendarScreen() {
   const { user, getToken } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const palette = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
 
   const [cars, setCars] = useState<CarInfo[]>([]);
@@ -508,14 +517,14 @@ export default function CalendarScreen() {
   const calendarTheme = {
     backgroundColor: 'transparent',
     calendarBackground: 'transparent',
-    textSectionTitleColor: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)',
-    dayTextColor: '#E9EEF7',
+    textSectionTitleColor: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)',
+    dayTextColor: isDark ? '#FFFFFF' : palette.text,
     todayTextColor: '#2DD4BF',
-    monthTextColor: '#E9EEF7',
+    monthTextColor: isDark ? '#FFFFFF' : palette.text,
     arrowColor: '#2DD4BF',
     textDisabledColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
     selectedDayBackgroundColor: '#2DD4BF',
-    selectedDayTextColor: '#062B32',
+    selectedDayTextColor: isDark ? '#FFFFFF' : '#062B32',
     textDayFontWeight: '500' as const,
     textMonthFontWeight: '700' as const,
     textDayHeaderFontWeight: '600' as const,
@@ -525,7 +534,7 @@ export default function CalendarScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
@@ -540,6 +549,8 @@ export default function CalendarScreen() {
             selectedId={selectedCarId}
             onSelect={handleSelectCar}
             isDark={isDark}
+            primaryPillBg={isDark ? '#2DD4BF' : '#DFF7E8'}
+            primaryPillText={isDark ? '#062B32' : '#1C5A34'}
           />
         )}
 
@@ -556,7 +567,7 @@ export default function CalendarScreen() {
             {/* Calendar with tappable header */}
             <View style={styles.calendarWrapper}>
               <Calendar
-                key={calendarKey}
+                key={`${calendarKey}-${isDark ? 'dark' : 'light'}`}
                 current={initialDate}
                 markedDates={markedDates}
                 onDayPress={handleDayPress}
@@ -566,7 +577,7 @@ export default function CalendarScreen() {
                 enableSwipeMonths
                 renderHeader={(date: string) => (
                   <TouchableOpacity onPress={() => setPickerVisible(true)} activeOpacity={0.6}>
-                    <Text style={[styles.calendarHeader, { color: '#E9EEF7' }]}>
+                    <Text style={[styles.calendarHeader, { color: isDark ? '#FFFFFF' : palette.text }]}>
                       {MONTH_NAMES[viewMonth]} {viewYear}
                     </Text>
                   </TouchableOpacity>

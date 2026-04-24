@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -100,9 +102,22 @@ const ringStyles = StyleSheet.create({
 
 function CarScoreCard({ score }: { score: CarCareScoreResponse }) {
   const color = GRADE_COLORS[score.grade] ?? '#8E8E93';
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   return (
-    <View style={styles.scoreCard}>
+    <View
+      style={[
+        styles.scoreCard,
+        scheme === 'light' && {
+          backgroundColor: '#F3FCEB',
+          borderRadius: 12,
+          padding: 12,
+          borderWidth: 1,
+          borderColor: '#CDE9D5',
+        },
+      ]}
+    >
       <ScoreRing score={score.overall_score} grade={score.grade} />
       <View style={styles.scoreDetails}>
         <Text style={[styles.scoreTitle, { color }]}>Car Care Score</Text>
@@ -156,17 +171,31 @@ function CarServiceCard({
   car,
   score,
   onPress,
+  scheme,
+  palette,
+  style,
+  joinedWithSummary,
 }: {
   car: CarServiceStatus;
   score: CarCareScoreResponse | null;
   onPress: () => void;
+  scheme: 'light' | 'dark';
+  palette: (typeof Colors)['light'];
+  style?: object;
+  joinedWithSummary?: boolean;
 }) {
   const urgentServices = car.services.filter((s) => s.urgency === 'overdue' || s.urgency === 'soon');
   const hasUrgent = urgentServices.length > 0;
 
   return (
     <TouchableOpacity
-      style={[styles.carCard, hasUrgent && styles.carCardUrgent]}
+      style={[
+        styles.carCard,
+        scheme === 'light' && { backgroundColor: '#FFFFFF', borderColor: palette.border },
+        joinedWithSummary && styles.joinedFirstCarCard,
+        hasUrgent && styles.carCardUrgent,
+        style,
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -175,10 +204,10 @@ function CarServiceCard({
 
       <View style={styles.carHeader}>
         <View style={{ flex: 1 }}>
-          <ThemedText style={styles.carName}>{car.car_name}</ThemedText>
-          <ThemedText style={styles.carReg}>{car.registration}</ThemedText>
+          <ThemedText style={[styles.carName, scheme === 'light' && { color: palette.text }]}>{car.car_name}</ThemedText>
+          <ThemedText style={[styles.carReg, scheme === 'light' && { color: palette.icon }]}>{car.registration}</ThemedText>
         </View>
-        <ThemedText style={styles.carMileage}>
+        <ThemedText style={[styles.carMileage, scheme === 'light' && { color: palette.icon }]}>
           {car.current_mileage.toLocaleString()} km
         </ThemedText>
       </View>
@@ -210,7 +239,7 @@ function CarServiceCard({
         ))}
       </View>
 
-      <Text style={styles.tapHint}>Tap to view details →</Text>
+      <Text style={[styles.tapHint, scheme === 'light' && { color: '#1C5A34' }]}>Tap to view details →</Text>
     </TouchableOpacity>
   );
 }
@@ -225,6 +254,8 @@ export default function HomeScreen() {
   const [scores, setScores] = useState<Record<string, CarCareScoreResponse>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   const fetchStatus = useCallback(async () => {
     if (!user) {
@@ -287,10 +318,10 @@ export default function HomeScreen() {
           Track your car maintenance and never miss a service.
         </ThemedText>
         <TouchableOpacity
-          style={styles.loginBtn}
+          style={[styles.loginBtn, scheme === 'light' && styles.loginBtnLight]}
           onPress={() => router.push('/(auth)/login')}
         >
-          <Text style={styles.loginBtnText}>Sign In</Text>
+          <Text style={[styles.loginBtnText, scheme === 'light' && styles.lightButtonText]}>Sign In</Text>
         </TouchableOpacity>
       </View>
     );
@@ -298,50 +329,85 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+      style={[styles.container, { backgroundColor: palette.background }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, backgroundColor: palette.background }]}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchStatus} />}
     >
-      <ThemedText type="title" style={styles.title}>
+      <ThemedText type="title" style={[styles.title, { color: palette.text }]}>
         Service Overview
       </ThemedText>
 
-      {/* Summary Banner */}
-      {status && (
-        <View style={styles.summaryBanner}>
-          {status.urgent_count > 0 ? (
-            <>
-              <MaterialIcons name="warning" size={28} color="#FF3B30" />
-              <View>
-                <ThemedText style={styles.summaryText}>
-                  {status.overdue_count > 0 && (
-                    <Text style={{ color: '#FF3B30' }}>
-                      {status.overdue_count} overdue
-                    </Text>
-                  )}
-                  {status.overdue_count > 0 && status.soon_count > 0 && ', '}
-                  {status.soon_count > 0 && (
-                    <Text style={{ color: '#FF9500' }}>
-                      {status.soon_count} due soon
-                    </Text>
-                  )}
-                </ThemedText>
-                <ThemedText style={styles.summarySubtext}>
-                  across {status.cars.length} vehicle{status.cars.length !== 1 ? 's' : ''}
-                </ThemedText>
-              </View>
-            </>
-          ) : (
-            <>
-              <MaterialIcons name="check-circle" size={28} color="#34C759" />
-              <View>
-                <ThemedText style={styles.summaryText}>All services up to date</ThemedText>
-                <ThemedText style={styles.summarySubtext}>
-                  {status.cars.length} vehicle{status.cars.length !== 1 ? 's' : ''} tracked
-                </ThemedText>
-              </View>
-            </>
-          )}
+      {/* Summary Banner + first card in one wrapper */}
+      {status && status.cars.length > 0 && (
+        <View style={styles.combinedTopBlock}>
+          <View
+            style={[
+              styles.summaryBanner,
+              { backgroundColor: palette.card, borderColor: palette.border },
+              styles.joinedSummaryBanner,
+            ]}
+          >
+            {status.urgent_count > 0 ? (
+              <>
+                <MaterialIcons name="warning" size={28} color="#FF3B30" />
+                <View>
+                  <ThemedText style={styles.summaryText}>
+                    {status.overdue_count > 0 && (
+                      <Text style={{ color: '#FF3B30' }}>
+                        {status.overdue_count} overdue
+                      </Text>
+                    )}
+                    {status.overdue_count > 0 && status.soon_count > 0 && ', '}
+                    {status.soon_count > 0 && (
+                      <Text style={{ color: '#FF9500' }}>
+                        {status.soon_count} due soon
+                      </Text>
+                    )}
+                  </ThemedText>
+                  <ThemedText style={[styles.summarySubtext, { color: palette.text }]}>
+                    across {status.cars.length} vehicle{status.cars.length !== 1 ? 's' : ''}
+                  </ThemedText>
+                </View>
+              </>
+            ) : (
+              <>
+                <MaterialIcons name="check-circle" size={28} color="#34C759" />
+                <View>
+                  <ThemedText style={[styles.summaryText, { color: palette.text }]}>All services up to date</ThemedText>
+                  <ThemedText style={[styles.summarySubtext, { color: palette.text }]}>
+                    {status.cars.length} vehicle{status.cars.length !== 1 ? 's' : ''} tracked
+                  </ThemedText>
+                </View>
+              </>
+            )}
+          </View>
+          <CarServiceCard
+            key={status.cars[0].car_id}
+            car={status.cars[0]}
+            score={scores[status.cars[0].car_id] ?? null}
+            onPress={() => router.push(`/(tabs)/car/${status.cars[0].car_id}` as any)}
+            scheme={scheme}
+            palette={palette}
+            style={styles.joinedTopCard}
+            joinedWithSummary
+          />
+        </View>
+      )}
+
+      {status && status.cars.length === 0 && (
+        <View
+          style={[
+            styles.summaryBanner,
+            { backgroundColor: palette.card, borderColor: palette.border },
+          ]}
+        >
+          <MaterialIcons name="check-circle" size={28} color="#34C759" />
+          <View>
+            <ThemedText style={[styles.summaryText, { color: palette.text }]}>All services up to date</ThemedText>
+            <ThemedText style={[styles.summarySubtext, { color: palette.text }]}>
+              0 vehicles tracked
+            </ThemedText>
+          </View>
         </View>
       )}
 
@@ -365,31 +431,33 @@ export default function HomeScreen() {
         <View style={styles.emptyContainer}>
           <ThemedText style={styles.emptyText}>No cars added yet.</ThemedText>
           <TouchableOpacity
-            style={styles.addCarBtn}
+            style={[styles.addCarBtn, scheme === 'light' && styles.addCarBtnLight]}
             onPress={() => router.push('/(tabs)/addCar')}
           >
-            <Text style={styles.addCarBtnText}>Add Your First Car</Text>
+            <Text style={[styles.addCarBtnText, scheme === 'light' && styles.lightButtonText]}>Add Your First Car</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Car Cards */}
-      {status?.cars.map((car) => (
+      {status?.cars.slice(1).map((car) => (
         <CarServiceCard
           key={car.car_id}
           car={car}
           score={scores[car.car_id] ?? null}
           onPress={() => router.push(`/(tabs)/car/${car.car_id}` as any)}
+          scheme={scheme}
+          palette={palette}
         />
       ))}
 
       {/* Add Car Button (if has cars) */}
       {status && status.cars.length > 0 && (
         <TouchableOpacity
-          style={styles.addMoreBtn}
+          style={[styles.addMoreBtn, scheme === 'light' && styles.addMoreBtnLight]}
           onPress={() => router.push('/(tabs)/addCar')}
         >
-          <Text style={styles.addMoreBtnText}>+ Add Another Car</Text>
+          <Text style={[styles.addMoreBtnText, scheme === 'light' && styles.lightButtonText]}>+ Add Another Car</Text>
         </TouchableOpacity>
       )}
     </ScrollView>
@@ -397,8 +465,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07142B' },
-  content: { paddingHorizontal: 20, paddingBottom: 40, backgroundColor: '#07142B' },
+  container: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: 40 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -418,6 +486,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   loginBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  loginBtnLight: {
+    backgroundColor: '#DFF7E8',
+    borderWidth: 1,
+    borderColor: '#BFE9CD',
+  },
 
   // Summary Banner
   summaryBanner: {
@@ -426,10 +499,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A1A37',
     padding: 16,
     borderRadius: 14,
-    marginBottom: 20,
+    marginBottom: 8,
     gap: 12,
     borderWidth: 1,
     borderColor: '#294263',
+  },
+  combinedTopBlock: {
+    marginBottom: 16,
+  },
+  joinedSummaryBanner: {
+    marginBottom: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   summaryText: { fontSize: 16, fontWeight: '600', color: '#E9EEF7' },
   summarySubtext: { fontSize: 14, color: '#8DA0B8', marginTop: 2 },
@@ -448,6 +529,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   addCarBtnText: { color: '#062B32', fontSize: 15, fontWeight: '700' },
+  addCarBtnLight: {
+    backgroundColor: '#DFF7E8',
+    borderWidth: 1,
+    borderColor: '#BFE9CD',
+  },
 
   // Score Card
   scoreCard: {
@@ -472,6 +558,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#294263',
+  },
+  joinedTopCard: {
+    marginTop: 0,
+  },
+  joinedFirstCarCard: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderTopWidth: 0,
   },
   carCardUrgent: {
     borderLeftWidth: 4,
@@ -539,4 +633,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A1A37',
   },
   addMoreBtnText: { fontSize: 15, color: '#2DD4BF', fontWeight: '600' },
+  addMoreBtnLight: {
+    backgroundColor: '#DFF7E8',
+    borderColor: '#BFE9CD',
+  },
+  lightButtonText: {
+    color: '#1C5A34',
+  },
 });

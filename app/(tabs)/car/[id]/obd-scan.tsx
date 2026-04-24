@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -35,6 +37,8 @@ export default function ObdScanScreen() {
   const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   const [snapshot, setSnapshot] = useState<ObdSnapshot | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -111,10 +115,10 @@ export default function ObdScanScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>← Back</Text>
+          <Text style={[styles.backBtnText, { color: palette.accent }]}>← Back</Text>
         </TouchableOpacity>
 
         <ThemedText type="title" style={styles.title}>OBD-II Scanner</ThemedText>
@@ -142,7 +146,7 @@ export default function ObdScanScreen() {
                 onPress={runDemo}
                 disabled={scanning}
               >
-                <Text style={styles.demoBtnText}>Demo scan</Text>
+                <Text style={[styles.demoBtnText, { color: palette.accent }]}>Demo scan</Text>
               </TouchableOpacity>
             </>
           )}
@@ -156,7 +160,7 @@ export default function ObdScanScreen() {
 
         {/* Results */}
         {snapshot && (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
             <View style={styles.headerRow}>
               <ThemedText style={styles.cardTitle}>
                 {snapshot.source === 'simulated' ? 'Demo reading' : 'Device reading'}

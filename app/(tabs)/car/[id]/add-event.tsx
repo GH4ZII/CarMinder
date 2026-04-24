@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -20,7 +22,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,21 +48,22 @@ export default function AddMaintenanceEventScreen() {
   const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { user, getToken } = useAuth();
-  const scheme = useColorScheme();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   const colors = useMemo(() => {
     return {
-      bg: '#07142B',
-      card: '#0A1A37',
-      text: '#E9EEF7',
-      subtext: '#8DA0B8',
-      border: '#294263',
-      placeholder: '#8DA0B8',
-      chip: '#102449',
-      primary: '#2DD4BF',
-      success: '#2DD4BF',
+      bg: palette.background,
+      card: palette.card,
+      text: palette.text,
+      subtext: palette.icon,
+      border: palette.border,
+      placeholder: palette.icon,
+      chip: palette.surface,
+      primary: palette.accent,
+      success: palette.accent,
     };
-  }, [scheme]);
+  }, [scheme, palette]);
 
   const [eventTypes, setEventTypes] = useState<string[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);

@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -20,7 +22,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,21 +54,22 @@ export default function AddIncidentScreen() {
   const insets = useSafeAreaInsets();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { user, getToken } = useAuth();
-  const scheme = useColorScheme();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   const colors = useMemo(() => {
     return {
-      bg: '#07142B',
-      card: '#0A1A37',
-      text: '#E9EEF7',
-      subtext: '#8DA0B8',
-      border: '#294263',
-      placeholder: '#8DA0B8',
-      chip: '#102449',
-      primary: '#2DD4BF',
-      success: '#2DD4BF',
+      bg: palette.background,
+      card: palette.card,
+      text: palette.text,
+      subtext: palette.icon,
+      border: palette.border,
+      placeholder: palette.icon,
+      chip: palette.surface,
+      primary: palette.accent,
+      success: palette.accent,
     };
-  }, [scheme]);
+  }, [scheme, palette]);
 
   const [submitting, setSubmitting] = useState(false);
   const [severity, setSeverity] = useState<string>('minor');
@@ -220,17 +222,13 @@ export default function AddIncidentScreen() {
       style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Text style={[styles.backBtnText, { color: colors.primary }]}>← Back</Text>
-      </TouchableOpacity>
-
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.card}>
           <ThemedText type="title" style={styles.title}>
             Report incident
           </ThemedText>
@@ -264,7 +262,7 @@ export default function AddIncidentScreen() {
                     style={[
                       styles.typeChipText,
                       { color: colors.text },
-                      severity === s && { color: '#062B32' },
+                      severity === s && { color: '#1C5A34' },
                     ]}
                   >
                     {SEVERITY_LABELS[s]}
@@ -383,7 +381,7 @@ export default function AddIncidentScreen() {
                     style={[
                       styles.typeChipText,
                       { color: colors.text },
-                      repairStatus === s && { color: '#062B32' },
+                      repairStatus === s && { color: '#1C5A34' },
                     ]}
                   >
                     {REPAIR_STATUS_LABELS[s]}
@@ -438,10 +436,18 @@ export default function AddIncidentScreen() {
             disabled={submitting}
           >
             {submitting ? (
-              <ActivityIndicator color="#062B32" />
+              <ActivityIndicator color="#1C5A34" />
             ) : (
               <Text style={styles.submitBtnText}>Save incident</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: colors.success }, submitting && styles.submitBtnDisabled]}
+            onPress={() => router.back()}
+            disabled={submitting}
+          >
+            <Text style={styles.submitBtnText}>← Back</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -457,14 +463,15 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   card: {
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+    backgroundColor: 'transparent',
   },
   title: { marginBottom: 24, lineHeight: 32 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
@@ -481,10 +488,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#2A2A35',
+    borderColor: '#BFE9CD',
   },
   modalDone: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8 },
-  modalDoneText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  modalDoneText: { color: '#1C5A34', fontSize: 16, fontWeight: '700' },
   input: { borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 16, marginBottom: 16 },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
   switchRow: {
@@ -495,5 +502,5 @@ const styles = StyleSheet.create({
   },
   submitBtn: { padding: 16, borderRadius: 999, alignItems: 'center', marginTop: 8, marginBottom: 32 },
   submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  submitBtnText: { color: '#1C5A34', fontSize: 16, fontWeight: '700' },
 });

@@ -1,5 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -21,6 +23,8 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -68,13 +72,13 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: palette.background }]}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: palette.background }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: palette.background }]}>
           <ThemedText type="title" style={styles.title}>
             Create account
           </ThemedText>
@@ -84,9 +88,9 @@ export default function SignupScreen() {
           </ThemedText>
 
           <TextInput
-            style={styles.input}
             placeholder="Name"
-            placeholderTextColor="#8DA0B8"
+            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            placeholderTextColor={palette.icon}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -95,9 +99,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
             placeholder="Email"
-            placeholderTextColor="#8DA0B8"
+            placeholderTextColor={palette.icon}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -107,9 +111,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
             placeholder="Password"
-            placeholderTextColor="#8DA0B8"
+            placeholderTextColor={palette.icon}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -119,9 +123,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
             placeholder="Confirm password"
-            placeholderTextColor="#8DA0B8"
+            placeholderTextColor={palette.icon}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -138,7 +142,7 @@ export default function SignupScreen() {
             {loading ? (
               <ActivityIndicator color="#062B32" />
             ) : (
-              <ThemedText style={styles.buttonText}>
+              <ThemedText style={[styles.buttonText, { color: '#062B32' }]}>
                 Create account
               </ThemedText>
             )}
@@ -149,7 +153,7 @@ export default function SignupScreen() {
             onPress={() => router.push('/(auth)/login')}
             disabled={loading}
           >
-            <ThemedText style={styles.switchText}>
+            <ThemedText style={[styles.switchText, { color: palette.accent }]}>
               Already have an account? Log in
             </ThemedText>
           </TouchableOpacity>

@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
@@ -21,8 +22,9 @@ import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 export default function AddCarScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
+  const palette = Colors[colorScheme];
   const [regNumber, SetRegNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,15 +32,15 @@ export default function AddCarScreen() {
   const { user, getToken, signOut } = useAuth();
 
   const colors = useMemo(() => ({
-    bg: '#07142B',
-    card: '#0A1A37',
-    text: '#E9EEF7',
-    subtext: '#8DA0B8',
-    border: '#294263',
-    inputBg: '#0A1A37',
-    sectionBorder: '#294263',
-    rowBorder: '#294263',
-  }), [isDark]);
+    bg: palette.background,
+    card: palette.card,
+    text: palette.text,
+    subtext: palette.icon,
+    border: palette.border,
+    inputBg: palette.card,
+    sectionBorder: palette.border,
+    rowBorder: palette.border,
+  }), [palette]);
 
   const fetchCarInfo = async () => {
     if (!regNumber.trim()) {
