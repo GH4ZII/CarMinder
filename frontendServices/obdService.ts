@@ -216,9 +216,11 @@ class ObdService {
   }
 
   async scanCar(carId: string): Promise<ObdSnapshot> {
-    await this.transport.connect();
-
+    let connected = false;
     try {
+      await this.transport.connect();
+      connected = true;
+
       // ELM327 is serial — commands must be sent one at a time
       const rpmFrame = await this.transport.readPid('010C');
       const tempFrame = await this.transport.readPid('0105');
@@ -247,8 +249,19 @@ class ObdService {
 
       await AsyncStorage.setItem(`${OBD_SNAPSHOT_KEY_PREFIX}${carId}`, JSON.stringify(snapshot));
       return snapshot;
+    } catch (err: any) {
+      // Any error (permission, BLE, adapter timeout, etc.) → fallback to simulator
+      if (this.transport instanceof SimulatedObdTransport) {
+        // Already simulator, don't loop
+        throw err;
+      }
+      await this.transport.disconnect().catch(() => {});
+      this.useSimulator();
+      return this.scanCar(carId);
     } finally {
-      await this.transport.disconnect();
+      if (connected) {
+        await this.transport.disconnect().catch(() => {});
+      }
     }
   }
 }
