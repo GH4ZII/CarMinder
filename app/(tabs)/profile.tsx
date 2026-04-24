@@ -2,14 +2,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAppTheme } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as LocalAuthentication from 'expo-local-authentication';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,7 +31,6 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, loading: authLoading, signOut, getToken, updateProfile } = useAuth();
   const scheme = useColorScheme() ?? 'light';
-  const { theme, setTheme } = useAppTheme();
   const palette = Colors[scheme];
   const isLight = scheme === 'light';
   const [cars, setCars] = useState<CarInfo[]>([]);
@@ -44,7 +43,7 @@ export default function ProfileScreen() {
   const [savingMileage, setSavingMileage] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [savingProfile, setSavingProfile] = useState(false);
-  const [accountPanelOpen, setAccountPanelOpen] = useState(false);
+  const displayNameInputRef = useRef<TextInput>(null);
   const [transferCode, setTransferCode] = useState<string | null>(null);
   const [transferCarName, setTransferCarName] = useState('');
   const [claimModalOpen, setClaimModalOpen] = useState(false);
@@ -365,135 +364,125 @@ export default function ProfileScreen() {
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-      <View style={[styles.accountPanelCard, isLight && { backgroundColor: '#FFFFFF', borderColor: '#BFE9CD' }]}>
-        {/* Avatar + Name */}
-        <TouchableOpacity
-          style={styles.avatarRow}
-          onPress={() => setAccountPanelOpen((prev) => !prev)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.avatar, isLight && { backgroundColor: '#DFF7E8' }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
+      <View style={styles.profileHero}>
+        <View style={styles.avatarLargeWrap}>
+          <View style={[styles.avatarLarge, isLight && { backgroundColor: '#DFF7E8' }]}>
+            <Text style={[styles.avatarLargeText, isLight && { color: '#1C5A34' }]}>{initials}</Text>
           </View>
-          <View style={styles.avatarInfo}>
-            {user.displayName ? (
-              <ThemedText style={styles.userName}>{user.displayName}</ThemedText>
-            ) : null}
-            <ThemedText style={styles.userEmail}>{user.email ?? '—'}</ThemedText>
-            <ThemedText style={[styles.avatarHint, isLight && { color: '#5F7768' }]}>
-              {accountPanelOpen ? 'Hide account controls' : 'Show account controls'}
-            </ThemedText>
-          </View>
-          <Text style={[styles.avatarChevron, isLight && { color: '#5F7768' }]}>{accountPanelOpen ? '▴' : '▾'}</Text>
-        </TouchableOpacity>
-
-        {accountPanelOpen && (
-          <>
-            {/* Quick Stats */}
-            {!loading && cars.length > 0 && (
-              <View style={[styles.statsRow, styles.statsRowMerged, isLight && { borderBottomColor: '#D8E5DD' }]}>
-                <View style={styles.statItem}>
-                  <ThemedText style={styles.statNumber}>{cars.length}</ThemedText>
-                  <ThemedText style={styles.statLabel}>Vehicles</ThemedText>
-                </View>
-                <View style={[styles.statDivider, isLight && { backgroundColor: '#BFE9CD' }]} />
-                <View style={styles.statItem}>
-                  <ThemedText style={styles.statNumber}>{totalKm.toLocaleString()}</ThemedText>
-                  <ThemedText style={styles.statLabel}>Total km</ThemedText>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.settingsForm}>
-              <ThemedText style={styles.settingsFormTitle}>Edit profile</ThemedText>
-              <TextInput
-                style={[
-                  styles.profileInput,
-                  isLight && { backgroundColor: '#FFFFFF', borderColor: '#BFE9CD', color: '#102016' },
-                ]}
-                value={displayName}
-                onChangeText={setDisplayName}
-                placeholder="Display name"
-                placeholderTextColor={isLight ? '#5F7768' : '#8A8A8A'}
-                maxLength={64}
-              />
-              <View style={styles.profileActionRow}>
-                <TouchableOpacity
-                  style={[styles.profileResetBtn, isLight && { backgroundColor: '#EFF6F1' }]}
-                  onPress={() => setDisplayName(user?.displayName ?? '')}
-                >
-                  <Text style={[styles.profileResetBtnText, isLight && { color: '#1C5A34', opacity: 1 }]}>Reset</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.profileSaveBtn, isLight && { backgroundColor: '#DFF7E8' }]}
-                  onPress={handleSaveProfile}
-                  disabled={savingProfile}
-                >
-                  <Text style={[styles.profileSaveBtnText, isLight && { color: '#1C5A34' }]}>
-                    {savingProfile ? 'Saving...' : 'Save Profile'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {biometricsSupported && (
-              <View
-                style={[
-                  styles.settingsItem,
-                  isLight && { borderBottomColor: '#D8E5DD' },
-                ]}
-              >
-                <ThemedText style={[styles.settingsLabel, isLight && { color: '#1C5A34' }]}>FaceID / Biometrics</ThemedText>
-                <View style={[styles.switchWrap, isLight && { borderColor: '#8FA99A' }]}>
-                  <Switch
-                    value={biometricsEnabled}
-                    onValueChange={handleToggleBiometrics}
-                    trackColor={{ false: palette.border, true: palette.accent }}
-                    thumbColor={isLight ? '#3F5A4A' : '#fff'}
-                  />
-                </View>
-              </View>
-            )}
-            <View
-              style={[
-                styles.settingsItem,
-                isLight && { borderBottomColor: '#D8E5DD' },
-              ]}
-            >
-              <ThemedText style={[styles.settingsLabel, isLight && { color: '#1C5A34' }]}>Dark mode</ThemedText>
-              <View style={[styles.switchWrap, isLight && { borderColor: '#8FA99A' }]}>
-                <Switch
-                  value={theme === 'dark'}
-                  onValueChange={(value) => setTheme(value ? 'dark' : 'light')}
-                  trackColor={{ false: palette.border, true: palette.accent }}
-                  thumbColor={isLight ? '#3F5A4A' : '#fff'}
-                />
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.settingsItem,
-                isLight && { borderBottomColor: '#D8E5DD' },
-              ]}
-              onPress={signOut}
-            >
-              <ThemedText style={[styles.settingsLabel, isLight && { color: '#1C5A34' }]}>Sign Out</ThemedText>
-              <ThemedText style={[styles.settingsChevron, isLight && { color: '#1C5A34', opacity: 0.8 }]}>→</ThemedText>
-            </TouchableOpacity>
-            <View style={styles.dangerZone}>
-              <ThemedText style={styles.dangerTitle}>Delete profile</ThemedText>
-              <ThemedText style={styles.dangerText}>
-                Remove all your cars and history from this app.
-              </ThemedText>
-              <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteProfile}>
-                <Text style={styles.dangerButtonText}>Delete Profile</Text>
-              </TouchableOpacity>
-            </View>
-          </>
+          <TouchableOpacity
+            style={[styles.avatarEditBadge, isLight && styles.avatarEditBadgeLight]}
+            onPress={() => displayNameInputRef.current?.focus()}
+            accessibilityLabel="Edit profile name"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <MaterialIcons name="edit" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+        {user.displayName ? (
+          <ThemedText style={styles.userNameHero}>{user.displayName}</ThemedText>
+        ) : (
+          <ThemedText style={styles.userNameHeroMuted}>Add your name below</ThemedText>
         )}
+        <ThemedText style={[styles.userEmailHero, isLight && { opacity: 0.55 }]}>{user.email ?? '—'}</ThemedText>
       </View>
 
-      <View style={styles.sectionRow}>
+      {!loading && cars.length > 0 && (
+        <View style={styles.statsRowOuter}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statNumber}>{cars.length}</ThemedText>
+              <ThemedText style={styles.statLabel}>Vehicles</ThemedText>
+            </View>
+            <View style={[styles.statDivider, isLight && { backgroundColor: '#BFE9CD' }]} />
+            <View style={styles.statItem}>
+              <ThemedText style={styles.statNumber}>{totalKm.toLocaleString()}</ThemedText>
+              <ThemedText style={styles.statLabel}>Total km</ThemedText>
+            </View>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.settingsMenuCard}>
+        <View style={[styles.menuRow, styles.menuRowBorder, isLight && { borderBottomColor: '#D8E5DD' }]}>
+          <MaterialIcons name="person" size={22} color={isLight ? '#1C5A34' : '#E9EEF7'} style={styles.menuRowIcon} />
+          <ThemedText style={[styles.menuRowLabel, isLight && { color: '#102016' }]}>Edit profile</ThemedText>
+        </View>
+        <View
+          style={[
+            styles.settingsFormFlat,
+            isLight ? { borderBottomColor: '#D8E5DD' } : { borderBottomColor: 'rgba(128,128,128,0.12)' },
+          ]}
+        >
+          <TextInput
+            ref={displayNameInputRef}
+            style={[
+              styles.profileInput,
+              isLight && { borderColor: '#BFE9CD', color: '#102016' },
+            ]}
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Display name"
+            placeholderTextColor={isLight ? '#5F7768' : '#8A8A8A'}
+            maxLength={64}
+          />
+          <View style={styles.profileActionRow}>
+            <TouchableOpacity
+              style={[styles.profileResetBtn, isLight && { borderColor: '#BFE9CD' }]}
+              onPress={() => setDisplayName(user?.displayName ?? '')}
+            >
+              <Text style={[styles.profileResetBtnText, isLight && { color: '#1C5A34', opacity: 1 }]}>Reset</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.profileSaveBtn}
+              onPress={handleSaveProfile}
+              disabled={savingProfile}
+            >
+              <Text style={styles.profileSaveBtnText}>
+                {savingProfile ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {biometricsSupported && (
+          <View style={[styles.menuRow, styles.menuRowBorder, isLight && { borderBottomColor: '#D8E5DD' }]}>
+            <MaterialIcons name="fingerprint" size={22} color={isLight ? '#1C5A34' : '#E9EEF7'} style={styles.menuRowIcon} />
+            <ThemedText style={[styles.menuRowLabel, styles.menuRowLabelFlex, isLight && { color: '#102016' }]}>
+              Face ID / Biometrics
+            </ThemedText>
+            <View style={[styles.switchWrap, isLight && { borderColor: '#8FA99A' }]}>
+              <Switch
+                value={biometricsEnabled}
+                onValueChange={handleToggleBiometrics}
+                trackColor={{ false: palette.border, true: isLight ? '#1C5A34' : palette.accent }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.menuRow}
+          onPress={signOut}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="logout" size={22} color={isLight ? '#1C5A34' : '#E9EEF7'} style={styles.menuRowIcon} />
+          <ThemedText style={[styles.menuRowLabel, styles.menuRowLabelFlex, isLight && { color: '#102016' }]}>Sign out</ThemedText>
+          <MaterialIcons name="chevron-right" size={22} color={isLight ? '#5F7768' : '#8DA0B8'} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.dangerZone, styles.pageInset]}>
+        <ThemedText style={styles.dangerTitle}>Delete profile</ThemedText>
+        <ThemedText style={styles.dangerText}>
+          Remove all your cars and history from this app.
+        </ThemedText>
+        <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteProfile}>
+          <Text style={styles.dangerButtonText}>Delete Profile</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.sectionRow, styles.pageInset]}>
         <ThemedText type="subtitle" style={styles.section}>
           Your Cars
         </ThemedText>
@@ -516,7 +505,7 @@ export default function ProfileScreen() {
   );
 
   const emptyComponent = (
-    <View style={styles.emptyContainer}>
+    <View style={[styles.emptyContainer, styles.pageInset]}>
       {loading ? (
         <ActivityIndicator size="large" />
       ) : fetchError ? (
@@ -546,6 +535,7 @@ export default function ProfileScreen() {
           <View
             style={[
               styles.carCard,
+              styles.carCardInset,
               isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' },
               isRetired && styles.carCardRetired,
             ]}
@@ -726,76 +716,114 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 0,
     paddingBottom: 10,
   },
-  // Avatar Section
-  avatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 0,
-    marginHorizontal: 0,
-    paddingVertical: 14,
+  pageInset: {
     paddingHorizontal: 20,
-    borderRadius: 0,
-    backgroundColor: 'transparent',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.12)',
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2DD4BF',
+  profileHero: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  statsRowOuter: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  avatarLargeWrap: {
+    width: 120,
+    height: 120,
+    marginBottom: 14,
+  },
+  avatarLarge: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#1C5A34',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    color: '#062B32',
+  avatarLargeText: {
+    color: '#FFFFFF',
+    fontSize: 44,
+    fontWeight: '700',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1C5A34',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#07142B',
+  },
+  avatarEditBadgeLight: {
+    borderColor: '#F7FBF8',
+  },
+  userNameHero: {
     fontSize: 22,
     fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  avatarInfo: {
-    flex: 1,
+  userNameHeroMuted: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+    opacity: 0.65,
   },
-  userName: {
-    fontSize: 21,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  userEmail: {
+  userEmailHero: {
     fontSize: 14,
-    opacity: 0.6,
+    textAlign: 'center',
+    opacity: 0.55,
   },
-  avatarHint: {
-    fontSize: 13,
-    color: '#B8C6DA',
-    marginTop: 4,
+  settingsMenuCard: {
+    marginBottom: 16,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  menuRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.12)',
+  },
+  menuRowIcon: {
+    marginRight: 14,
+  },
+  menuRowLabel: {
+    fontSize: 16,
     fontWeight: '600',
   },
-  avatarChevron: {
-    fontSize: 30,
-    color: '#B8C6DA',
-    marginLeft: 8,
+  menuRowLabelFlex: {
+    flex: 1,
+  },
+  settingsFormFlat: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'transparent',
   },
   // Stats
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(128,128,128,0.06)',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.12)',
-  },
-  statsRowMerged: {
     backgroundColor: 'transparent',
-    borderWidth: 0,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.12)',
     borderRadius: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 0,
     marginBottom: 0,
+    borderWidth: 0,
   },
   statItem: {
     flex: 1,
@@ -815,16 +843,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginTop: 2,
   },
-  // Settings card
-  accountPanelCard: {
-    backgroundColor: 'rgba(128,128,128,0.06)',
-    borderRadius: 0,
-    overflow: 'hidden',
-    marginBottom: 8,
-    marginHorizontal: -40,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(128,128,128,0.12)',
-  },
   settingsCard: {
     backgroundColor: 'rgba(128,128,128,0.06)',
     borderRadius: 14,
@@ -833,33 +851,16 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(128,128,128,0.12)',
   },
-  settingsItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.12)',
-  },
-  settingsForm: {
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.12)',
-  },
-  settingsFormTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
   profileInput: {
+    alignSelf: 'stretch',
+    width: '100%',
     borderWidth: 1,
     borderColor: '#294263',
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    backgroundColor: '#07142B',
+    backgroundColor: 'transparent',
     color: '#E9EEF7',
   },
   profileActionRow: {
@@ -872,7 +873,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(128,128,128,0.12)',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.35)',
   },
   profileResetBtnText: {
     fontSize: 13,
@@ -883,15 +886,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#2DD4BF',
+    backgroundColor: '#1C5A34',
   },
   profileSaveBtnText: {
-    color: '#062B32',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
-  },
-  settingsLabel: {
-    fontSize: 15,
     fontWeight: '600',
   },
   switchWrap: {
@@ -900,16 +899,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 2,
   },
-  settingsChevron: {
-    fontSize: 16,
-    opacity: 0.4,
-  },
   dangerZone: {
-    marginTop: 12,
+    marginTop: 4,
     marginBottom: 14,
     backgroundColor: 'transparent',
     borderRadius: 0,
-    paddingHorizontal: 12,
     paddingVertical: 2,
     borderWidth: 0,
     borderColor: 'transparent',
@@ -963,7 +957,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingBottom: 28,
   },
   // Car Card
@@ -974,6 +968,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(128,128,128,0.12)',
+  },
+  carCardInset: {
+    marginHorizontal: 20,
   },
   carCardHeader: {
     flexDirection: 'row',

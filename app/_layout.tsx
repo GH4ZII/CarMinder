@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -6,8 +6,8 @@ import { ActivityIndicator, Platform, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext'; 
-import { useAppTheme, ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
 
 // This tells the app which screen to show first (the main tabs screen)
 export const unstable_settings = {
@@ -25,8 +25,7 @@ function RootLayoutNav() {
   
   // Get the router so we can send users to different pages
   const router = useRouter();
-  const { theme } = useAppTheme();
-  const navigationTheme = theme === 'dark' ? DarkTheme : DefaultTheme;
+  const navigationTheme = DefaultTheme;
 
   // This runs every time the user, loading status, or current page changes
   useEffect(() => {
@@ -68,7 +67,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       {/* Status bar at top of phone (changes color based on theme) */}
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }

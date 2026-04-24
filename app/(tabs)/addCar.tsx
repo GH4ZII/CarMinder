@@ -19,6 +19,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 
+/** App greens (matches home / tabs) */
+const GREEN_PRIMARY = '#1C5A34';
+const GREEN_SOFT = '#DFF7E8';
+const GREEN_BORDER = '#BFE9CD';
+
 export default function AddCarScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -40,7 +45,12 @@ export default function AddCarScreen() {
     inputBg: palette.card,
     sectionBorder: palette.border,
     rowBorder: palette.border,
-  }), [palette]);
+    btnPrimaryBg: GREEN_PRIMARY,
+    btnPrimaryText: '#FFFFFF',
+    btnSecondaryBg: isDark ? 'rgba(223,247,232,0.12)' : GREEN_SOFT,
+    btnSecondaryText: isDark ? '#BFE9CD' : GREEN_PRIMARY,
+    btnSecondaryBorder: isDark ? '#3D7A52' : GREEN_BORDER,
+  }), [palette, isDark]);
 
   const fetchCarInfo = async () => {
     if (!regNumber.trim()) {
@@ -125,9 +135,6 @@ export default function AddCarScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8 }}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>Add Your Car</ThemedText>
 
         <View style={styles.inputContainer}>
@@ -141,15 +148,30 @@ export default function AddCarScreen() {
             maxLength={7}
           />
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.actionButton, { backgroundColor: colors.btnPrimaryBg }]}
             onPress={fetchCarInfo}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#062B32" />
+              <ActivityIndicator color={colors.btnPrimaryText} />
             ) : (
-              <Text style={styles.buttonText}>Fetch Car Info</Text>
+              <Text style={[styles.actionButtonText, { color: colors.btnPrimaryText }]}>Fetch Car Info</Text>
             )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonSecondary,
+              {
+                backgroundColor: colors.btnSecondaryBg,
+                borderColor: colors.btnSecondaryBorder,
+              },
+            ]}
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.actionButtonText, { color: colors.btnSecondaryText }]}>← Back</Text>
           </TouchableOpacity>
         </View>
 
@@ -186,14 +208,17 @@ export default function AddCarScreen() {
             <InfoRow label="EU Control Due" value={carInfo.eukontrollfrist} />
 
             <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
+              style={[styles.actionButton, styles.saveButton, { backgroundColor: colors.btnPrimaryBg }]}
               onPress={saveCar}
               disabled={saving}
+              activeOpacity={0.85}
             >
               {saving ? (
-                <ActivityIndicator color="#062B32" />
+                <ActivityIndicator color={colors.btnPrimaryText} />
               ) : (
-                <Text style={styles.buttonText}>Save Car to your profile</Text>
+                <Text style={[styles.actionButtonText, { color: colors.btnPrimaryText }]}>
+                  Save Car to your profile
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -207,17 +232,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 0,
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 17,
-    color: '#2DD4BF',
-    fontWeight: '600',
   },
   title: {
     marginBottom: 20,
@@ -233,14 +247,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
   },
-  button: {
-    backgroundColor: '#2DD4BF',
-    padding: 15,
+  actionButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 16,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonText: {
-    color: '#062B32',
+  actionButtonSecondary: {
+    marginTop: 10,
+    borderWidth: 1,
+  },
+  actionButtonText: {
     fontSize: 16,
     fontWeight: '700',
   },
@@ -287,7 +305,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 20,
-    backgroundColor: '#2DD4BF',
   },
 });
 

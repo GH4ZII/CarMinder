@@ -1,5 +1,4 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -8,23 +7,26 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-    AllCarsServiceStatus,
-    api,
-    ApiError,
-    CarCareScoreResponse,
-    CarServiceStatus,
-    ServiceDueStatus,
+  AllCarsServiceStatus,
+  api,
+  ApiError,
+  CarCareScoreResponse,
+  CarServiceStatus,
+  ServiceDueStatus,
 } from '../../frontendServices/apiCall';
+
+/** Deep forest green header (service-station style) */
+const OVERVIEW_HEADER_GREEN = '#073B33';
 
 const SERVICE_LABELS: Record<string, string> = {
   oil_change: 'Oil Change',
@@ -102,22 +104,9 @@ const ringStyles = StyleSheet.create({
 
 function CarScoreCard({ score }: { score: CarCareScoreResponse }) {
   const color = GRADE_COLORS[score.grade] ?? '#8E8E93';
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
 
   return (
-    <View
-      style={[
-        styles.scoreCard,
-        scheme === 'light' && {
-          backgroundColor: '#F3FCEB',
-          borderRadius: 12,
-          padding: 12,
-          borderWidth: 1,
-          borderColor: '#CDE9D5',
-        },
-      ]}
-    >
+    <View style={styles.scoreCard}>
       <ScoreRing score={score.overall_score} grade={score.grade} />
       <View style={styles.scoreDetails}>
         <Text style={[styles.scoreTitle, { color }]}>Car Care Score</Text>
@@ -191,7 +180,6 @@ function CarServiceCard({
     <TouchableOpacity
       style={[
         styles.carCard,
-        scheme === 'light' && { backgroundColor: '#FFFFFF', borderColor: palette.border },
         joinedWithSummary && styles.joinedFirstCarCard,
         hasUrgent && styles.carCardUrgent,
         style,
@@ -327,26 +315,41 @@ export default function HomeScreen() {
     );
   }
 
-  return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, backgroundColor: palette.background }]}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchStatus} />}
-    >
-      <ThemedText type="title" style={[styles.title, { color: palette.text }]}>
-        Service Overview
-      </ThemedText>
+  const userInitial = (user.displayName?.[0] ?? user.email?.[0] ?? 'U').toUpperCase();
 
+  return (
+    <View style={[styles.screenRoot, { backgroundColor: palette.background }]}>
+      <View
+        style={[
+          styles.overviewHeader,
+          {
+            paddingTop: insets.top + 8,
+          },
+        ]}
+      >
+        <View style={styles.overviewHeaderTopRow}>
+          <TouchableOpacity
+            style={styles.overviewHeaderAvatar}
+            onPress={() => router.push('/(tabs)/profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            activeOpacity={0.8}
+          >
+            <Text style={styles.overviewHeaderAvatarText}>{userInitial}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.overviewHeaderTitle}>Service Overview</Text>
+      </View>
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { backgroundColor: palette.background }]}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchStatus} />}
+      >
       {/* Summary Banner + first card in one wrapper */}
       {status && status.cars.length > 0 && (
         <View style={styles.combinedTopBlock}>
-          <View
-            style={[
-              styles.summaryBanner,
-              { backgroundColor: palette.card, borderColor: palette.border },
-              styles.joinedSummaryBanner,
-            ]}
-          >
+          <View style={[styles.summaryBanner, styles.joinedSummaryBanner]}>
             {status.urgent_count > 0 ? (
               <>
                 <MaterialIcons name="warning" size={28} color="#FF3B30" />
@@ -395,12 +398,7 @@ export default function HomeScreen() {
       )}
 
       {status && status.cars.length === 0 && (
-        <View
-          style={[
-            styles.summaryBanner,
-            { backgroundColor: palette.card, borderColor: palette.border },
-          ]}
-        >
+        <View style={styles.summaryBanner}>
           <MaterialIcons name="check-circle" size={28} color="#34C759" />
           <View>
             <ThemedText style={[styles.summaryText, { color: palette.text }]}>All services up to date</ThemedText>
@@ -460,13 +458,49 @@ export default function HomeScreen() {
           <Text style={[styles.addMoreBtnText, scheme === 'light' && styles.lightButtonText]}>+ Add Another Car</Text>
         </TouchableOpacity>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenRoot: { flex: 1 },
+  overviewHeader: {
+    backgroundColor: OVERVIEW_HEADER_GREEN,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 56,
+    overflow: 'hidden',
+  },
+  overviewHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: 14,
+  },
+  overviewHeaderAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overviewHeaderAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  overviewHeaderTitle: {
+    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
   container: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 40 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -474,8 +508,6 @@ const styles = StyleSheet.create({
     padding: 32,
     backgroundColor: '#07142B',
   },
-  title: { marginBottom: 16, color: '#E9EEF7', fontSize: 30, fontWeight: '700' },
-
   // Welcome (logged out)
   welcomeTitle: { marginBottom: 12, textAlign: 'center', color: '#E9EEF7' },
   welcomeText: { fontSize: 16, textAlign: 'center', color: '#93A3B8', marginBottom: 24 },
@@ -496,21 +528,18 @@ const styles = StyleSheet.create({
   summaryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0A1A37',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: 'transparent',
+    paddingVertical: 6,
     marginBottom: 8,
     gap: 12,
-    borderWidth: 1,
-    borderColor: '#294263',
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   combinedTopBlock: {
     marginBottom: 16,
   },
   joinedSummaryBanner: {
     marginBottom: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
   },
   summaryText: { fontSize: 16, fontWeight: '600', color: '#E9EEF7' },
   summarySubtext: { fontSize: 14, color: '#8DA0B8', marginTop: 2 },
@@ -540,10 +569,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    paddingBottom: 14,
+    paddingBottom: 8,
     marginBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#2E4668',
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
   },
   scoreDetails: { flex: 1 },
   scoreTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
@@ -552,12 +581,12 @@ const styles = StyleSheet.create({
 
   // Car Card
   carCard: {
-    backgroundColor: '#0A1A37',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#294263',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    marginBottom: 20,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   joinedTopCard: {
     marginTop: 0,
@@ -568,8 +597,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
   },
   carCardUrgent: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9500',
+    borderLeftWidth: 0,
+    borderLeftColor: 'transparent',
   },
   carHeader: {
     flexDirection: 'row',
@@ -585,9 +614,8 @@ const styles = StyleSheet.create({
   nextServiceBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,149,0,0.12)',
-    padding: 12,
-    borderRadius: 12,
+    backgroundColor: 'transparent',
+    paddingVertical: 4,
     marginBottom: 12,
     gap: 8,
   },
@@ -626,11 +654,11 @@ const styles = StyleSheet.create({
   // Add More Button
   addMoreBtn: {
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#294263',
-    backgroundColor: '#0A1A37',
+    paddingVertical: 10,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   addMoreBtnText: { fontSize: 15, color: '#2DD4BF', fontWeight: '600' },
   addMoreBtnLight: {
