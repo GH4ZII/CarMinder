@@ -52,11 +52,21 @@ class UnsupportedObdTransport implements ObdTransport {
 }
 
 function normalizeHexFrame(frame: string): string[] {
-  return frame
+  const tokens = frame
     .toUpperCase()
-    .replace(/[^0-9A-F ]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean);
+    .match(/[0-9A-F]+/g) ?? [];
+
+  return tokens.flatMap((token) => {
+    if (token.length === 2) return [token];
+    if (token.length > 2 && token.length % 2 === 0) {
+      const bytes: string[] = [];
+      for (let i = 0; i < token.length; i += 2) {
+        bytes.push(token.slice(i, i + 2));
+      }
+      return bytes;
+    }
+    return [];
+  });
 }
 
 function decodeRpm(frame: string): number | null {
@@ -119,16 +129,31 @@ function decodeDtcPair(firstByteHex: string, secondByteHex: string): string | nu
 }
 
 function decodeStoredDtcs(frame: string): string[] {
-  const bytes = normalizeHexFrame(frame);
-  const idx = bytes.findIndex((b) => b === '43');
-  if (idx < 0) return [];
+  const dtcs = new Set<string>();
+  const lines = frame.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const candidates = lines.length ? lines : [frame];
 
-  const dtcs: string[] = [];
-  for (let i = idx + 1; i + 1 < bytes.length; i += 2) {
-    const code = decodeDtcPair(bytes[i], bytes[i + 1]);
-    if (code) dtcs.push(code);
+  for (const line of candidates) {
+    const bytes = normalizeHexFrame(line);
+    const responseIndexes = bytes
+      .map((byte, idx) => (byte === '43' ? idx : -1))
+      .filter((idx) => idx >= 0);
+
+    for (const idx of responseIndexes) {
+      let availableBytes = bytes.length - idx - 1;
+      const pciLength = idx > 0 ? Number.parseInt(bytes[idx - 1], 16) : NaN;
+      if (Number.isFinite(pciLength) && pciLength > 1 && pciLength <= availableBytes + 1) {
+        availableBytes = pciLength - 1;
+      }
+
+      const end = idx + 1 + availableBytes;
+      for (let i = idx + 1; i + 1 < end; i += 2) {
+        const code = decodeDtcPair(bytes[i], bytes[i + 1]);
+        if (code) dtcs.add(code);
+      }
+    }
   }
-  return dtcs;
+  return [...dtcs];
 }
 
 const DTC_DESCRIPTIONS: Record<string, string> = {
@@ -179,6 +204,7 @@ class ObdService {
   private transport: ObdTransport = new UnsupportedObdTransport();
   private transportReady: Promise<void>;
   private resolveTransportReady!: () => void;
+  private readonly simulator = new SimulatedObdTransport();
 
   constructor() {
     this.transportReady = new Promise<void>((resolve) => {
@@ -192,7 +218,7 @@ class ObdService {
   }
 
   useSimulator(): void {
-    this.transport = new SimulatedObdTransport();
+    this.transport = this.simulator;
     this.resolveTransportReady();
   }
 
@@ -216,18 +242,24 @@ class ObdService {
   }
 
   async scanCar(carId: string): Promise<ObdSnapshot> {
-    let connected = false;
+    return this.scanWithTransport(carId, this.transport);
+  }
+
+  async scanDemo(carId: string): Promise<ObdSnapshot> {
+    return this.scanWithTransport(carId, this.simulator);
+  }
+
+  private async scanWithTransport(carId: string, transport: ObdTransport): Promise<ObdSnapshot> {
     try {
-      await this.transport.connect();
-      connected = true;
+      await transport.connect();
 
       // ELM327 is serial — commands must be sent one at a time
-      const rpmFrame = await this.transport.readPid('010C');
-      const tempFrame = await this.transport.readPid('0105');
-      const speedFrame = await this.transport.readPid('010D');
-      const loadFrame = await this.transport.readPid('0104');
-      const dtcFrame = await this.transport.readStoredDtcs();
-      const voltageFrame = await (this.transport.readBatteryVoltage?.() ?? Promise.resolve(''));
+      const rpmFrame = await transport.readPid('010C');
+      const tempFrame = await transport.readPid('0105');
+      const speedFrame = await transport.readPid('010D');
+      const loadFrame = await transport.readPid('0104');
+      const dtcFrame = await transport.readStoredDtcs();
+      const voltageFrame = await (transport.readBatteryVoltage?.() ?? Promise.resolve(''));
 
       const dtcs = decodeStoredDtcs(dtcFrame).map((code) => ({
         code,
@@ -236,7 +268,7 @@ class ObdService {
 
       const snapshot: ObdSnapshot = {
         capturedAt: new Date().toISOString(),
-        source: this.transport instanceof SimulatedObdTransport ? 'simulated' : 'device',
+        source: transport instanceof SimulatedObdTransport ? 'simulated' : 'device',
         metrics: {
           rpm: decodeRpm(rpmFrame),
           coolantTempC: decodeCoolantTemp(tempFrame),
@@ -250,18 +282,12 @@ class ObdService {
       await AsyncStorage.setItem(`${OBD_SNAPSHOT_KEY_PREFIX}${carId}`, JSON.stringify(snapshot));
       return snapshot;
     } catch (err: any) {
-      // Any error (permission, BLE, adapter timeout, etc.) → fallback to simulator
-      if (this.transport instanceof SimulatedObdTransport) {
-        // Already simulator, don't loop
-        throw err;
+      if (!(transport instanceof SimulatedObdTransport)) {
+        console.log('[OBD] Native transport failed:', err?.message ?? err);
       }
-      await this.transport.disconnect().catch(() => {});
-      this.useSimulator();
-      return this.scanCar(carId);
+      throw err;
     } finally {
-      if (connected) {
-        await this.transport.disconnect().catch(() => {});
-      }
+      await transport.disconnect().catch(() => {});
     }
   }
 }
