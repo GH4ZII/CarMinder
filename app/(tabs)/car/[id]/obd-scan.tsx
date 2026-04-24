@@ -18,6 +18,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, snapshotToObdPayload } from '../../../../frontendServices/apiCall';
 import { ObdSnapshot, obdService } from '../../../../frontendServices/obdService';
 
+const GREEN_PRIMARY = '#1C5A34';
+const GREEN_SOFT = '#DFF7E8';
+const GREEN_BORDER = '#BFE9CD';
+const TEXT_MUTED_LIGHT = '#5F7768';
+
 function formatDate(s: string) {
   try {
     const d = new Date(s);
@@ -39,6 +44,7 @@ export default function ObdScanScreen() {
   const { getToken } = useAuth();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const isLight = scheme === 'light';
 
   const [snapshot, setSnapshot] = useState<ObdSnapshot | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -118,7 +124,7 @@ export default function ObdScanScreen() {
     <ThemedView style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={[styles.backBtnText, { color: palette.accent }]}>← Back</Text>
+          <Text style={[styles.backBtnText, { color: isLight ? GREEN_PRIMARY : palette.accent }]}>← Back</Text>
         </TouchableOpacity>
 
         <ThemedText type="title" style={styles.title}>OBD-II Scanner</ThemedText>
@@ -130,23 +136,25 @@ export default function ObdScanScreen() {
               style={[styles.scanBtn, scanning && styles.scanBtnDisabled]}
               onPress={scan}
               disabled={scanning}
+              activeOpacity={0.85}
             >
               {scanning ? (
-                <ActivityIndicator color="#062B32" size="small" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : null}
               <Text style={styles.scanBtnText}>{scanning ? 'Scanning…' : 'Scan adapter'}</Text>
             </TouchableOpacity>
           ) : (
             <>
-              <ThemedText style={styles.hint}>
+              <ThemedText style={[styles.hint, isLight && { color: TEXT_MUTED_LIGHT }]}>
                 Native OBD transport is not configured yet in this build.
               </ThemedText>
               <TouchableOpacity
-                style={[styles.scanBtn, styles.demoBtn]}
+                style={[styles.demoBtn, scanning && styles.scanBtnDisabled]}
                 onPress={runDemo}
                 disabled={scanning}
+                activeOpacity={0.85}
               >
-                <Text style={[styles.demoBtnText, { color: palette.accent }]}>Demo scan</Text>
+                <Text style={styles.demoBtnText}>Demo scan</Text>
               </TouchableOpacity>
             </>
           )}
@@ -160,34 +168,46 @@ export default function ObdScanScreen() {
 
         {/* Results */}
         {snapshot && (
-          <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
+          <View style={styles.resultCard}>
             <View style={styles.headerRow}>
               <ThemedText style={styles.cardTitle}>
                 {snapshot.source === 'simulated' ? 'Demo reading' : 'Device reading'}
               </ThemedText>
-              <ThemedText style={styles.timestamp}>{formatDate(snapshot.capturedAt)}</ThemedText>
+              <ThemedText style={[styles.timestamp, isLight && { color: TEXT_MUTED_LIGHT }]}>
+                {formatDate(snapshot.capturedAt)}
+              </ThemedText>
             </View>
 
             <View style={styles.metricsGrid}>
-              <View style={styles.metricItem}>
-                <ThemedText style={styles.metricLabel}>RPM</ThemedText>
-                <ThemedText style={styles.metricValue}>{formatObdValue(snapshot.metrics.rpm, '')}</ThemedText>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>RPM</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.rpm, '')}
+                </ThemedText>
               </View>
-              <View style={styles.metricItem}>
-                <ThemedText style={styles.metricLabel}>Coolant</ThemedText>
-                <ThemedText style={styles.metricValue}>{formatObdValue(snapshot.metrics.coolantTempC, '°C')}</ThemedText>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>Coolant</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.coolantTempC, '°C')}
+                </ThemedText>
               </View>
-              <View style={styles.metricItem}>
-                <ThemedText style={styles.metricLabel}>Speed</ThemedText>
-                <ThemedText style={styles.metricValue}>{formatObdValue(snapshot.metrics.speedKph, 'km/h')}</ThemedText>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>Speed</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.speedKph, 'km/h')}
+                </ThemedText>
               </View>
-              <View style={styles.metricItem}>
-                <ThemedText style={styles.metricLabel}>Engine Load</ThemedText>
-                <ThemedText style={styles.metricValue}>{formatObdValue(snapshot.metrics.engineLoadPct, '%')}</ThemedText>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>Engine Load</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.engineLoadPct, '%')}
+                </ThemedText>
               </View>
-              <View style={styles.metricItem}>
-                <ThemedText style={styles.metricLabel}>Battery</ThemedText>
-                <ThemedText style={styles.metricValue}>{formatObdValue(snapshot.metrics.batteryVoltage, 'V')}</ThemedText>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>Battery</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.batteryVoltage, 'V')}
+                </ThemedText>
               </View>
             </View>
 
@@ -195,7 +215,9 @@ export default function ObdScanScreen() {
               Error codes ({snapshot.dtcs.length})
             </ThemedText>
             {snapshot.dtcs.length === 0 ? (
-              <ThemedText style={styles.noCodes}>No stored trouble codes.</ThemedText>
+              <ThemedText style={[styles.noCodes, isLight && { color: TEXT_MUTED_LIGHT }]}>
+                No stored trouble codes.
+              </ThemedText>
             ) : (
               snapshot.dtcs.map((dtc) => (
                 <View key={dtc.code} style={styles.codeItem}>
@@ -208,7 +230,9 @@ export default function ObdScanScreen() {
         )}
 
         {!snapshot && !checking && (
-          <ThemedText style={styles.hint}>Tap the button above to start a scan.</ThemedText>
+          <ThemedText style={[styles.hint, isLight && { color: TEXT_MUTED_LIGHT }]}>
+            Tap the button above to start a scan.
+          </ThemedText>
         )}
       </ScrollView>
     </ThemedView>
@@ -216,15 +240,15 @@ export default function ObdScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07142B' },
+  container: { flex: 1 },
   content: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 8, marginBottom: 8 },
-  backBtnText: { fontSize: 17, color: '#2DD4BF', fontWeight: '600' },
+  backBtnText: { fontSize: 17, fontWeight: '600' },
   title: { marginBottom: 16 },
   actions: { marginBottom: 20, gap: 10 },
   scanBtn: {
-    backgroundColor: '#2DD4BF',
+    backgroundColor: GREEN_PRIMARY,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 10,
@@ -234,15 +258,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   scanBtnDisabled: { opacity: 0.6 },
-  scanBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
-  demoBtn: { backgroundColor: '#0A1A37', borderWidth: 1, borderColor: '#294263' },
-  demoBtnText: { color: '#2DD4BF', fontSize: 16, fontWeight: '700' },
-  hint: { fontSize: 13, color: '#8DA0B8', marginBottom: 4 },
-  card: {
-    backgroundColor: '#0A1A37',
+  scanBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  demoBtn: {
+    backgroundColor: GREEN_SOFT,
+    borderWidth: 1,
+    borderColor: GREEN_BORDER,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoBtnText: { color: GREEN_PRIMARY, fontSize: 16, fontWeight: '700' },
+  hint: { fontSize: 13, marginBottom: 4, color: '#8DA0B8' },
+  resultCard: {
+    backgroundColor: 'transparent',
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#294263',
     padding: 14,
   },
   headerRow: {
@@ -253,7 +284,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardTitle: { fontSize: 14, fontWeight: '700' },
-  timestamp: { fontSize: 12, opacity: 0.6 },
+  timestamp: { fontSize: 12, opacity: 0.75 },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -262,11 +293,18 @@ const styles = StyleSheet.create({
   },
   metricItem: {
     width: '48%',
-    backgroundColor: '#102449',
+    backgroundColor: 'rgba(28,90,52,0.32)',
     borderRadius: 10,
     padding: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(191,233,205,0.35)',
+  },
+  metricItemLight: {
+    backgroundColor: GREEN_SOFT,
+    borderColor: GREEN_BORDER,
   },
   metricLabel: { fontSize: 12, color: '#8DA0B8', marginBottom: 2 },
+  metricLabelLight: { color: TEXT_MUTED_LIGHT },
   metricValue: { fontSize: 14, fontWeight: '700' },
   dtcTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
   noCodes: { fontSize: 13, color: '#8DA0B8' },

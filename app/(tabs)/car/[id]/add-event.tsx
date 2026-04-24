@@ -27,6 +27,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, MaintenanceEventCreate, ReceiptOcrResult } from '../../../../frontendServices/apiCall';
 
+const GREEN_PRIMARY = '#1C5A34';
+const GREEN_SOFT = '#DFF7E8';
+const GREEN_BORDER = '#BFE9CD';
+const INPUT_BG_LIGHT = '#F7FBF8';
+
 const EVENT_LABELS: Record<string, string> = {
   oil_change: 'Oil change',
   brake_service: 'Brake service',
@@ -50,6 +55,7 @@ export default function AddMaintenanceEventScreen() {
   const { user, getToken } = useAuth();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const isLight = scheme === 'light';
 
   const colors = useMemo(() => {
     return {
@@ -276,8 +282,8 @@ export default function AddMaintenanceEventScreen() {
     return (
       <ThemedView style={[styles.center, { backgroundColor: colors.bg }]}>
         <ThemedText>Missing car or not logged in.</ThemedText>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={[styles.backBtnText, { color: colors.primary }]}>← Back</Text>
+        <TouchableOpacity style={styles.backBtnCenter} onPress={() => router.back()}>
+          <Text style={styles.backBtnBottomText}>← Back</Text>
         </TouchableOpacity>
       </ThemedView>
     );
@@ -288,17 +294,13 @@ export default function AddMaintenanceEventScreen() {
       style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Text style={[styles.backBtnText, { color: colors.primary }]}>← Back</Text>
-      </TouchableOpacity>
-
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.card}>
           <ThemedText type="title" style={styles.title}>
             Add maintenance event
           </ThemedText>
@@ -314,7 +316,10 @@ export default function AddMaintenanceEventScreen() {
               <Pressable
                 style={[
                   styles.selectButton,
-                  { backgroundColor: colors.card, borderColor: colors.border },
+                  {
+                    backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                    borderColor: isLight ? GREEN_BORDER : colors.border,
+                  },
                 ]}
                 onPress={() => {
                   if (!eventTypes.length) return;
@@ -342,8 +347,8 @@ export default function AddMaintenanceEventScreen() {
                     key={t}
                     style={[
                       styles.typeChip,
-                      { backgroundColor: colors.chip },
-                      eventType === t && { backgroundColor: colors.primary },
+                      { backgroundColor: isLight ? '#EFF6F1' : colors.chip },
+                      eventType === t && { backgroundColor: GREEN_PRIMARY },
                     ]}
                     onPress={() => setEventType(t)}
                   >
@@ -351,7 +356,7 @@ export default function AddMaintenanceEventScreen() {
                       style={[
                         styles.typeChipText,
                         { color: colors.text },
-                        eventType === t && { color: '#062B32' },
+                        eventType === t && { color: '#FFFFFF' },
                       ]}
                     >
                       {EVENT_LABELS[t] ?? t}
@@ -368,7 +373,11 @@ export default function AddMaintenanceEventScreen() {
               <TextInput
                 style={[
                   styles.input,
-                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                  {
+                    backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                    borderColor: isLight ? GREEN_BORDER : colors.border,
+                    color: colors.text,
+                  },
                 ]}
                 value={eventDate}
                 onChangeText={setEventDate}
@@ -381,7 +390,10 @@ export default function AddMaintenanceEventScreen() {
                 <TouchableOpacity
                   style={[
                     styles.selectButton,
-                    { backgroundColor: colors.card, borderColor: colors.border },
+                    {
+                      backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                      borderColor: isLight ? GREEN_BORDER : colors.border,
+                    },
                   ]}
                   onPress={openDatePicker}
                 >
@@ -412,7 +424,7 @@ export default function AddMaintenanceEventScreen() {
                           style={styles.iosPicker}
                         />
                         <TouchableOpacity
-                          style={[styles.modalDone, { backgroundColor: colors.primary }]}
+                          style={styles.modalDone}
                           onPress={() => setShowDateIOSModal(false)}
                         >
                           <Text style={styles.modalDoneText}>Done</Text>
@@ -427,16 +439,16 @@ export default function AddMaintenanceEventScreen() {
             <TouchableOpacity
               style={[
                 styles.scanBtn,
-                { borderColor: colors.primary },
+                { borderColor: GREEN_PRIMARY },
                 scanningReceipt && styles.submitBtnDisabled,
               ]}
               onPress={handleScanReceipt}
               disabled={scanningReceipt || submitting}
             >
               {scanningReceipt ? (
-                <ActivityIndicator color={colors.primary} />
+                <ActivityIndicator color={GREEN_PRIMARY} />
               ) : (
-                <Text style={[styles.scanBtnText, { color: colors.primary }]}>Scan receipt (OCR)</Text>
+                <Text style={[styles.scanBtnText, { color: GREEN_PRIMARY }]}>Scan receipt (OCR)</Text>
               )}
             </TouchableOpacity>
 
@@ -444,7 +456,11 @@ export default function AddMaintenanceEventScreen() {
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                {
+                  backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                  borderColor: isLight ? GREEN_BORDER : colors.border,
+                  color: colors.text,
+                },
               ]}
               value={mileage}
               onChangeText={setMileage}
@@ -457,7 +473,11 @@ export default function AddMaintenanceEventScreen() {
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                {
+                  backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                  borderColor: isLight ? GREEN_BORDER : colors.border,
+                  color: colors.text,
+                },
               ]}
               value={cost}
               onChangeText={setCost}
@@ -470,7 +490,11 @@ export default function AddMaintenanceEventScreen() {
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                {
+                  backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                  borderColor: isLight ? GREEN_BORDER : colors.border,
+                  color: colors.text,
+                },
               ]}
               value={vendor}
               onChangeText={setVendor}
@@ -483,7 +507,11 @@ export default function AddMaintenanceEventScreen() {
               style={[
                 styles.input,
                 styles.notesInput,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                {
+                  backgroundColor: isLight ? INPUT_BG_LIGHT : colors.card,
+                  borderColor: isLight ? GREEN_BORDER : colors.border,
+                  color: colors.text,
+                },
               ]}
               value={notes}
               onChangeText={setNotes}
@@ -494,19 +522,24 @@ export default function AddMaintenanceEventScreen() {
             />
 
             <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                { backgroundColor: colors.success },
-                submitting && styles.submitBtnDisabled,
-              ]}
+              style={[styles.actionBtn, styles.submitBtn, submitting && styles.submitBtnDisabled]}
               onPress={handleSubmit}
               disabled={submitting}
+              activeOpacity={0.85}
             >
               {submitting ? (
-                <ActivityIndicator color="#062B32" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.submitBtnText}>Save event</Text>
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.backBtnBottom]}
+              onPress={() => router.back()}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.backBtnBottomText}>← Back</Text>
             </TouchableOpacity>
           </>
         )}
@@ -524,19 +557,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  backBtn: { paddingVertical: 8, paddingHorizontal: 0, marginBottom: 16 },
-  backBtnText: { fontSize: 17, fontWeight: '500' },
+  backBtnCenter: {
+    marginTop: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    backgroundColor: GREEN_SOFT,
+    borderWidth: 1,
+    borderColor: GREEN_BORDER,
+  },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   card: {
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    backgroundColor: 'transparent',
+    paddingVertical: 8,
+    borderWidth: 0,
+    borderRadius: 0,
   },
   title: { marginBottom: 24, lineHeight: 32 },
   loader: { marginVertical: 24 },
@@ -578,8 +614,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 8,
+    backgroundColor: GREEN_PRIMARY,
   },
-  modalDoneText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  modalDoneText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 
   input: {
     borderWidth: 1,
@@ -590,15 +627,31 @@ const styles = StyleSheet.create({
   },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
 
-  submitBtn: {
-    padding: 16,
-    borderRadius: 999,
+  actionBtn: {
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitBtn: {
     marginTop: 8,
-    marginBottom: 32,
+    backgroundColor: GREEN_PRIMARY,
+  },
+  backBtnBottom: {
+    marginTop: 10,
+    backgroundColor: GREEN_SOFT,
+    borderWidth: 1,
+    borderColor: GREEN_BORDER,
+    marginBottom: 8,
+  },
+  backBtnBottomText: {
+    color: GREEN_PRIMARY,
+    fontSize: 16,
+    fontWeight: '700',
   },
   submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { color: '#062B32', fontSize: 16, fontWeight: '700' },
+  submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   scanBtn: {
     borderWidth: 1,
     borderRadius: 999,

@@ -100,10 +100,6 @@ function CategoryBar({
   );
 }
 
-function SectionDivider() {
-  return <View style={{ height: 1, backgroundColor: 'rgba(128,128,128,0.15)', marginVertical: 16 }} />;
-}
-
 function formatObdValue(value: number | null, unit: string): string {
   if (value == null) return '—';
   return `${value.toLocaleString()} ${unit}`.trim();
@@ -458,7 +454,6 @@ export default function CarTimelineScreen() {
       )}
 
       {/* Service Status Section */}
-      <SectionDivider />
       <TouchableOpacity
         style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
         onPress={() => setServiceOpen((prev) => !prev)}
@@ -471,7 +466,6 @@ export default function CarTimelineScreen() {
         <ServiceStatusCard key={s.event_type} status={s} isLight={isLight} />
       ))}
 
-      <SectionDivider />
       <TouchableOpacity
         style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
         onPress={() => setObdOpen((prev) => !prev)}
@@ -503,7 +497,7 @@ export default function CarTimelineScreen() {
           {obdSnapshot ? (
             <TouchableOpacity
               activeOpacity={0.92}
-              style={[styles.obdCard, isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' }]}
+              style={styles.obdCard}
               onPress={() => router.push(`/(tabs)/car/${carId}/obd-dashboard` as any)}
             >
               <View style={styles.obdHeaderRow}>
@@ -514,25 +508,25 @@ export default function CarTimelineScreen() {
               </View>
 
               <View style={styles.obdMetricsGrid}>
-                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
-                  <ThemedText style={styles.obdMetricLabel}>RPM</ThemedText>
-                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.rpm, '')}</ThemedText>
+                <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
+                  <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>RPM</ThemedText>
+                  <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.rpm, '')}</ThemedText>
                 </View>
-                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
-                  <ThemedText style={styles.obdMetricLabel}>Coolant</ThemedText>
-                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.coolantTempC, '°C')}</ThemedText>
+                <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
+                  <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>Coolant</ThemedText>
+                  <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.coolantTempC, '°C')}</ThemedText>
                 </View>
-                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
-                  <ThemedText style={styles.obdMetricLabel}>Speed</ThemedText>
-                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.speedKph, 'km/h')}</ThemedText>
+                <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
+                  <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>Speed</ThemedText>
+                  <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.speedKph, 'km/h')}</ThemedText>
                 </View>
-                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
-                  <ThemedText style={styles.obdMetricLabel}>Engine Load</ThemedText>
-                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.engineLoadPct, '%')}</ThemedText>
+                <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
+                  <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>Engine Load</ThemedText>
+                  <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.engineLoadPct, '%')}</ThemedText>
                 </View>
-                <View style={[styles.obdMetricItem, isLight && { backgroundColor: '#EFF6F1' }]}>
-                  <ThemedText style={styles.obdMetricLabel}>Battery</ThemedText>
-                  <ThemedText style={styles.obdMetricValue}>{formatObdValue(obdSnapshot.metrics.batteryVoltage, 'V')}</ThemedText>
+                <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
+                  <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>Battery</ThemedText>
+                  <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.batteryVoltage, 'V')}</ThemedText>
                 </View>
               </View>
 
@@ -552,7 +546,7 @@ export default function CarTimelineScreen() {
               <ThemedText style={styles.obdTapHint}>Tap to open charts and history.</ThemedText>
             </TouchableOpacity>
           ) : (
-            <View style={[styles.obdEmptyCard, isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' }]}>
+            <View style={styles.obdEmptyCard}>
               <ThemedText style={styles.obdHint}>No OBD snapshot yet.</ThemedText>
               <ThemedText style={styles.obdTapHint}>The dashboard will show gauges, trends, and trouble code history after your first scan.</ThemedText>
             </View>
@@ -561,7 +555,6 @@ export default function CarTimelineScreen() {
       )}
 
       {/* Incidents section */}
-      <SectionDivider />
       <TouchableOpacity
         style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
         onPress={() => setIncidentsOpen((prev) => !prev)}
@@ -608,7 +601,6 @@ export default function CarTimelineScreen() {
         </>
       )}
 
-      <SectionDivider />
       <TouchableOpacity
         style={[styles.expandRow, styles.expandCard, isLight && styles.expandCardLight]}
         onPress={() => setTimelineOpen((prev) => !prev)}
@@ -765,18 +757,16 @@ const styles = StyleSheet.create({
   addBtnText: { color: '#062B32', fontSize: 15, fontWeight: '700' },
   obdHint: { fontSize: 13, color: '#8DA0B8', marginBottom: 10 },
   obdEmptyCard: {
-    backgroundColor: '#0A1A37',
+    backgroundColor: 'transparent',
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#294263',
+    borderWidth: 0,
     padding: 14,
     marginBottom: 8,
   },
   obdCard: {
-    backgroundColor: '#0A1A37',
+    backgroundColor: 'transparent',
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#294263',
+    borderWidth: 0,
     padding: 14,
     marginBottom: 8,
   },
@@ -797,11 +787,18 @@ const styles = StyleSheet.create({
   },
   obdMetricItem: {
     width: '48%',
-    backgroundColor: '#102449',
+    backgroundColor: 'rgba(28,90,52,0.32)',
     borderRadius: 10,
     padding: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(191,233,205,0.35)',
+  },
+  obdMetricItemLight: {
+    backgroundColor: '#DFF7E8',
+    borderColor: '#BFE9CD',
   },
   obdMetricLabel: { fontSize: 12, color: '#8DA0B8', marginBottom: 2 },
+  obdMetricLabelLight: { color: '#5F7768' },
   obdMetricValue: { fontSize: 14, fontWeight: '700' },
   obdDtcTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
   obdNoCodes: { fontSize: 13, color: '#8DA0B8' },
