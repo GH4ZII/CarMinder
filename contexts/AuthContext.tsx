@@ -42,20 +42,25 @@ function isTokenExpired(token: string, skewSeconds = 30): boolean {
   return exp <= nowSeconds + skewSeconds;
 }
 
-// Google Sign-In is optional: only available in dev/build, not in Expo Go.
-// Dynamically require and configure so the app still runs if the package is missing.
+// Google Sign-In: native module is missing in Expo Go. `configure()` throws if
+// offlineAccess is true without webClientId — do not wrap configure in the same
+// try as require() or a missing EAS env looks like "unavailable in Expo Go".
 let GoogleSignin: any = null;
-let isGoogleSignInAvailable = false;
 try {
   GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
-  isGoogleSignInAvailable = true;
-  GoogleSignin.configure({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    offlineAccess: true, // Required to get idToken for backend verification
-  });
 } catch {
-  isGoogleSignInAvailable = false;
+  GoogleSignin = null;
+}
+
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+if (GoogleSignin && GOOGLE_WEB_CLIENT_ID) {
+  GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    offlineAccess: true,
+  });
 }
 
 // Shape of the auth context: current user, loading state, and auth methods
@@ -161,8 +166,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Function to sign in with Google
   const signInWithGoogle = useCallback(async () => {
-    if (!isGoogleSignInAvailable || !GoogleSignin) {
-      throw new Error('Google Sign-In er ikke tilgjengelig i Expo Go. Bruk en dev build for å teste Google Sign-In.');
+    if (!GoogleSignin) {
+      throw new Error(
+        'Google Sign-In er ikke tilgjengelig i denne appvarianten (f.eks. Expo Go). Installer en bygget versjon av CarMinder.',
+      );
+    }
+    if (!GOOGLE_WEB_CLIENT_ID) {
+      throw new Error(
+        'Google-innlogging er ikke konfigurert i denne appen: mangler EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Legg den inn som miljøvariabel for EAS Build (Expo dashboard → Environment variables, eller eas secret), bygg på nytt og send til TestFlight.',
+      );
     }
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -233,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await removePushTokenFromBackend(pushTokenRef.current, token);
       pushTokenRef.current = null;
     }
-    if (isGoogleSignInAvailable && GoogleSignin) {
+    if (GoogleSignin) {
       try {
         const cur = await GoogleSignin.getCurrentUser();
         if (cur) await GoogleSignin.signOut();
