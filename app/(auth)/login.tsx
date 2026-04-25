@@ -2,9 +2,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ApiError } from '@/frontendServices/apiCall';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -20,9 +22,14 @@ import {
     View,
 } from 'react-native';
 
+const REMEMBER_ME_KEY = '@remember_me_enabled';
+const REMEMBERED_EMAIL_KEY = '@remembered_email';
+const REMEMBERED_PASSWORD_KEY = 'remembered_password_secure';
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +39,31 @@ export default function LoginScreen() {
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [rememberMeFlag, savedEmail, savedPassword] = await Promise.all([
+          AsyncStorage.getItem(REMEMBER_ME_KEY),
+          AsyncStorage.getItem(REMEMBERED_EMAIL_KEY),
+          SecureStore.getItemAsync(REMEMBERED_PASSWORD_KEY),
+        ]);
+        if (!mounted) return;
+        const shouldRemember = rememberMeFlag !== 'false';
+        setRememberMe(shouldRemember);
+        if (shouldRemember) {
+          if (savedEmail) setEmail(savedEmail);
+          if (savedPassword) setPassword(savedPassword);
+        }
+      } catch {
+        // Ignore storage read errors and keep defaults.
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -74,6 +106,19 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
+      if (rememberMe) {
+        await Promise.all([
+          AsyncStorage.setItem(REMEMBER_ME_KEY, 'true'),
+          AsyncStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim()),
+          SecureStore.setItemAsync(REMEMBERED_PASSWORD_KEY, password),
+        ]);
+      } else {
+        await Promise.all([
+          AsyncStorage.setItem(REMEMBER_ME_KEY, 'false'),
+          AsyncStorage.removeItem(REMEMBERED_EMAIL_KEY),
+          SecureStore.deleteItemAsync(REMEMBERED_PASSWORD_KEY),
+        ]);
+      }
       router.replace('/(tabs)');
     } catch (error: any) {
       let parsedMessage = 'Login failed. Please try again.';
@@ -204,6 +249,19 @@ export default function LoginScreen() {
           </View>
 
           {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+          <TouchableOpacity
+            style={styles.rememberMeRow}
+            onPress={() => setRememberMe((prev) => !prev)}
+            disabled={loading}
+          >
+            <Ionicons
+              name={rememberMe ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={rememberMe ? '#2DD4BF' : palette.icon}
+            />
+            <Text style={[styles.rememberMeText, { color: palette.text }]}>Remember me</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.forgotPasswordButton}
@@ -375,6 +433,16 @@ const styles = StyleSheet.create({
     color: '#F55252',
     fontSize: 13,
     marginTop: 8,
+  },
+  rememberMeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  rememberMeText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   buttonDisabled: {
     opacity: 0.6,

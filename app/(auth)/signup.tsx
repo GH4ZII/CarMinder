@@ -142,7 +142,7 @@ export default function SignupScreen() {
             {loading ? (
               <ActivityIndicator color="#062B32" />
             ) : (
-              <ThemedText style={[styles.buttonText, { color: '#062B32' }]}>
+              <ThemedText style={[styles.buttonText, { color: '#000000' }]}>
                 Create account
               </ThemedText>
             )}
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   title: {
-    color: '#E9EEF7',
+    color: '#000000',
     marginBottom: 8,
     textAlign: 'center',
   },
