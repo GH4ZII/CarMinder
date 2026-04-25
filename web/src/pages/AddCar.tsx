@@ -76,29 +76,27 @@ export default function AddCar() {
   }
 
   return (
-    <div className="page page--app-theme">
-      <div className="page-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          &larr; Back
-        </button>
-        <h1>Add Car</h1>
-      </div>
+    <div className="page page--app-theme page--addcar-app-theme">
+      <h1 className="add-car-title">Add Your Car</h1>
 
       <Card className="lookup-card">
         <form onSubmit={handleLookup} className="lookup-form">
           <Input
-            label="Registration Number"
             value={regNumber}
             onChange={(e) => setRegNumber(e.target.value.toUpperCase())}
-            placeholder="e.g. AB12345"
+            placeholder="Enter registration number (e.g. AB12345)"
             maxLength={7}
             disabled={loading}
           />
-          <Button type="submit" disabled={loading || !regNumber.trim()}>
-            {loading ? 'Searching...' : 'Look Up Vehicle'}
+          <Button type="submit" disabled={loading || !regNumber.trim()} className="add-car-fetch-btn">
+            {loading ? 'Searching...' : 'Fetch Car Info'}
           </Button>
         </form>
       </Card>
+
+      <button className="button button--secondary add-car-back-btn" onClick={() => navigate(-1)}>
+        &larr; Back
+      </button>
 
       {error && (
         <div className={`save-error-banner save-error-banner--${errorType}`}>

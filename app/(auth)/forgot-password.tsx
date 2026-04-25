@@ -1,6 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -17,10 +15,17 @@ import {
   View,
 } from 'react-native';
 
+const AUTH_COLORS = {
+  background: '#F2F7F4',
+  surface: '#F8FBF9',
+  text: '#102326',
+  muted: '#60787B',
+  border: '#D8E2DF',
+  accent: '#1F6D3C',
+};
+
 export default function ForgotPasswordScreen() {
   const { forgotPassword } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
 
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -56,25 +61,25 @@ export default function ForgotPasswordScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: AUTH_COLORS.background }]}
     >
-      <ScrollView contentContainerStyle={[styles.scrollContent, { backgroundColor: palette.background }]} keyboardShouldPersistTaps="handled">
-        <View style={[styles.card, { backgroundColor: palette.background }]}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { backgroundColor: AUTH_COLORS.background }]} keyboardShouldPersistTaps="handled">
+        <View style={[styles.card, { backgroundColor: AUTH_COLORS.background }]}>
           <View style={styles.logoWrap}>
             <AntDesign name="car" size={22} color={styles.logoIcon.color} />
           </View>
 
-          <Text style={[styles.title, { color: palette.text }]}>Forgot password</Text>
-          <Text style={[styles.subtitle, { color: palette.icon }]}>
+          <Text style={[styles.title, { color: AUTH_COLORS.text }]}>Forgot password</Text>
+          <Text style={[styles.subtitle, { color: AUTH_COLORS.muted }]}>
             Enter your email and we will send you a reset link.
           </Text>
 
-          <Text style={[styles.label, { color: palette.text }]}>Email</Text>
+          <Text style={[styles.label, { color: AUTH_COLORS.text }]}>Email</Text>
 
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }, errorMessage && styles.inputError]}
+            style={[styles.input, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border, color: AUTH_COLORS.text }, errorMessage && styles.inputError]}
             placeholder="alex@example.com"
-            placeholderTextColor={palette.icon}
+            placeholderTextColor={AUTH_COLORS.muted}
             value={email}
             onChangeText={(value) => {
               setEmail(value);
@@ -107,7 +112,7 @@ export default function ForgotPasswordScreen() {
             onPress={() => router.back()}
             disabled={loading}
           >
-            <Text style={[styles.backButtonText, { color: palette.accent }]}>Back to login</Text>
+            <Text style={[styles.backButtonText, { color: AUTH_COLORS.accent }]}>Back to login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -118,12 +123,12 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
@@ -131,7 +136,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 430,
     alignSelf: 'center',
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
@@ -139,42 +144,42 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#2DD4BF',
+    backgroundColor: '#C6E8D8',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     marginBottom: 20,
   },
   logoIcon: {
-    color: '#072033',
+    color: '#1F6D3C',
   },
   title: {
-    color: '#E9EEF7',
+    color: '#102326',
     fontSize: 34,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    color: '#93A3B8',
+    color: '#60787B',
     fontSize: 18,
     marginBottom: 24,
     textAlign: 'center',
   },
   label: {
-    color: '#DDE6F2',
+    color: '#102326',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#0A1A37',
-    borderColor: '#294263',
+    backgroundColor: '#F8FBF9',
+    borderColor: '#D8E2DF',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#DDE6F2',
+    color: '#102326',
     minHeight: 52,
     marginBottom: 10,
   },
@@ -188,7 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#2DD4BF',
+    backgroundColor: '#1F6D3C',
     borderRadius: 10,
     minHeight: 52,
     alignItems: 'center',
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: '#062B32',
+    color: '#F3F8F5',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -208,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#2DD4BF',
+    color: '#1F6D3C',
     fontSize: 15,
     fontWeight: '600',
   },

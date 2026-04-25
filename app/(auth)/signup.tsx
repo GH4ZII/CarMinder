@@ -1,7 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -16,6 +14,15 @@ import {
     View,
 } from 'react-native';
 
+const AUTH_COLORS = {
+  background: '#F2F7F4',
+  surface: '#F8FBF9',
+  text: '#102326',
+  muted: '#60787B',
+  border: '#D8E2DF',
+  accent: '#1F6D3C',
+};
+
 export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,8 +30,6 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -72,13 +77,13 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: AUTH_COLORS.background }]}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: palette.background }]}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: AUTH_COLORS.background }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.content, { backgroundColor: palette.background }]}>
+        <View style={[styles.content, { backgroundColor: AUTH_COLORS.background }]}>
           <ThemedText type="title" style={styles.title}>
             Create account
           </ThemedText>
@@ -89,8 +94,8 @@ export default function SignupScreen() {
 
           <TextInput
             placeholder="Name"
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
-            placeholderTextColor={palette.icon}
+            style={[styles.input, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border, color: AUTH_COLORS.text }]}
+            placeholderTextColor={AUTH_COLORS.muted}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -99,9 +104,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[styles.input, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border, color: AUTH_COLORS.text }]}
             placeholder="Email"
-            placeholderTextColor={palette.icon}
+            placeholderTextColor={AUTH_COLORS.muted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -111,9 +116,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[styles.input, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border, color: AUTH_COLORS.text }]}
             placeholder="Password"
-            placeholderTextColor={palette.icon}
+            placeholderTextColor={AUTH_COLORS.muted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -123,9 +128,9 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[styles.input, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border, color: AUTH_COLORS.text }]}
             placeholder="Confirm password"
-            placeholderTextColor={palette.icon}
+            placeholderTextColor={AUTH_COLORS.muted}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -140,9 +145,9 @@ export default function SignupScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#062B32" />
+              <ActivityIndicator color="#F3F8F5" />
             ) : (
-              <ThemedText style={[styles.buttonText, { color: '#000000' }]}>
+              <ThemedText style={[styles.buttonText, { color: '#F3F8F5' }]}>
                 Create account
               </ThemedText>
             )}
@@ -153,7 +158,7 @@ export default function SignupScreen() {
             onPress={() => router.push('/(auth)/login')}
             disabled={loading}
           >
-            <ThemedText style={[styles.switchText, { color: palette.accent }]}>
+            <ThemedText style={[styles.switchText, { color: AUTH_COLORS.accent }]}>
               Already have an account? Log in
             </ThemedText>
           </TouchableOpacity>
@@ -166,12 +171,12 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
@@ -179,33 +184,33 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 430,
     alignSelf: 'center',
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   title: {
-    color: '#000000',
+    color: '#102326',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    color: '#8DA0B8',
+    color: '#60787B',
     marginBottom: 32,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#0A1A37',
-    borderColor: '#294263',
+    backgroundColor: '#F8FBF9',
+    borderColor: '#D8E2DF',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
-    color: '#DDE6F2',
+    color: '#102326',
     fontSize: 16,
     marginBottom: 16,
     minHeight: 52,
   },
   button: {
-    backgroundColor: '#2DD4BF',
+    backgroundColor: '#1F6D3C',
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',
@@ -217,7 +222,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#062B32',
+    color: '#F3F8F5',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -226,7 +231,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
-    color: '#2DD4BF',
+    color: '#1F6D3C',
     fontSize: 14,
     fontWeight: '500',
   },

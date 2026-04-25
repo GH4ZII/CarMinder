@@ -1,17 +1,17 @@
 /* ===== CSS Variables — Neobank-inspired ===== */
 :root {
-  --color-primary: #1A1A1A;
-  --color-primary-dark: #000000;
-  --color-primary-light: #F0F0F0;
-  --color-accent: #C5E636;
-  --color-accent-dark: #A8C41A;
-  --color-accent-light: #F2F9D4;
-  --color-background: #ffffff;
-  --color-background-alt: #F5F5F7;
+  --color-primary: #1f6d3c;
+  --color-primary-dark: #195f34;
+  --color-primary-light: #e9f5ee;
+  --color-accent: #c6e8d8;
+  --color-accent-dark: #9ecdb5;
+  --color-accent-light: #edf8f1;
+  --color-background: #f8fbf9;
+  --color-background-alt: #f2f7f4;
   --color-surface: #ffffff;
-  --color-text: #0F172A;
-  --color-text-muted: #6B7280;
-  --color-border: #E8E8E8;
+  --color-text: #102326;
+  --color-text-muted: #60787b;
+  --color-border: #d8e2df;
   --color-error: #dc2626;
   --color-error-light: #fef2f2;
   --color-success: #16a34a;
@@ -26,6 +26,11 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
   --max-width: 1100px;
+  --app-green: #1f6d3c;
+  --app-green-hover: #195f34;
+  --app-green-soft: #c6e8d8;
+  --app-green-soft-border: #b4dcc9;
+  --app-green-text-on: #f3f8f5;
 }
 
 /* ===== Reset ===== */
@@ -666,6 +671,88 @@ a:hover {
   border: 1px solid #d8e2df;
 }
 
+/* Add Car page: greener app-style variant */
+.page--addcar-app-theme {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: 1.1rem;
+}
+
+.page--addcar-app-theme .add-car-title {
+  text-align: center;
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 1.4rem;
+  color: #0f201c;
+}
+
+.page--addcar-app-theme .lookup-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 0.85rem;
+}
+
+.page--addcar-app-theme .lookup-form {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.page--addcar-app-theme .lookup-form .input-wrap {
+  width: 100%;
+}
+
+.page--addcar-app-theme .lookup-form .input {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid #d4ddd9;
+  background: #f9fbfa;
+  padding: 0.75rem 1rem;
+  font-size: 1.05rem;
+}
+
+.page--addcar-app-theme .lookup-form .input::placeholder {
+  color: #6c7f80;
+}
+
+.page--addcar-app-theme .add-car-fetch-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 12px;
+  background: #1f6d3c;
+  color: #f3f8f5;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.page--addcar-app-theme .add-car-fetch-btn:hover {
+  background: #1b6035;
+}
+
+.page--addcar-app-theme .add-car-back-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  background: #c6e8d8;
+  border-color: #b4dcc9;
+  color: #1f6d3c;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.page--addcar-app-theme .add-car-back-btn:hover {
+  background: #b9e0ce;
+  border-color: #a7d2bd;
+}
+
+.page--addcar-app-theme .car-info-card {
+  background: #f9fcfb;
+  border-color: #cfe0d7;
+}
+
 /* Welcome page aligned with app-style light teal theme */
 .welcome--app-theme {
   background: #f4f8f7;
@@ -793,6 +880,79 @@ a:hover {
 
 .welcome--app-theme .welcome-footer {
   border-top-color: #d8e2df;
+}
+
+/* Unified green theme overrides across web screens */
+.layout-logo::before,
+.nav-link--active,
+.button--primary,
+.page--auth-app-theme .button--primary,
+.page--auth-app-theme .auth-card__logo--app-theme,
+.page--auth-app-theme .auth-remember-row input,
+.home-page--app-theme .home-hero__actions .button--accent,
+.home-page--app-theme .calendar-dot,
+.home-page--app-theme .profile-avatar,
+.home-page--app-theme .profile-avatar--lg,
+.page--app-theme .button--primary,
+.page--app-theme .chip--active,
+.page--app-theme .toggle-switch input:checked + .toggle-switch__slider,
+.page--addcar-app-theme .add-car-fetch-btn,
+.welcome--app-theme .button--primary,
+.welcome--app-theme .welcome-hero__badge,
+.welcome--app-theme .welcome-step__number {
+  background: var(--app-green) !important;
+}
+
+.button--primary:hover,
+.page--auth-app-theme .button--primary:hover,
+.home-page--app-theme .home-hero__actions .button--accent:hover,
+.page--app-theme .button--primary:hover,
+.page--addcar-app-theme .add-car-fetch-btn:hover,
+.welcome--app-theme .button--primary:hover {
+  background: var(--app-green-hover) !important;
+}
+
+.layout-logo::before,
+.nav-link--active,
+.button--primary,
+.page--auth-app-theme .button--primary,
+.page--app-theme .button--primary,
+.page--addcar-app-theme .add-car-fetch-btn,
+.welcome--app-theme .button--primary,
+.welcome--app-theme .welcome-hero__badge,
+.welcome--app-theme .welcome-step__number {
+  color: var(--app-green-text-on) !important;
+}
+
+.page--addcar-app-theme .add-car-back-btn,
+.page--app-theme .button--outline,
+.welcome--app-theme .button--ghost,
+.page--auth-app-theme .google-btn,
+.page--app-theme .button--secondary,
+.page--app-theme .chip,
+.layout-nav {
+  background: var(--app-green-soft) !important;
+  border-color: var(--app-green-soft-border) !important;
+}
+
+.page--addcar-app-theme .add-car-back-btn,
+.page--app-theme .button--outline,
+.welcome--app-theme .button--ghost,
+.page--app-theme .button--secondary,
+.page--app-theme .chip,
+.nav-link,
+.welcome--app-theme .welcome-header__link,
+.page--auth-app-theme .auth-footer a,
+.page--auth-app-theme .auth-footer--small a {
+  color: var(--app-green) !important;
+}
+
+.page--auth-app-theme .input:focus,
+.page--app-theme .input:focus,
+.page--app-theme .mileage-edit__input:focus,
+.input:focus {
+  border-color: var(--app-green) !important;
+  box-shadow: 0 0 0 3px rgba(31, 109, 60, 0.15) !important;
 }
 
 @media (max-width: 640px) {
