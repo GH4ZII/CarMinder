@@ -229,7 +229,7 @@ export default function Profile() {
       : null;
 
   return (
-    <div className="page">
+    <div className="page page--app-theme">
       <h1>Profile</h1>
 
       {/* Profile Header */}

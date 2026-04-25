@@ -629,23 +629,23 @@ export default function ProfileScreen() {
       <Modal visible={!!transferCode} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, isLight && { backgroundColor: '#FFFFFF' }]}>
-            <Text style={styles.modalTitle}>Transfer Code</Text>
-            <Text style={styles.modalSubtitle}>
+            <Text style={[styles.modalTitle, { color: '#000000' }]}>Transfer Code</Text>
+            <Text style={[styles.modalSubtitle, { color: '#000000' }]}>
               Share this code with the new owner of {transferCarName}. They can use it to claim the car with all its history.
             </Text>
             <View style={[styles.codeBox, isLight && { backgroundColor: '#EFF6F1' }]}>
-              <Text style={styles.codeText} selectable>{transferCode}</Text>
+              <Text style={[styles.codeText, { color: '#000000' }]} selectable>{transferCode}</Text>
             </View>
-            <Text style={styles.modalHint}>Code expires in 24 hours</Text>
+            <Text style={[styles.modalHint, { color: '#000000' }]}>Code expires in 24 hours</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.copyButton, isLight && { backgroundColor: '#DFF7E8' }]} onPress={handleCopyTransferCode}>
-                <Text style={[styles.copyButtonText, isLight && { color: '#1C5A34' }]}>Copy Code</Text>
+                <Text style={[styles.copyButtonText, { color: '#000000' }]}>Copy Code</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setTransferCode(null)}
               >
-                <Text style={styles.modalCloseButtonText}>Done</Text>
+                <Text style={[styles.modalCloseButtonText, { color: '#000000' }]}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>

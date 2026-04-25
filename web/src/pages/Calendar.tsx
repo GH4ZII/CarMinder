@@ -97,7 +97,7 @@ export default function Calendar() {
   }
 
   return (
-    <div className="page">
+    <div className="page page--app-theme">
       <h1>Calendar</h1>
 
       {cars.length > 0 && (

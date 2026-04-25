@@ -41,7 +41,7 @@ export default function Lookup() {
   }
 
   return (
-    <div className="page">
+    <div className="page page--app-theme">
       <h1>Car History Lookup</h1>
       <p className="lookup-subtitle">
         Search by registration number. Results appear only when the owner has enabled public history.

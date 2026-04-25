@@ -1,10 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ApiError } from '@/frontendServices/apiCall';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -20,9 +20,23 @@ import {
     View,
 } from 'react-native';
 
+const REMEMBER_ME_KEY = '@remember_me_enabled';
+const REMEMBERED_EMAIL_KEY = '@remembered_email';
+const REMEMBERED_PASSWORD_KEY = 'remembered_password_secure';
+const AUTH_COLORS = {
+  background: '#F2F7F4',
+  surface: '#F8FBF9',
+  text: '#102326',
+  muted: '#60787B',
+  border: '#D8E2DF',
+  accent: '#1F6D3C',
+  accentSoft: '#C6E8D8',
+};
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,8 +44,31 @@ export default function LoginScreen() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [rememberMeFlag, savedEmail, savedPassword] = await Promise.all([
+          AsyncStorage.getItem(REMEMBER_ME_KEY),
+          AsyncStorage.getItem(REMEMBERED_EMAIL_KEY),
+          SecureStore.getItemAsync(REMEMBERED_PASSWORD_KEY),
+        ]);
+        if (!mounted) return;
+        const shouldRemember = rememberMeFlag !== 'false';
+        setRememberMe(shouldRemember);
+        if (shouldRemember) {
+          if (savedEmail) setEmail(savedEmail);
+          if (savedPassword) setPassword(savedPassword);
+        }
+      } catch {
+        // Ignore storage read errors and keep defaults.
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -74,6 +111,19 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
+      if (rememberMe) {
+        await Promise.all([
+          AsyncStorage.setItem(REMEMBER_ME_KEY, 'true'),
+          AsyncStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim()),
+          SecureStore.setItemAsync(REMEMBERED_PASSWORD_KEY, password),
+        ]);
+      } else {
+        await Promise.all([
+          AsyncStorage.setItem(REMEMBER_ME_KEY, 'false'),
+          AsyncStorage.removeItem(REMEMBERED_EMAIL_KEY),
+          SecureStore.deleteItemAsync(REMEMBERED_PASSWORD_KEY),
+        ]);
+      }
       router.replace('/(tabs)');
     } catch (error: any) {
       let parsedMessage = 'Login failed. Please try again.';
@@ -140,25 +190,25 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: AUTH_COLORS.background }]}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: palette.background }]}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: AUTH_COLORS.background }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.card, { backgroundColor: palette.background }]}>
+        <View style={[styles.card, { backgroundColor: AUTH_COLORS.background }]}>
           <View style={styles.logoWrap}>
             <AntDesign name="car" size={24} color={styles.logoIcon.color} />
           </View>
 
-          <Text style={[styles.title, { color: palette.text }]}>Welcome back</Text>
-          <Text style={[styles.subtitle, { color: palette.icon }]}>Log in to manage your vehicles</Text>
+          <Text style={[styles.title, { color: AUTH_COLORS.text }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: AUTH_COLORS.muted }]}>Log in to manage your vehicles</Text>
 
-          <Text style={[styles.label, { color: palette.text }]}>Email</Text>
+          <Text style={[styles.label, { color: AUTH_COLORS.text }]}>Email</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[styles.input, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border, color: AUTH_COLORS.text }]}
             placeholder="alex@example.com"
-            placeholderTextColor={palette.icon}
+            placeholderTextColor={AUTH_COLORS.muted}
             value={email}
             onChangeText={(value) => {
               setEmail(value);
@@ -173,11 +223,11 @@ export default function LoginScreen() {
           />
 
           <Text style={[styles.label, errorMessage && styles.labelError]}>Password</Text>
-          <View style={[styles.passwordWrap, { backgroundColor: palette.card, borderColor: palette.border }, errorMessage && styles.passwordWrapError]}>
+          <View style={[styles.passwordWrap, { backgroundColor: AUTH_COLORS.surface, borderColor: AUTH_COLORS.border }, errorMessage && styles.passwordWrapError]}>
             <TextInput
-              style={[styles.passwordInput, { color: palette.text }]}
+              style={[styles.passwordInput, { color: AUTH_COLORS.text }]}
               placeholder="Enter your password"
-              placeholderTextColor={palette.icon}
+              placeholderTextColor={AUTH_COLORS.muted}
               value={password}
               onChangeText={(value) => {
                 setPassword(value);
@@ -198,12 +248,25 @@ export default function LoginScreen() {
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                 size={18}
-                color={errorMessage ? '#F55252' : palette.icon}
+                color={errorMessage ? '#F55252' : AUTH_COLORS.muted}
               />
             </TouchableOpacity>
           </View>
 
           {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+          <TouchableOpacity
+            style={styles.rememberMeRow}
+            onPress={() => setRememberMe((prev) => !prev)}
+            disabled={loading}
+          >
+            <Ionicons
+              name={rememberMe ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={rememberMe ? AUTH_COLORS.accent : AUTH_COLORS.muted}
+            />
+            <Text style={[styles.rememberMeText, { color: AUTH_COLORS.text }]}>Remember me</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.forgotPasswordButton}
@@ -226,38 +289,38 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { borderColor: palette.border }]} />
-            <Text style={[styles.dividerText, { color: palette.icon }]}>Or continue with</Text>
-            <View style={[styles.divider, { borderColor: palette.border }]} />
+            <View style={[styles.divider, { borderColor: AUTH_COLORS.border }]} />
+            <Text style={[styles.dividerText, { color: AUTH_COLORS.muted }]}>Or continue with</Text>
+            <View style={[styles.divider, { borderColor: AUTH_COLORS.border }]} />
           </View>
 
           <TouchableOpacity
-            style={[styles.socialButton, { borderColor: palette.border }, (loading || googleLoading) && styles.buttonDisabled]}
+            style={[styles.socialButton, { borderColor: AUTH_COLORS.border }, (loading || googleLoading) && styles.buttonDisabled]}
             onPress={handleGoogleSignIn}
             disabled={loading || googleLoading}
           >
             {googleLoading ? (
-              <ActivityIndicator color="#D8E1EE" />
+              <ActivityIndicator color={AUTH_COLORS.muted} />
             ) : (
               <>
-                <Ionicons name="logo-google" size={18} color={palette.text} />
-                <Text style={[styles.socialButtonText, { color: palette.text }]}>Continue with Google</Text>
+                <Ionicons name="logo-google" size={18} color={AUTH_COLORS.text} />
+                <Text style={[styles.socialButtonText, { color: AUTH_COLORS.text }]}>Continue with Google</Text>
               </>
             )}
           </TouchableOpacity>
 
           {appleAvailable && (
             <TouchableOpacity
-              style={[styles.socialButton, { borderColor: palette.border }, styles.appleButton, (loading || appleLoading) && styles.buttonDisabled]}
+              style={[styles.socialButton, { borderColor: AUTH_COLORS.border }, styles.appleButton, (loading || appleLoading) && styles.buttonDisabled]}
               onPress={handleAppleSignIn}
               disabled={loading || appleLoading}
             >
               {appleLoading ? (
-                <ActivityIndicator color="#D8E1EE" />
+                <ActivityIndicator color={AUTH_COLORS.muted} />
               ) : (
                 <>
-                  <Ionicons name="logo-apple" size={18} color={palette.text} />
-                  <Text style={[styles.socialButtonText, { color: palette.text }]}>Continue with Apple</Text>
+                  <Ionicons name="logo-apple" size={18} color={AUTH_COLORS.text} />
+                  <Text style={[styles.socialButtonText, { color: AUTH_COLORS.text }]}>Continue with Apple</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -268,8 +331,8 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/signup')}
             disabled={loading || googleLoading || appleLoading}
           >
-            <Text style={[styles.switchText, { color: palette.icon }]}>
-              Don't have an account? <Text style={[styles.switchTextAccent, { color: palette.accent }]}>Sign up</Text>
+            <Text style={[styles.switchText, { color: AUTH_COLORS.muted }]}>
+              Don't have an account? <Text style={[styles.switchTextAccent, { color: AUTH_COLORS.accent }]}>Sign up</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -281,12 +344,12 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
@@ -294,7 +357,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 430,
     alignSelf: 'center',
-    backgroundColor: '#07142B',
+    backgroundColor: '#F2F7F4',
     borderRadius: 0,
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -304,30 +367,30 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#2DD4BF',
+    backgroundColor: '#C6E8D8',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     marginBottom: 20,
   },
   logoIcon: {
-    color: '#072033',
+    color: '#1F6D3C',
   },
   title: {
-    color: '#E9EEF7',
+    color: '#102326',
     fontSize: 34,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    color: '#93A3B8',
+    color: '#60787B',
     fontSize: 20,
     marginBottom: 24,
     textAlign: 'center',
   },
   label: {
-    color: '#DDE6F2',
+    color: '#102326',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
@@ -336,19 +399,19 @@ const styles = StyleSheet.create({
     color: '#F55252',
   },
   input: {
-    backgroundColor: '#0A1A37',
-    borderColor: '#294263',
+    backgroundColor: '#F8FBF9',
+    borderColor: '#D8E2DF',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#DDE6F2',
+    color: '#102326',
     minHeight: 52,
     marginBottom: 16,
   },
   passwordWrap: {
-    backgroundColor: '#0A1A37',
-    borderColor: '#294263',
+    backgroundColor: '#F8FBF9',
+    borderColor: '#D8E2DF',
     borderWidth: 1,
     borderRadius: 12,
     flexDirection: 'row',
@@ -361,7 +424,7 @@ const styles = StyleSheet.create({
   },
   passwordInput: {
     flex: 1,
-    color: '#DDE6F2',
+    color: '#102326',
     fontSize: 16,
     paddingLeft: 16,
     paddingRight: 8,
@@ -376,6 +439,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
   },
+  rememberMeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  rememberMeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -385,12 +458,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   forgotPasswordText: {
-    color: '#2DD4BF',
+    color: '#1F6D3C',
     fontSize: 15,
     fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: '#2DD4BF',
+    backgroundColor: '#1F6D3C',
     borderRadius: 10,
     minHeight: 52,
     alignItems: 'center',
@@ -398,7 +471,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   loginButtonText: {
-    color: '#062B32',
+    color: '#F3F8F5',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -410,17 +483,17 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     borderTopWidth: 1,
-    borderColor: '#213755',
+    borderColor: '#D8E2DF',
   },
   dividerText: {
     marginHorizontal: 14,
-    color: '#7D8EA6',
+    color: '#60787B',
     fontSize: 13,
   },
   socialButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#294263',
+    borderColor: '#D8E2DF',
     borderRadius: 12,
     minHeight: 52,
     alignItems: 'center',
@@ -430,7 +503,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   socialButtonText: {
-    color: '#DDE6F2',
+    color: '#102326',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -441,11 +514,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
-    color: '#8392A6',
+    color: '#60787B',
     fontSize: 14,
   },
   switchTextAccent: {
-    color: '#2DD4BF',
+    color: '#1F6D3C',
     fontWeight: '700',
   },
 });

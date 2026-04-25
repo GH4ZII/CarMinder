@@ -1,17 +1,17 @@
 /* ===== CSS Variables — Neobank-inspired ===== */
 :root {
-  --color-primary: #1A1A1A;
-  --color-primary-dark: #000000;
-  --color-primary-light: #F0F0F0;
-  --color-accent: #C5E636;
-  --color-accent-dark: #A8C41A;
-  --color-accent-light: #F2F9D4;
-  --color-background: #ffffff;
-  --color-background-alt: #F5F5F7;
+  --color-primary: #1f6d3c;
+  --color-primary-dark: #195f34;
+  --color-primary-light: #e9f5ee;
+  --color-accent: #c6e8d8;
+  --color-accent-dark: #9ecdb5;
+  --color-accent-light: #edf8f1;
+  --color-background: #f8fbf9;
+  --color-background-alt: #f2f7f4;
   --color-surface: #ffffff;
-  --color-text: #0F172A;
-  --color-text-muted: #6B7280;
-  --color-border: #E8E8E8;
+  --color-text: #102326;
+  --color-text-muted: #60787b;
+  --color-border: #d8e2df;
   --color-error: #dc2626;
   --color-error-light: #fef2f2;
   --color-success: #16a34a;
@@ -26,6 +26,11 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
   --max-width: 1100px;
+  --app-green: #1f6d3c;
+  --app-green-hover: #195f34;
+  --app-green-soft: #c6e8d8;
+  --app-green-soft-border: #b4dcc9;
+  --app-green-text-on: #f3f8f5;
 }
 
 /* ===== Reset ===== */
@@ -84,43 +89,67 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  height: 64px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 1.25rem;
+  min-height: 72px;
+  background: #f4f8f7;
+  border-bottom: 1px solid #d8e2df;
+  backdrop-filter: blur(10px);
 }
 
 .layout-logo {
-  font-size: 1.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  color: var(--color-text);
+  color: #112a2d;
   text-decoration: none;
   letter-spacing: -0.02em;
 }
 
+.layout-logo::before {
+  content: 'CM';
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #35cfc2;
+  color: #062a2f;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
 .layout-nav {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.4rem;
+  background: #f9fcfb;
+  border: 1px solid #d8e2df;
+  border-radius: 999px;
+  padding: 0.25rem;
 }
 
 .nav-link {
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.95rem;
   border-radius: 999px;
-  color: var(--color-text-muted);
+  color: #60787b;
   text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: background 0.15s, color 0.15s;
+  font-weight: 600;
+  font-size: 0.86rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
 }
 .nav-link:hover {
-  background: var(--color-background-alt);
-  color: var(--color-text);
+  background: #f1f7f5;
+  color: #244043;
   text-decoration: none;
 }
 .nav-link--active {
-  background: var(--color-accent-light);
-  color: var(--color-text);
-  font-weight: 600;
+  background: #35cfc2;
+  color: #072c30;
+  border-color: #2cc1b5;
+  box-shadow: 0 2px 8px rgba(53, 207, 194, 0.28);
 }
 
 .layout-main {
@@ -197,6 +226,751 @@ a:hover {
 .auth-footer--small a {
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+.auth-password-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-password-input {
+  flex: 1;
+}
+
+.auth-password-toggle {
+  border: 1px solid var(--color-border);
+  background: var(--color-background-alt);
+  color: var(--color-text-muted);
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-password-toggle:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.auth-password-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-remember-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  margin-top: -0.2rem;
+}
+
+.auth-remember-row input {
+  width: 16px;
+  height: 16px;
+}
+
+.page--auth-app-theme {
+  min-height: 100vh;
+  background: #f4f8f7;
+}
+
+.page--auth-app-theme .auth-card--app-theme {
+  max-width: 460px;
+  background: transparent;
+  border: none;
+  padding: 1.5rem 1.2rem;
+}
+
+.page--auth-app-theme .auth-card__logo--app-theme {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  border-radius: 16px;
+  background: #35cfc2;
+  color: #042a30;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page--auth-app-theme .auth-card h1 {
+  font-size: 2.2rem;
+  text-align: center;
+  margin-bottom: 0.3rem;
+  color: #0a1e1f;
+}
+
+.page--auth-app-theme .auth-card__subtitle {
+  text-align: center;
+  font-size: 1.15rem;
+  color: #5e7072;
+  margin-bottom: 1.4rem;
+}
+
+.page--auth-app-theme .input-wrap {
+  gap: 0.45rem;
+}
+
+.page--auth-app-theme .input-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1d2c2e;
+}
+
+.page--auth-app-theme .input {
+  border-radius: 14px;
+  min-height: 54px;
+  border: 1px solid #d7e1de;
+  background: #f9fbfa;
+  font-size: 1rem;
+}
+
+.page--auth-app-theme .input:focus {
+  border-color: #35cfc2;
+  box-shadow: 0 0 0 3px rgba(53, 207, 194, 0.15);
+}
+
+.page--auth-app-theme .auth-password-wrap {
+  position: relative;
+}
+
+.page--auth-app-theme .auth-password-input {
+  padding-right: 3.1rem;
+}
+
+.page--auth-app-theme .auth-password-toggle {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #819393;
+  padding: 0.2rem;
+  border-radius: 8px;
+}
+
+.page--auth-app-theme .auth-password-toggle:hover {
+  color: #2f4244;
+  border-color: transparent;
+}
+
+.page--auth-app-theme .auth-remember-row {
+  margin-top: 0.1rem;
+  color: #1d2c2e;
+  font-size: 1rem;
+}
+
+.page--auth-app-theme .auth-remember-row input {
+  accent-color: #35cfc2;
+}
+
+.page--auth-app-theme .auth-footer--small {
+  margin-top: -0.1rem;
+}
+
+.page--auth-app-theme .auth-footer--small a {
+  color: #35cfc2;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.page--auth-app-theme .button--primary {
+  min-height: 56px;
+  border-radius: 12px;
+  background: #35cfc2;
+  color: #08272c;
+  font-size: 1.1rem;
+}
+
+.page--auth-app-theme .button--primary:hover {
+  background: #2ec3b7;
+}
+
+.page--auth-app-theme .auth-divider {
+  margin: 1.3rem 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+  color: #6f8183;
+}
+
+.page--auth-app-theme .auth-divider::before,
+.page--auth-app-theme .auth-divider::after {
+  background: #d8e2df;
+}
+
+.page--auth-app-theme .google-btn {
+  border-radius: 14px;
+  min-height: 56px;
+  border: 1px solid #d7e1de;
+  background: #f9fbfa;
+  color: #122527;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.page--auth-app-theme .google-btn:hover {
+  border-color: #c7d4d1;
+  background: #f4f8f7;
+  box-shadow: none;
+}
+
+.page--auth-app-theme .auth-apple-btn {
+  margin-bottom: 1rem;
+}
+
+.page--auth-app-theme .auth-apple-icon {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.page--auth-app-theme .auth-footer {
+  color: #617376;
+  font-size: 1rem;
+}
+
+.page--auth-app-theme .auth-footer a {
+  color: #35cfc2;
+  font-weight: 700;
+}
+
+.page--auth-app-theme .form-error {
+  background: #fff1f1;
+}
+
+.page--auth-app-theme .form-success {
+  background: #ecfffb;
+  color: #0f766e;
+}
+
+/* Home page: same app-like light teal theme */
+.home-page--app-theme {
+  background: #f4f8f7;
+  padding: 0.25rem;
+  border-radius: 20px;
+}
+
+.home-page--app-theme .home-hero {
+  border: 1px solid #d8e2df;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(53, 207, 194, 0.2) 0%, transparent 45%),
+    linear-gradient(140deg, #f9fcfb 0%, #f2f8f6 100%);
+}
+
+.home-page--app-theme .home-hero__eyebrow {
+  color: #567173;
+}
+
+.home-page--app-theme .home-hero__title {
+  color: #102326;
+}
+
+.home-page--app-theme .home-hero__subtitle {
+  color: #60787b;
+}
+
+.home-page--app-theme .home-hero__actions .button--secondary {
+  background: #ffffff;
+  border-color: #d8e2df;
+  color: #23363a;
+}
+
+.home-page--app-theme .home-hero__actions .button--accent {
+  background: #35cfc2;
+  color: #072b30;
+}
+
+.home-page--app-theme .home-hero__actions .button--accent:hover {
+  background: #2ec3b7;
+}
+
+.home-page--app-theme .home-stat-card {
+  background: #f9fcfb;
+  border-color: #d8e2df;
+}
+
+.home-page--app-theme .home-stat-card__label {
+  color: #5f7577;
+}
+
+.home-page--app-theme .home-stat-card--overdue {
+  background: linear-gradient(180deg, #fff2f2 0%, #f9fcfb 100%);
+}
+
+.home-page--app-theme .home-stat-card--soon {
+  background: linear-gradient(180deg, #fff7ed 0%, #f9fcfb 100%);
+}
+
+.home-page--app-theme .home-stat-card--score {
+  background: linear-gradient(180deg, #ebfffb 0%, #f9fcfb 100%);
+}
+
+.home-page--app-theme .summary-stat {
+  background: #f9fcfb;
+  border-color: #d8e2df;
+}
+
+.home-page--app-theme .summary-stat--neutral {
+  background: #f2f8f6;
+}
+
+.home-page--app-theme .card,
+.home-page--app-theme .car-service-card {
+  background: #f9fcfb;
+  border-color: #d8e2df;
+}
+
+.home-page--app-theme .car-service-card__reg,
+.home-page--app-theme .car-service-card__km,
+.home-page--app-theme .car-service-card__score-label,
+.home-page--app-theme .car-service-card__score-confidence,
+.home-page--app-theme .service-badge__urgency {
+  color: #60787b;
+}
+
+.home-page--app-theme .service-badge {
+  background: #ffffff;
+}
+
+/* Shared app-like theme for non-auth pages */
+.page--app-theme {
+  background: #f4f8f7;
+  border-radius: 20px;
+  padding: 0.25rem;
+}
+
+.page--app-theme h1,
+.page--app-theme h2,
+.page--app-theme h3 {
+  color: #102326;
+}
+
+.page--app-theme .text-muted,
+.page--app-theme p {
+  color: #60787b;
+}
+
+.page--app-theme .page-header h1,
+.page--app-theme .section-header h2 {
+  color: #102326;
+}
+
+.page--app-theme .back-button {
+  border-color: #d8e2df;
+  color: #345155;
+  background: #f9fcfb;
+}
+
+.page--app-theme .back-button:hover {
+  border-color: #b8cbc8;
+  color: #1f3a3d;
+  background: #f1f7f5;
+}
+
+.page--app-theme .card,
+.page--app-theme .lookup-card,
+.page--app-theme .calendar-card,
+.page--app-theme .car-info-card,
+.page--app-theme .profile-header-card,
+.page--app-theme .profile-settings,
+.page--app-theme .profile-settings-card,
+.page--app-theme .profile-stat,
+.page--app-theme .profile-car-card--enhanced,
+.page--app-theme .event-card {
+  background: #f9fcfb;
+  border-color: #d8e2df;
+}
+
+.page--app-theme .input,
+.page--app-theme .mileage-edit__input {
+  background: #f9fbfa;
+  border-color: #d7e1de;
+  color: #1c2f31;
+}
+
+.page--app-theme .input:focus,
+.page--app-theme .mileage-edit__input:focus {
+  border-color: #35cfc2;
+  box-shadow: 0 0 0 3px rgba(53, 207, 194, 0.15);
+}
+
+.page--app-theme .button--primary,
+.page--app-theme .chip--active,
+.page--app-theme .toggle-switch input:checked + .toggle-switch__slider {
+  background: #35cfc2;
+  border-color: #2ec3b7;
+  color: #072c30;
+}
+
+.page--app-theme .button--primary:hover {
+  background: #2ec3b7;
+}
+
+.page--app-theme .button--secondary,
+.page--app-theme .button--outline,
+.page--app-theme .chip {
+  background: #ffffff;
+  border-color: #d8e2df;
+  color: #284347;
+}
+
+.page--app-theme .button--outline {
+  color: #0f766e;
+  border-color: #81dcd3;
+}
+
+.page--app-theme .button--outline:hover {
+  background: #ecfffb;
+}
+
+.page--app-theme .lookup-subtitle,
+.page--app-theme .lookup-car-meta,
+.page--app-theme .incident-card__date,
+.page--app-theme .event-card__date,
+.page--app-theme .profile-settings__value,
+.page--app-theme .profile-header__email,
+.page--app-theme .profile-header__joined,
+.page--app-theme .profile-car-card__meta-tag,
+.page--app-theme .profile-car-card__toggle-label {
+  color: #60787b;
+}
+
+.page--app-theme .calendar-grid__cell--today {
+  background: #ecfffb;
+  color: #0f766e;
+}
+
+.page--app-theme .calendar-dot {
+  background: #35cfc2;
+}
+
+.page--app-theme .tag {
+  background: #ffffff;
+  border-color: #d8e2df;
+  color: #436166;
+}
+
+.page--app-theme .profile-avatar,
+.page--app-theme .profile-avatar--lg {
+  background: #35cfc2;
+  color: #072c30;
+}
+
+.page--app-theme .score-card,
+.page--app-theme .score-card__divider {
+  border-color: #d8e2df;
+}
+
+.page--app-theme .modal-card {
+  border: 1px solid #d8e2df;
+}
+
+/* Add Car page: greener app-style variant */
+.page--addcar-app-theme {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: 1.1rem;
+}
+
+.page--addcar-app-theme .add-car-title {
+  text-align: center;
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 1.4rem;
+  color: #0f201c;
+}
+
+.page--addcar-app-theme .lookup-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 0.85rem;
+}
+
+.page--addcar-app-theme .lookup-form {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.page--addcar-app-theme .lookup-form .input-wrap {
+  width: 100%;
+}
+
+.page--addcar-app-theme .lookup-form .input {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid #d4ddd9;
+  background: #f9fbfa;
+  padding: 0.75rem 1rem;
+  font-size: 1.05rem;
+}
+
+.page--addcar-app-theme .lookup-form .input::placeholder {
+  color: #6c7f80;
+}
+
+.page--addcar-app-theme .add-car-fetch-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 12px;
+  background: #1f6d3c;
+  color: #f3f8f5;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.page--addcar-app-theme .add-car-fetch-btn:hover {
+  background: #1b6035;
+}
+
+.page--addcar-app-theme .add-car-back-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  background: #c6e8d8;
+  border-color: #b4dcc9;
+  color: #1f6d3c;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.page--addcar-app-theme .add-car-back-btn:hover {
+  background: #b9e0ce;
+  border-color: #a7d2bd;
+}
+
+.page--addcar-app-theme .car-info-card {
+  background: #f9fcfb;
+  border-color: #cfe0d7;
+}
+
+/* Welcome page aligned with app-style light teal theme */
+.welcome--app-theme {
+  background: #f4f8f7;
+}
+
+.welcome--app-theme .welcome-header {
+  border-bottom-color: #d8e2df;
+  background: rgba(244, 248, 247, 0.9);
+}
+
+.welcome--app-theme .welcome-header__logo {
+  color: #102326;
+}
+
+.welcome--app-theme .welcome-header__logo::before {
+  content: 'CM';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  margin-right: 0.45rem;
+  background: #35cfc2;
+  color: #072c30;
+  font-size: 0.62rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.welcome--app-theme .welcome-header__link {
+  color: #5f7577;
+}
+
+.welcome--app-theme .welcome-header__link:hover {
+  color: #23393d;
+  background: #edf5f3;
+}
+
+.welcome--app-theme .welcome-hero {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(53, 207, 194, 0.2) 0%, transparent 72%);
+}
+
+.welcome--app-theme .welcome-hero__badge {
+  background: #35cfc2;
+  color: #072c30;
+}
+
+.welcome--app-theme .welcome-hero__title,
+.welcome--app-theme .welcome-section__header h2,
+.welcome--app-theme .welcome-feature-card h3,
+.welcome--app-theme .welcome-cta h2 {
+  color: #102326;
+}
+
+.welcome--app-theme .welcome-hero__subtitle,
+.welcome--app-theme .welcome-section__header p,
+.welcome--app-theme .welcome-feature-card p,
+.welcome--app-theme .welcome-step p,
+.welcome--app-theme .welcome-cta p,
+.welcome--app-theme .welcome-footer {
+  color: #60787b;
+}
+
+.welcome--app-theme .button--primary {
+  background: #35cfc2;
+  color: #072c30;
+}
+
+.welcome--app-theme .button--primary:hover {
+  background: #2ec3b7;
+}
+
+.welcome--app-theme .button--ghost {
+  background: #ffffff;
+  color: #2a4448;
+  border-color: #d8e2df;
+}
+
+.welcome--app-theme .button--ghost:hover {
+  border-color: #b9cecb;
+  color: #19373b;
+}
+
+.welcome--app-theme .welcome-stats {
+  border-top-color: #d8e2df;
+  border-bottom-color: #d8e2df;
+  background: #eef6f4;
+}
+
+.welcome--app-theme .welcome-stat__number {
+  color: #0f766e;
+}
+
+.welcome--app-theme .welcome-feature-card {
+  background: #f9fcfb;
+  border-color: #d8e2df;
+}
+
+.welcome--app-theme .welcome-feature-card:hover {
+  border-color: #b8d7d2;
+}
+
+.welcome--app-theme .welcome-feature-card__icon {
+  background: #e6fbf8;
+  color: #0f766e;
+}
+
+.welcome--app-theme .welcome-section--alt {
+  background: #eef6f4;
+}
+
+.welcome--app-theme .welcome-step__number {
+  background: #35cfc2;
+  color: #072c30;
+}
+
+.welcome--app-theme .welcome-steps__connector {
+  background: #cde2df;
+}
+
+.welcome--app-theme .welcome-cta {
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(53, 207, 194, 0.2) 0%, transparent 72%);
+}
+
+.welcome--app-theme .welcome-footer {
+  border-top-color: #d8e2df;
+}
+
+/* Unified green theme overrides across web screens */
+.layout-logo::before,
+.nav-link--active,
+.button--primary,
+.page--auth-app-theme .button--primary,
+.page--auth-app-theme .auth-card__logo--app-theme,
+.page--auth-app-theme .auth-remember-row input,
+.home-page--app-theme .home-hero__actions .button--accent,
+.home-page--app-theme .calendar-dot,
+.home-page--app-theme .profile-avatar,
+.home-page--app-theme .profile-avatar--lg,
+.page--app-theme .button--primary,
+.page--app-theme .chip--active,
+.page--app-theme .toggle-switch input:checked + .toggle-switch__slider,
+.page--addcar-app-theme .add-car-fetch-btn,
+.welcome--app-theme .button--primary,
+.welcome--app-theme .welcome-hero__badge,
+.welcome--app-theme .welcome-step__number {
+  background: var(--app-green) !important;
+}
+
+.button--primary:hover,
+.page--auth-app-theme .button--primary:hover,
+.home-page--app-theme .home-hero__actions .button--accent:hover,
+.page--app-theme .button--primary:hover,
+.page--addcar-app-theme .add-car-fetch-btn:hover,
+.welcome--app-theme .button--primary:hover {
+  background: var(--app-green-hover) !important;
+}
+
+.layout-logo::before,
+.nav-link--active,
+.button--primary,
+.page--auth-app-theme .button--primary,
+.page--app-theme .button--primary,
+.page--addcar-app-theme .add-car-fetch-btn,
+.welcome--app-theme .button--primary,
+.welcome--app-theme .welcome-hero__badge,
+.welcome--app-theme .welcome-step__number {
+  color: var(--app-green-text-on) !important;
+}
+
+.page--addcar-app-theme .add-car-back-btn,
+.page--app-theme .button--outline,
+.welcome--app-theme .button--ghost,
+.page--auth-app-theme .google-btn,
+.page--app-theme .button--secondary,
+.page--app-theme .chip,
+.layout-nav {
+  background: var(--app-green-soft) !important;
+  border-color: var(--app-green-soft-border) !important;
+}
+
+.page--addcar-app-theme .add-car-back-btn,
+.page--app-theme .button--outline,
+.welcome--app-theme .button--ghost,
+.page--app-theme .button--secondary,
+.page--app-theme .chip,
+.nav-link,
+.welcome--app-theme .welcome-header__link,
+.page--auth-app-theme .auth-footer a,
+.page--auth-app-theme .auth-footer--small a {
+  color: var(--app-green) !important;
+}
+
+.page--auth-app-theme .input:focus,
+.page--app-theme .input:focus,
+.page--app-theme .mileage-edit__input:focus,
+.input:focus {
+  border-color: var(--app-green) !important;
+  box-shadow: 0 0 0 3px rgba(31, 109, 60, 0.15) !important;
+}
+
+@media (max-width: 640px) {
+  .page--auth-app-theme {
+    padding: 1rem;
+  }
+
+  .page--auth-app-theme .auth-card--app-theme {
+    padding: 1rem 0.2rem;
+  }
+
+  .page--auth-app-theme .auth-card h1 {
+    font-size: 2rem;
+  }
+
+  .page--auth-app-theme .auth-card__subtitle {
+    font-size: 1.08rem;
+  }
 }
 
 .form-success {

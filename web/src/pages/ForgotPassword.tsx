@@ -29,9 +29,11 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="page page--auth">
-      <div className="auth-card">
-        <div className="auth-card__logo">CarMinder</div>
+    <div className="page page--auth page--auth-app-theme">
+      <div className="auth-card auth-card--app-theme">
+        <div className="auth-card__logo auth-card__logo--app-theme">
+          <span aria-label="CarMinder logo">CM</span>
+        </div>
         <h1>Forgot password</h1>
         <p className="auth-card__subtitle">Enter your email and we'll send you a reset link</p>
         <form onSubmit={handleSubmit} className="form">

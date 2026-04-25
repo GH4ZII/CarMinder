@@ -122,7 +122,7 @@ export default function Home() {
   const riskCount = data.overdue_count + data.soon_count;
 
   return (
-    <div className="page home-page">
+    <div className="page home-page home-page--app-theme">
       <section className="home-hero">
         <div>
           <p className="home-hero__eyebrow">Fleet command center</p>
