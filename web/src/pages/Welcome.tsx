@@ -8,7 +8,7 @@ export default function Welcome() {
   if (user) return <Navigate to="/" replace />;
 
   return (
-    <div className="welcome">
+    <div className="welcome welcome--app-theme">
       {/* ── Header ── */}
       <header className="welcome-header">
         <span className="welcome-header__logo">CarMinder</span>

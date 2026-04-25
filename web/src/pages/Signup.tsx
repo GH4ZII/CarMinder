@@ -62,9 +62,11 @@ export default function Signup() {
   }
 
   return (
-    <div className="page page--auth">
-      <div className="auth-card">
-        <div className="auth-card__logo">CarMinder</div>
+    <div className="page page--auth page--auth-app-theme">
+      <div className="auth-card auth-card--app-theme">
+        <div className="auth-card__logo auth-card__logo--app-theme">
+          <span aria-label="CarMinder logo">CM</span>
+        </div>
         <h1>Create account</h1>
         <p className="auth-card__subtitle">Create a new account to get started</p>
         <form onSubmit={handleSubmit} className="form">
@@ -114,7 +116,7 @@ export default function Signup() {
           </Button>
         </form>
         <div className="auth-divider">
-          <span>or</span>
+          <span>Or continue with</span>
         </div>
         <GoogleSignInButton
           label="Continue with Google"

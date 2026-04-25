@@ -76,7 +76,7 @@ export default function AddCar() {
   }
 
   return (
-    <div className="page">
+    <div className="page page--app-theme">
       <div className="page-header">
         <button className="back-button" onClick={() => navigate(-1)}>
           &larr; Back
