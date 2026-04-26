@@ -1,0 +1,4 @@
+# Tesseract must exist on the host for pytesseract (receipt OCR).
+# Without this, production (e.g. Railway) raises TesseractNotFoundError.
+[phases.setup]
+aptPkgs = ["...", "tesseract-ocr", "tesseract-ocr-nor"]
