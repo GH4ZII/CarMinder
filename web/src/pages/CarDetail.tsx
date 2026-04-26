@@ -18,7 +18,7 @@ import {
   urgencyColor,
   urgencyLabel,
 } from '@/utils/format';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const GRADE_COLORS: Record<string, string> = {
@@ -52,6 +52,7 @@ export default function CarDetail() {
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [careScore, setCareScore] = useState<CarCareScoreResponse | null>(null);
   const [obdReading, setObdReading] = useState<ObdReadingResponse | null>(null);
+  const [obdReadings, setObdReadings] = useState<ObdReadingResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -64,13 +65,14 @@ export default function CarDetail() {
     try {
       const token = await getToken();
       if (!token) return;
-      const [carData, statusData, eventsData, incidentsData, scoreData, obdData] = await Promise.all([
+      const [carData, statusData, eventsData, incidentsData, scoreData, obdData, obdHistory] = await Promise.all([
         carsApi.getCar(id, token),
         carsApi.getCarServiceStatus(id, token).catch(() => null),
         carsApi.getMaintenanceEvents(id, token).catch(() => [] as MaintenanceEvent[]),
         carsApi.getIncidents(id, token).catch(() => [] as IncidentReport[]),
         carsApi.getCarCareScore(id, token).catch(() => null),
         carsApi.getLatestObdReading(id, token).catch(() => null),
+        carsApi.getObdReadings(id, token, 80).catch(() => [] as ObdReadingResponse[]),
       ]);
       setCar(carData);
       setServiceStatus(statusData);
@@ -78,6 +80,7 @@ export default function CarDetail() {
       setIncidents(incidentsData.sort((a, b) => b.incident_date.localeCompare(a.incident_date)));
       setCareScore(scoreData);
       setObdReading(obdData);
+      setObdReadings(obdHistory);
     } catch (err) {
       if (err instanceof Error && 'status' in err && (err as { status: number }).status === 401) {
         signOut();
@@ -153,6 +156,7 @@ export default function CarDetail() {
   }
 
   const nextService = serviceStatus?.next_service;
+  const effectiveObdReadings = obdReadings.length > 0 ? obdReadings : obdReading ? [obdReading] : [];
 
   return (
     <div className="page">
@@ -223,7 +227,9 @@ export default function CarDetail() {
         </section>
       )}
 
-      {obdReading && <ObdDiagnosticsCard reading={obdReading} />}
+      {effectiveObdReadings.length > 0 && (
+        <ObdDiagnosticsCard reading={obdReading ?? effectiveObdReadings[0]} readings={effectiveObdReadings} />
+      )}
 
       <section className="section">
         <div className="section-header">
@@ -419,7 +425,108 @@ function ServiceStatusCard({ service }: { service: ServiceDueStatus }) {
 
 /* ── OBD Diagnostics Card ────────────────────────────────── */
 
-function ObdDiagnosticsCard({ reading }: { reading: ObdReadingResponse }) {
+type ObdMetricChartProps = {
+  readings: ObdReadingResponse[];
+  field: 'rpm' | 'coolant_temp_c' | 'speed_kph' | 'engine_load_pct';
+  label: string;
+  unit: string;
+  color: string;
+};
+
+function ObdMetricChart({ readings, field, label, unit, color }: ObdMetricChartProps) {
+  const data = useMemo(
+    () =>
+      [...readings]
+        .reverse()
+        .filter((item) => item[field] != null)
+        .map((item) => ({
+          date: item.captured_at,
+          value: item[field] as number,
+        })),
+    [field, readings]
+  );
+
+  if (data.length < 2) {
+    return (
+      <div className="obd-chart">
+        <div className="obd-chart__header">
+          <span className="obd-chart__label">{label}</span>
+          <span className="obd-chart__unit">{unit}</span>
+        </div>
+        <div className="obd-chart__empty">Not enough readings yet</div>
+      </div>
+    );
+  }
+
+  const values = data.map((item) => item.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const width = 420;
+  const height = 150;
+  const left = 42;
+  const right = 14;
+  const top = 18;
+  const bottom = 28;
+  const plotW = width - left - right;
+  const plotH = height - top - bottom;
+  const points = data.map((item, index) => ({
+    x: left + (index / (data.length - 1)) * plotW,
+    y: top + plotH - ((item.value - min) / range) * plotH,
+  }));
+  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const area = `${path} L ${points[points.length - 1].x} ${top + plotH} L ${points[0].x} ${top + plotH} Z`;
+  const ticks = [min, (min + max) / 2, max];
+  const firstDate = formatShortDate(data[0].date);
+  const lastDate = formatShortDate(data[data.length - 1].date);
+
+  return (
+    <div className="obd-chart">
+      <div className="obd-chart__header">
+        <span className="obd-chart__label">{label}</span>
+        <span className="obd-chart__unit">{unit}</span>
+      </div>
+      <svg className="obd-chart__svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${label} trend`}>
+        {ticks.map((tick, index) => {
+          const y = top + plotH - ((tick - min) / range) * plotH;
+          return (
+            <g key={`${label}-tick-${index}`}>
+              <line x1={left} y1={y} x2={left + plotW} y2={y} className="obd-chart__grid" />
+              <text x={left - 8} y={y + 4} textAnchor="end" className="obd-chart__tick">
+                {formatCompact(tick)}
+              </text>
+            </g>
+          );
+        })}
+        <path d={area} fill={color} opacity="0.10" />
+        <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={points[0].x} cy={points[0].y} r="3" fill={color} />
+        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3" fill={color} />
+        <text x={points[0].x} y={height - 8} textAnchor="middle" className="obd-chart__tick">
+          {firstDate}
+        </text>
+        <text x={points[points.length - 1].x} y={height - 8} textAnchor="middle" className="obd-chart__tick">
+          {lastDate}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+function formatCompact(value: number): string {
+  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function formatShortDate(value: string): string {
+  try {
+    return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } catch {
+    return value;
+  }
+}
+
+function ObdDiagnosticsCard({ reading, readings }: { reading: ObdReadingResponse; readings: ObdReadingResponse[] }) {
   const fmtVal = (v: number | null, unit: string) =>
     v == null ? '\u2014' : `${v.toLocaleString()} ${unit}`.trim();
 
@@ -467,6 +574,18 @@ function ObdDiagnosticsCard({ reading }: { reading: ObdReadingResponse }) {
               </div>
             ))
           )}
+        </div>
+        <div className="obd-card__trends">
+          <div className="obd-card__trends-header">
+            <h4>Trends ({readings.length} readings)</h4>
+            <span className="text-muted">Time-series from saved OBD polls</span>
+          </div>
+          <div className="obd-chart-grid">
+            <ObdMetricChart readings={readings} field="rpm" label="RPM" unit="rev/min" color="#2DD4BF" />
+            <ObdMetricChart readings={readings} field="coolant_temp_c" label="Coolant Temperature" unit="\u00B0C" color="#34C759" />
+            <ObdMetricChart readings={readings} field="speed_kph" label="Speed" unit="km/h" color="#2DD4BF" />
+            <ObdMetricChart readings={readings} field="engine_load_pct" label="Engine Load" unit="%" color="#FF9500" />
+          </div>
         </div>
       </Card>
     </section>

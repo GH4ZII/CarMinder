@@ -7,7 +7,7 @@ import {
 } from 'react-native-ble-plx';
 import { PermissionsAndroid, Platform } from 'react-native';
 
-import type { ObdTransport } from './obdService';
+import type { ObdDevice, ObdTransport } from './obdService';
 
 const ELM_SCAN_TIMEOUT_MS = 15000;
 const ELM_COMMAND_TIMEOUT_MS = 6000;
@@ -148,9 +148,13 @@ export class BleElm327ObdTransport implements ObdTransport {
   private device: Device | null = null;
   private gatt: ResolvedGatt | null = null;
   private monitorSub: Subscription | null = null;
+  private disconnectSub: Subscription | null = null;
   private lineBuffer = '';
   private connectPromise: Promise<void> | null = null;
   private activeCommandTimer: ReturnType<typeof setInterval> | null = null;
+  private discoveredDevices = new Map<string, Device>();
+  private connectedDevice: ObdDevice | null = null;
+  private disconnectHandlers = new Set<() => void>();
 
   async isSupported(): Promise<boolean> {
     return Platform.OS === 'android' || Platform.OS === 'ios';
@@ -169,12 +173,94 @@ export class BleElm327ObdTransport implements ObdTransport {
       await this.ensurePermissions();
       await this.ensureBluetoothOn();
       const found = await this.scanForElmDevice();
-      const connected = await found.connect({ timeout: ELM_SCAN_TIMEOUT_MS });
-      this.device = await connected.discoverAllServicesAndCharacteristics();
-      this.gatt = await this.resolveGatt(this.device);
-      this.startMonitor();
-      await delay(250);
-      await this.initializeElm327();
+      await this.connectDevice(found);
+    })();
+
+    try {
+      await this.connectPromise;
+    } catch (error) {
+      await this.disconnect();
+      throw error;
+    } finally {
+      this.connectPromise = null;
+    }
+  }
+
+  async scanDevices(onDevice?: (device: ObdDevice) => void): Promise<ObdDevice[]> {
+    const supported = await this.isSupported();
+    if (!supported) {
+      throw new Error('Bluetooth OBD is supported only on iOS and Android.');
+    }
+
+    await this.ensurePermissions();
+    await this.ensureBluetoothOn();
+    this.discoveredDevices.clear();
+
+    return new Promise<ObdDevice[]>((resolve, reject) => {
+      const found = new Map<string, ObdDevice>();
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        this.manager.stopDeviceScan();
+        resolve(
+          [...found.values()].sort((a, b) => {
+            const obdScore = Number(Boolean(b.isLikelyObd)) - Number(Boolean(a.isLikelyObd));
+            if (obdScore !== 0) return obdScore;
+            return (b.rssi ?? -999) - (a.rssi ?? -999);
+          })
+        );
+      };
+
+      const timeout = setTimeout(finish, ELM_SCAN_TIMEOUT_MS);
+
+      this.manager.startDeviceScan(null, { allowDuplicates: false }, (error: BleError | null, scanned: Device | null) => {
+        if (settled) return;
+
+        if (error) {
+          settled = true;
+          clearTimeout(timeout);
+          this.manager.stopDeviceScan();
+          reject(new Error(error.message));
+          return;
+        }
+        if (!scanned) return;
+
+        this.discoveredDevices.set(scanned.id, scanned);
+        const label = scanned.name ?? scanned.localName ?? 'Unnamed Bluetooth device';
+        const item: ObdDevice = {
+          id: scanned.id,
+          name: label,
+          rssi: scanned.rssi,
+          isLikelyObd: deviceLooksLikeElm327(scanned),
+        };
+        found.set(scanned.id, item);
+        onDevice?.(item);
+      });
+    });
+  }
+
+  async connectToDevice(device: ObdDevice): Promise<void> {
+    if (this.device?.id === device.id && this.gatt) return;
+    if (this.connectPromise) return this.connectPromise;
+
+    this.connectPromise = (async () => {
+      const supported = await this.isSupported();
+      if (!supported) {
+        throw new Error('Bluetooth OBD is supported only on iOS and Android.');
+      }
+
+      await this.ensurePermissions();
+      await this.ensureBluetoothOn();
+      const discovered = this.discoveredDevices.get(device.id);
+      if (discovered) {
+        await this.connectDevice(discovered, device);
+        return;
+      }
+
+      const connected = await this.manager.connectToDevice(device.id, { timeout: ELM_SCAN_TIMEOUT_MS });
+      await this.connectDevice(connected, device, true);
     })();
 
     try {
@@ -195,6 +281,8 @@ export class BleElm327ObdTransport implements ObdTransport {
       }
       this.monitorSub?.remove();
       this.monitorSub = null;
+      this.disconnectSub?.remove();
+      this.disconnectSub = null;
       if (this.device) {
         const stillConnected = await this.device.isConnected();
         if (stillConnected) {
@@ -206,8 +294,20 @@ export class BleElm327ObdTransport implements ObdTransport {
     } finally {
       this.device = null;
       this.gatt = null;
+      this.connectedDevice = null;
       this.lineBuffer = '';
     }
+  }
+
+  getConnectedDevice(): ObdDevice | null {
+    return this.connectedDevice;
+  }
+
+  onDisconnect(handler: () => void): () => void {
+    this.disconnectHandlers.add(handler);
+    return () => {
+      this.disconnectHandlers.delete(handler);
+    };
   }
 
   async readPid(modeAndPid: string): Promise<string> {
@@ -305,6 +405,26 @@ export class BleElm327ObdTransport implements ObdTransport {
     });
   }
 
+  private async connectDevice(device: Device, knownDevice?: ObdDevice, alreadyConnected = false): Promise<void> {
+    await this.disconnect();
+    this.manager.stopDeviceScan();
+
+    const connected = alreadyConnected ? device : await device.connect({ timeout: ELM_SCAN_TIMEOUT_MS });
+    this.device = await connected.discoverAllServicesAndCharacteristics();
+    const label = this.device.name ?? this.device.localName ?? knownDevice?.name ?? 'OBD-II adapter';
+    this.connectedDevice = {
+      id: this.device.id,
+      name: label,
+      rssi: knownDevice?.rssi ?? this.device.rssi,
+      isLikelyObd: knownDevice?.isLikelyObd ?? deviceLooksLikeElm327(this.device),
+    };
+    this.gatt = await this.resolveGatt(this.device);
+    this.startMonitor();
+    this.startDisconnectMonitor();
+    await delay(250);
+    await this.initializeElm327();
+  }
+
   private async resolveGatt(device: Device): Promise<ResolvedGatt> {
     const services = await device.services();
     if (!services.length) {
@@ -397,6 +517,22 @@ export class BleElm327ObdTransport implements ObdTransport {
         }
       }
     );
+  }
+
+  private startDisconnectMonitor(): void {
+    if (!this.device) return;
+    this.disconnectSub?.remove();
+    this.disconnectSub = this.manager.onDeviceDisconnected(this.device.id, () => {
+      this.monitorSub?.remove();
+      this.monitorSub = null;
+      this.disconnectSub?.remove();
+      this.disconnectSub = null;
+      this.device = null;
+      this.gatt = null;
+      this.connectedDevice = null;
+      this.lineBuffer = '';
+      this.disconnectHandlers.forEach((handler) => handler());
+    });
   }
 
   private async initializeElm327(): Promise<void> {
