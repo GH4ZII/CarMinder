@@ -63,10 +63,10 @@ def test_schemas_are_isolated_from_app_layers() -> None:
 
 
 def test_scoring_engine_is_framework_free() -> None:
-    scoring_engine = PROJECT_ROOT / "services" / "scoring_engine.py"
+    scoring_engine = PROJECT_ROOT / "domain" / "scoring" / "engine.py"
     imported = _top_level_imports(scoring_engine)
 
     # Scoring engine should only depend on local scoring normalize types.
-    assert "services" in imported
-    forbidden = {"routers", "repositories", "config", "domain", "schemas"} & imported
-    assert not forbidden, f"scoring_engine.py imports forbidden modules: {', '.join(sorted(forbidden))}"
+    assert "domain" in imported
+    forbidden = {"routers", "repositories", "config", "services", "schemas"} & imported
+    assert not forbidden, f"domain/scoring/engine.py imports forbidden modules: {', '.join(sorted(forbidden))}"
