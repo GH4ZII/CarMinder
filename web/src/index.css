@@ -3258,3 +3258,78 @@ a:hover {
   font-size: 0.8rem;
   color: var(--color-text-muted);
 }
+
+.obd-card__trends {
+  border-top: 1px solid var(--color-border);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+}
+
+.obd-card__trends-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.obd-card__trends-header h4 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.obd-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.obd-chart {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background-alt);
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.obd-chart__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.obd-chart__label {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.obd-chart__unit,
+.obd-chart__empty {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.obd-chart__empty {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+}
+
+.obd-chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.obd-chart__grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.obd-chart__tick {
+  fill: var(--color-text-muted);
+  font-size: 10px;
+}

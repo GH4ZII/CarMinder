@@ -15,6 +15,13 @@ export interface ObdDiagnosticCode {
   description: string;
 }
 
+export interface ObdDevice {
+  id: string;
+  name: string;
+  rssi?: number | null;
+  isLikelyObd?: boolean;
+}
+
 export interface ObdSnapshot {
   capturedAt: string;
   source: 'device' | 'simulated';
@@ -24,6 +31,10 @@ export interface ObdSnapshot {
 
 export interface ObdTransport {
   isSupported(): Promise<boolean>;
+  scanDevices?(onDevice?: (device: ObdDevice) => void): Promise<ObdDevice[]>;
+  connectToDevice?(device: ObdDevice): Promise<void>;
+  getConnectedDevice?(): ObdDevice | null;
+  onDisconnect?(handler: () => void): () => void;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   readPid(modeAndPid: string): Promise<string>;
@@ -231,6 +242,35 @@ class ObdService {
     return this.transport.isSupported();
   }
 
+  async discoverDevices(onDevice?: (device: ObdDevice) => void): Promise<ObdDevice[]> {
+    await this.transportReady;
+    if (!this.transport.scanDevices) {
+      throw new Error('Bluetooth device discovery is not available in this build.');
+    }
+    return this.transport.scanDevices(onDevice);
+  }
+
+  async connectToDevice(device: ObdDevice): Promise<void> {
+    await this.transportReady;
+    if (this.transport.connectToDevice) {
+      await this.transport.connectToDevice(device);
+      return;
+    }
+    await this.transport.connect();
+  }
+
+  async disconnect(): Promise<void> {
+    await this.transport.disconnect();
+  }
+
+  getConnectedDevice(): ObdDevice | null {
+    return this.transport.getConnectedDevice?.() ?? null;
+  }
+
+  onDisconnect(handler: () => void): () => void {
+    return this.transport.onDisconnect?.(handler) ?? (() => {});
+  }
+
   async getLastSnapshot(carId: string): Promise<ObdSnapshot | null> {
     const raw = await AsyncStorage.getItem(`${OBD_SNAPSHOT_KEY_PREFIX}${carId}`);
     if (!raw) return null;
@@ -242,17 +282,30 @@ class ObdService {
   }
 
   async scanCar(carId: string): Promise<ObdSnapshot> {
-    return this.scanWithTransport(carId, this.transport);
+    await this.transport.connect();
+    try {
+      return this.readSnapshotWithTransport(carId, this.transport);
+    } finally {
+      await this.transport.disconnect().catch(() => {});
+    }
   }
 
   async scanDemo(carId: string): Promise<ObdSnapshot> {
-    return this.scanWithTransport(carId, this.simulator);
+    await this.simulator.connect();
+    try {
+      return this.readSnapshotWithTransport(carId, this.simulator);
+    } finally {
+      await this.simulator.disconnect().catch(() => {});
+    }
   }
 
-  private async scanWithTransport(carId: string, transport: ObdTransport): Promise<ObdSnapshot> {
-    try {
-      await transport.connect();
+  async readSnapshot(carId: string): Promise<ObdSnapshot> {
+    await this.transportReady;
+    return this.readSnapshotWithTransport(carId, this.transport);
+  }
 
+  private async readSnapshotWithTransport(carId: string, transport: ObdTransport): Promise<ObdSnapshot> {
+    try {
       // ELM327 is serial — commands must be sent one at a time
       const rpmFrame = await transport.readPid('010C');
       const tempFrame = await transport.readPid('0105');
@@ -286,8 +339,6 @@ class ObdService {
         console.log('[OBD] Native transport failed:', err?.message ?? err);
       }
       throw err;
-    } finally {
-      await transport.disconnect().catch(() => {});
     }
   }
 }
