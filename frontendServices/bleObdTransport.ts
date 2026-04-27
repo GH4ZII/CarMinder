@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PermissionsAndroid, Platform } from 'react-native';
 import {
   BleError,
   BleManager,
@@ -5,14 +7,16 @@ import {
   Device,
   Subscription,
 } from 'react-native-ble-plx';
-import { PermissionsAndroid, Platform } from 'react-native';
 
 import type { ObdDevice, ObdTransport } from './obdService';
 
+const LAST_OBD_DEVICE_KEY = 'obd:last_connected_device';
 const ELM_SCAN_TIMEOUT_MS = 15000;
 const ELM_COMMAND_TIMEOUT_MS = 6000;
 const ELM_BOOT_TIMEOUT_MS = 10000;
 const BLE_BUFFER_MAX_BYTES = 1024;
+const RECONNECT_INITIAL_DELAY_MS = 5000;
+const RECONNECT_MAX_DELAY_MS = 60000;
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 const ELM_NAME_HINTS = [
   'bafx',
@@ -34,7 +38,7 @@ const ELM_NAME_HINTS = [
 ];
 /**
  * Known BLE UART service/characteristic mappings for ELM327 adapters.
- * Based on https://github.com/kkonteh97/SwiftOBD2
+
  *
  * Each entry maps a service UUID to its read (notify) and write characteristic UUIDs.
  * - FFE0: Generic BLE-serial adapters (Veepeak, cheap clones) — single FFE1 for both
@@ -154,6 +158,12 @@ export class BleElm327ObdTransport implements ObdTransport {
   private activeCommandTimer: ReturnType<typeof setInterval> | null = null;
   private discoveredDevices = new Map<string, Device>();
   private connectedDevice: ObdDevice | null = null;
+  private lastKnownDevice: ObdDevice | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
+  private shouldReconnect = false;
+  private reconnecting = false;
+  private connectHandlers = new Set<(device: ObdDevice) => void>();
   private disconnectHandlers = new Set<() => void>();
 
   async isSupported(): Promise<boolean> {
@@ -172,6 +182,15 @@ export class BleElm327ObdTransport implements ObdTransport {
 
       await this.ensurePermissions();
       await this.ensureBluetoothOn();
+      const remembered = await this.getRememberedDevice();
+      if (remembered) {
+        try {
+          await this.connectToRememberedDevice(remembered);
+          return;
+        } catch (error) {
+          console.log('[OBD] Remembered adapter reconnect failed:', error);
+        }
+      }
       const found = await this.scanForElmDevice();
       await this.connectDevice(found);
     })();
@@ -179,7 +198,7 @@ export class BleElm327ObdTransport implements ObdTransport {
     try {
       await this.connectPromise;
     } catch (error) {
-      await this.disconnect();
+      await this.disconnectInternal();
       throw error;
     } finally {
       this.connectPromise = null;
@@ -227,6 +246,8 @@ export class BleElm327ObdTransport implements ObdTransport {
         }
         if (!scanned) return;
 
+        if (!deviceLooksLikeElm327(scanned)) return;
+
         this.discoveredDevices.set(scanned.id, scanned);
         const label = scanned.name ?? scanned.localName ?? 'Unnamed Bluetooth device';
         const item: ObdDevice = {
@@ -266,7 +287,7 @@ export class BleElm327ObdTransport implements ObdTransport {
     try {
       await this.connectPromise;
     } catch (error) {
-      await this.disconnect();
+      await this.disconnectInternal();
       throw error;
     } finally {
       this.connectPromise = null;
@@ -274,6 +295,41 @@ export class BleElm327ObdTransport implements ObdTransport {
   }
 
   async disconnect(): Promise<void> {
+    this.shouldReconnect = false;
+    this.clearReconnectTimer();
+    await this.disconnectInternal();
+  }
+
+  async restoreConnection(): Promise<void> {
+    if (this.device && this.gatt) return;
+    if (this.connectPromise || this.reconnecting) return;
+
+    const supported = await this.isSupported();
+    if (!supported) return;
+
+    const remembered = await this.getRememberedDevice();
+    if (!remembered) return;
+
+    this.shouldReconnect = true;
+    this.reconnecting = true;
+    let retry = false;
+    try {
+      await this.ensurePermissions();
+      await this.ensureBluetoothOn();
+      await this.connectToRememberedDevice(remembered);
+    } catch (error) {
+      console.log('[OBD] Restore connection failed:', error);
+      retry = true;
+    } finally {
+      this.reconnecting = false;
+    }
+
+    if (retry) {
+      this.scheduleReconnect();
+    }
+  }
+
+  private async disconnectInternal(): Promise<void> {
     try {
       if (this.activeCommandTimer) {
         clearInterval(this.activeCommandTimer);
@@ -307,6 +363,13 @@ export class BleElm327ObdTransport implements ObdTransport {
     this.disconnectHandlers.add(handler);
     return () => {
       this.disconnectHandlers.delete(handler);
+    };
+  }
+
+  onConnect(handler: (device: ObdDevice) => void): () => void {
+    this.connectHandlers.add(handler);
+    return () => {
+      this.connectHandlers.delete(handler);
     };
   }
 
@@ -406,8 +469,9 @@ export class BleElm327ObdTransport implements ObdTransport {
   }
 
   private async connectDevice(device: Device, knownDevice?: ObdDevice, alreadyConnected = false): Promise<void> {
-    await this.disconnect();
+    await this.disconnectInternal();
     this.manager.stopDeviceScan();
+    this.clearReconnectTimer();
 
     const connected = alreadyConnected ? device : await device.connect({ timeout: ELM_SCAN_TIMEOUT_MS });
     this.device = await connected.discoverAllServicesAndCharacteristics();
@@ -423,6 +487,74 @@ export class BleElm327ObdTransport implements ObdTransport {
     this.startDisconnectMonitor();
     await delay(250);
     await this.initializeElm327();
+    this.shouldReconnect = true;
+    this.reconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
+    await this.rememberDevice(this.connectedDevice);
+    this.connectHandlers.forEach((handler) => handler(this.connectedDevice!));
+  }
+
+  private async connectToRememberedDevice(device: ObdDevice): Promise<void> {
+    const connected = await this.manager.connectToDevice(device.id, { timeout: ELM_SCAN_TIMEOUT_MS });
+    await this.connectDevice(connected, device, true);
+  }
+
+  private async getRememberedDevice(): Promise<ObdDevice | null> {
+    if (this.lastKnownDevice) return this.lastKnownDevice;
+
+    try {
+      const raw = await AsyncStorage.getItem(LAST_OBD_DEVICE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as ObdDevice;
+      if (!parsed?.id || !parsed?.name) return null;
+      this.lastKnownDevice = parsed;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  private async rememberDevice(device: ObdDevice | null): Promise<void> {
+    if (!device) return;
+    this.lastKnownDevice = device;
+    try {
+      await AsyncStorage.setItem(LAST_OBD_DEVICE_KEY, JSON.stringify(device));
+    } catch {
+      // Remembering the adapter is a convenience; connection should still work without storage.
+    }
+  }
+
+  private clearReconnectTimer(): void {
+    if (!this.reconnectTimer) return;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  private scheduleReconnect(): void {
+    if (!this.shouldReconnect || this.reconnectTimer || this.reconnecting) return;
+
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
+      if (!this.shouldReconnect || this.device || this.gatt) return;
+
+      const remembered = await this.getRememberedDevice();
+      if (!remembered) return;
+
+      this.reconnecting = true;
+      try {
+        await this.ensurePermissions();
+        await this.ensureBluetoothOn();
+        await this.connectToRememberedDevice(remembered);
+      } catch (error) {
+        console.log('[OBD] Auto-reconnect failed:', error);
+        this.reconnectDelayMs = Math.min(this.reconnectDelayMs * 2, RECONNECT_MAX_DELAY_MS);
+      } finally {
+        this.reconnecting = false;
+      }
+
+      if (this.shouldReconnect && !this.device && !this.gatt) {
+        this.scheduleReconnect();
+      }
+    }, this.reconnectDelayMs);
   }
 
   private async resolveGatt(device: Device): Promise<ResolvedGatt> {
@@ -532,6 +664,7 @@ export class BleElm327ObdTransport implements ObdTransport {
       this.connectedDevice = null;
       this.lineBuffer = '';
       this.disconnectHandlers.forEach((handler) => handler());
+      this.scheduleReconnect();
     });
   }
 

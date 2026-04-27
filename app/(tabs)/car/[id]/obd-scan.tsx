@@ -115,13 +115,17 @@ export default function ObdScanScreen() {
     } catch (e: any) {
       const message = e?.message ?? 'Connection dropped while reading OBD data.';
       setPollError(message);
-      await disconnect(false);
-      setPollError(message);
-      Alert.alert('OBD connection lost', message);
+
+      if (!obdService.getConnectedDevice()) {
+        connectedRef.current = false;
+        stopPolling();
+        setSelectedDevice(null);
+        setStateTracked('disconnected');
+      }
     } finally {
       pollingRef.current = false;
     }
-  }, [carId, disconnect, uploadIfDeviceReading]);
+  }, [carId, setStateTracked, stopPolling, uploadIfDeviceReading]);
 
   const startPolling = useCallback(() => {
     stopPolling();
@@ -160,12 +164,32 @@ export default function ObdScanScreen() {
     return unsubscribe;
   }, [setStateTracked, stopPolling]);
 
+  useEffect(() => {
+    const unsubscribe = obdService.onConnect((device) => {
+      setSelectedDevice(device);
+      connectedRef.current = true;
+      setPollError(null);
+      setStateTracked('connected');
+      startPolling();
+    });
+    return unsubscribe;
+  }, [setStateTracked, startPolling]);
+
   useFocusEffect(
     useCallback(() => {
+      const connected = obdService.getConnectedDevice();
+      if (connected) {
+        setSelectedDevice(connected);
+        connectedRef.current = true;
+        setPollError(null);
+        setStateTracked('connected');
+        startPolling();
+      }
+
       return () => {
-        disconnect(false);
+        stopPolling();
       };
-    }, [disconnect])
+    }, [setStateTracked, startPolling, stopPolling])
   );
 
   const discoverDevices = useCallback(async () => {
@@ -187,7 +211,7 @@ export default function ObdScanScreen() {
       });
       setDevices(found);
       if (!found.length) {
-        setPollError('No Bluetooth devices found nearby.');
+        setPollError('No OBD-II adapters found nearby.');
       }
     } catch (e: any) {
       const message = e?.message ?? 'Could not scan for Bluetooth devices.';
@@ -293,7 +317,7 @@ export default function ObdScanScreen() {
 
               {devices.length > 0 && connectionState !== 'connected' && (
                 <View style={styles.deviceList}>
-                  <ThemedText style={styles.deviceListTitle}>Nearby Bluetooth devices</ThemedText>
+                  <ThemedText style={styles.deviceListTitle}>Nearby OBD-II adapters</ThemedText>
                   {devices.map((device) => (
                     <TouchableOpacity
                       key={device.id}
@@ -305,7 +329,7 @@ export default function ObdScanScreen() {
                       <View style={styles.deviceInfo}>
                         <ThemedText style={styles.deviceName}>{device.name}</ThemedText>
                         <ThemedText style={[styles.deviceMeta, isLight && { color: TEXT_MUTED_LIGHT }]}>
-                          {device.isLikelyObd ? 'Likely OBD-II adapter' : 'Bluetooth device'}
+                          OBD-II adapter
                           {device.rssi != null ? ` · ${device.rssi} dBm` : ''}
                         </ThemedText>
                       </View>

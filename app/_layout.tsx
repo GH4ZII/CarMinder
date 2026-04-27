@@ -45,7 +45,7 @@ function RootLayoutNav() {
       // Send user to the main app (tabs screen)
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   // If we're still checking if user is logged in, show a loading spinner
   if (loading) {
@@ -85,7 +85,11 @@ export default function RootLayout() {
           import('@/frontendServices/bleObdTransport'),
         ]);
         if (!active) return;
-        obdService.setTransport(new BleElm327ObdTransport());
+        const transport = new BleElm327ObdTransport();
+        obdService.setTransport(transport);
+        transport.restoreConnection().catch((error) => {
+          console.warn('Failed to restore BLE OBD connection:', error);
+        });
       } catch (error) {
         console.warn('Failed to initialize BLE OBD transport:', error);
       }

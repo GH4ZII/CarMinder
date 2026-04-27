@@ -34,6 +34,7 @@ export interface ObdTransport {
   scanDevices?(onDevice?: (device: ObdDevice) => void): Promise<ObdDevice[]>;
   connectToDevice?(device: ObdDevice): Promise<void>;
   getConnectedDevice?(): ObdDevice | null;
+  onConnect?(handler: (device: ObdDevice) => void): () => void;
   onDisconnect?(handler: () => void): () => void;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -269,6 +270,10 @@ class ObdService {
 
   onDisconnect(handler: () => void): () => void {
     return this.transport.onDisconnect?.(handler) ?? (() => {});
+  }
+
+  onConnect(handler: (device: ObdDevice) => void): () => void {
+    return this.transport.onConnect?.(handler) ?? (() => {});
   }
 
   async getLastSnapshot(carId: string): Promise<ObdSnapshot | null> {
