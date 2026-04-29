@@ -547,7 +547,7 @@ function ObdDiagnosticsCard({ reading, readings }: { reading: ObdReadingResponse
           </div>
           <div className="obd-metric">
             <span className="obd-metric__label">Coolant</span>
-            <span className="obd-metric__value">{fmtVal(reading.coolant_temp_c, '\u00B0C')}</span>
+            <span className="obd-metric__value">{fmtVal(reading.coolant_temp_c, '°C')}</span>
           </div>
           <div className="obd-metric">
             <span className="obd-metric__label">Speed</span>
@@ -582,7 +582,7 @@ function ObdDiagnosticsCard({ reading, readings }: { reading: ObdReadingResponse
           </div>
           <div className="obd-chart-grid">
             <ObdMetricChart readings={readings} field="rpm" label="RPM" unit="rev/min" color="#2DD4BF" />
-            <ObdMetricChart readings={readings} field="coolant_temp_c" label="Coolant Temperature" unit="\u00B0C" color="#34C759" />
+            <ObdMetricChart readings={readings} field="coolant_temp_c" label="Coolant Temperature" unit="°C" color="#34C759" />
             <ObdMetricChart readings={readings} field="speed_kph" label="Speed" unit="km/h" color="#2DD4BF" />
             <ObdMetricChart readings={readings} field="engine_load_pct" label="Engine Load" unit="%" color="#FF9500" />
           </div>
