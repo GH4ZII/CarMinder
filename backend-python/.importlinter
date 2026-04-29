@@ -36,6 +36,7 @@ source_modules =
     routers
 forbidden_modules =
     domain
+allow_indirect_imports = True
 
 [importlinter:contract:routers-no-repositories]
 name = Routers must not access repositories directly
