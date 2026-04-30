@@ -19,6 +19,10 @@ def create_reading(uid: str, car_id: str, payload: ObdReadingCreate) -> dict[str
         "speed_kph": payload.speed_kph,
         "engine_load_pct": payload.engine_load_pct,
         "battery_voltage": payload.battery_voltage,
+        "fuel_rate_lph": payload.fuel_rate_lph,
+        "fuel_consumption_l_100km": payload.fuel_consumption_l_100km,
+        "mass_air_flow_gps": payload.mass_air_flow_gps,
+        "fuel_rate_source": payload.fuel_rate_source,
         "dtcs": dtcs,
     }
 

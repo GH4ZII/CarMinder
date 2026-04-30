@@ -366,6 +366,9 @@ export default function ObdDashboardScreen() {
       speed: sorted.filter((r) => r.speed_kph != null).map((r) => ({ date: r.captured_at, value: r.speed_kph! })),
       load: sorted.filter((r) => r.engine_load_pct != null).map((r) => ({ date: r.captured_at, value: r.engine_load_pct! })),
       battery: sorted.filter((r) => r.battery_voltage != null).map((r) => ({ date: r.captured_at, value: r.battery_voltage! })),
+      fuelUse: sorted.filter((r) => r.fuel_consumption_l_100km != null).map((r) => ({ date: r.captured_at, value: r.fuel_consumption_l_100km! })),
+      fuelRate: sorted.filter((r) => r.fuel_rate_lph != null).map((r) => ({ date: r.captured_at, value: r.fuel_rate_lph! })),
+      maf: sorted.filter((r) => r.mass_air_flow_gps != null).map((r) => ({ date: r.captured_at, value: r.mass_air_flow_gps! })),
     };
   }, [readings]);
 
@@ -442,6 +445,8 @@ export default function ObdDashboardScreen() {
               <Gauge value={latest?.coolant_temp_c ?? null} min={-40} max={150} label="Coolant" unit="°C" color="#34C759" warningThreshold={110} dark={dark} />
               <Gauge value={latest?.speed_kph ?? null} min={0} max={260} label="Speed" unit="km/h" color="#2DD4BF" dark={dark} />
               <Gauge value={latest?.engine_load_pct ?? null} min={0} max={100} label="Load" unit="%" color="#FF9500" warningThreshold={85} dark={dark} />
+              <Gauge value={latest?.fuel_consumption_l_100km ?? null} min={0} max={20} label="Fuel Use" unit="L/100km" color="#5856D6" warningThreshold={12} dark={dark} />
+              <Gauge value={latest?.fuel_rate_lph ?? null} min={0} max={25} label="Fuel Rate" unit="L/h" color="#0A84FF" dark={dark} />
             </View>
 
             {/* Battery - full width */}
@@ -495,6 +500,9 @@ export default function ObdDashboardScreen() {
                 <MiniLineChart data={chartData.speed} color="#2DD4BF" label="Speed" unit="km/h" dark={dark} />
                 <MiniLineChart data={chartData.load} color="#FF9500" label="Engine Load" unit="%" dark={dark} />
                 <MiniLineChart data={chartData.battery} color="#34C759" label="Battery Voltage" unit="V" dark={dark} />
+                <MiniLineChart data={chartData.fuelUse} color="#5856D6" label="Fuel Consumption" unit="L/100km" dark={dark} />
+                <MiniLineChart data={chartData.fuelRate} color="#0A84FF" label="Fuel Rate" unit="L/h" dark={dark} />
+                <MiniLineChart data={chartData.maf} color="#FF2D55" label="Mass Air Flow" unit="g/s" dark={dark} />
               </>
             )}
 

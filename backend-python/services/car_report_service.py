@@ -100,6 +100,9 @@ def _build_html(
           <li><strong>Speed:</strong> {metrics.get('speed_kph') if metrics.get('speed_kph') is not None else '—'} km/h</li>
           <li><strong>Engine load:</strong> {metrics.get('engine_load_pct') if metrics.get('engine_load_pct') is not None else '—'} %</li>
           <li><strong>Battery voltage:</strong> {metrics.get('battery_voltage') if metrics.get('battery_voltage') is not None else '—'} V</li>
+          <li><strong>Fuel rate:</strong> {metrics.get('fuel_rate_lph') if metrics.get('fuel_rate_lph') is not None else '—'} L/h</li>
+          <li><strong>Fuel consumption:</strong> {metrics.get('fuel_consumption_l_100km') if metrics.get('fuel_consumption_l_100km') is not None else '—'} L/100km</li>
+          <li><strong>Mass air flow:</strong> {metrics.get('mass_air_flow_gps') if metrics.get('mass_air_flow_gps') is not None else '—'} g/s</li>
         </ul>
         <p><strong>Error codes ({len(metrics.get('dtcs') or [])}):</strong></p>
         {
@@ -295,4 +298,3 @@ def generate_car_report_html(uid: str, car_id: str) -> str:
         incidents=incidents,
         obd_reading=obd_latest,
     )
-

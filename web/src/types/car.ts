@@ -163,6 +163,10 @@ export interface ObdReadingResponse {
   speed_kph: number | null;
   engine_load_pct: number | null;
   battery_voltage: number | null;
+  fuel_rate_lph: number | null;
+  fuel_consumption_l_100km: number | null;
+  mass_air_flow_gps: number | null;
+  fuel_rate_source: 'pid_015e' | 'maf_estimate' | null;
   dtcs: ObdDiagnosticCode[];
   created_at: string;
 }

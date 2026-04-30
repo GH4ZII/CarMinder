@@ -642,6 +642,10 @@ export function snapshotToObdPayload(snapshot: import('./obdService').ObdSnapsho
     speed_kph: snapshot.metrics.speedKph,
     engine_load_pct: snapshot.metrics.engineLoadPct,
     battery_voltage: snapshot.metrics.batteryVoltage,
+    fuel_rate_lph: snapshot.metrics.fuelRateLph,
+    fuel_consumption_l_100km: snapshot.metrics.fuelConsumptionL100km,
+    mass_air_flow_gps: snapshot.metrics.massAirFlowGps,
+    fuel_rate_source: snapshot.metrics.fuelRateSource,
     dtcs: snapshot.dtcs,
   };
 }
@@ -744,6 +748,10 @@ export interface ObdReadingResponse {
   speed_kph: number | null;
   engine_load_pct: number | null;
   battery_voltage: number | null;
+  fuel_rate_lph: number | null;
+  fuel_consumption_l_100km: number | null;
+  mass_air_flow_gps: number | null;
+  fuel_rate_source: 'pid_015e' | 'maf_estimate' | null;
   dtcs: { code: string; description: string }[];
   created_at: string;
 }
@@ -756,6 +764,9 @@ export interface ObdReadingCreate {
   speed_kph: number | null;
   engine_load_pct: number | null;
   battery_voltage: number | null;
+  fuel_rate_lph: number | null;
+  fuel_consumption_l_100km: number | null;
+  mass_air_flow_gps: number | null;
+  fuel_rate_source: 'pid_015e' | 'maf_estimate' | null;
   dtcs: { code: string; description: string }[];
 }
-

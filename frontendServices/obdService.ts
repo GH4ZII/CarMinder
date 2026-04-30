@@ -8,6 +8,10 @@ export interface ObdLiveMetrics {
   speedKph: number | null;
   engineLoadPct: number | null;
   batteryVoltage: number | null;
+  fuelRateLph: number | null;
+  fuelConsumptionL100km: number | null;
+  massAirFlowGps: number | null;
+  fuelRateSource: 'pid_015e' | 'maf_estimate' | null;
 }
 
 export interface ObdDiagnosticCode {
@@ -118,6 +122,39 @@ function decodeEngineLoad(frame: string): number | null {
   return Math.round(((a * 100) / 255) * 10) / 10;
 }
 
+function decodeMassAirFlow(frame: string): number | null {
+  const bytes = normalizeHexFrame(frame);
+  const idx = bytes.findIndex((b, i) => b === '41' && bytes[i + 1] === '10');
+  if (idx < 0 || !bytes[idx + 2] || !bytes[idx + 3]) return null;
+  const a = Number.parseInt(bytes[idx + 2], 16);
+  const b = Number.parseInt(bytes[idx + 3], 16);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.round((((a * 256) + b) / 100) * 100) / 100;
+}
+
+function decodeFuelRate(frame: string): number | null {
+  const bytes = normalizeHexFrame(frame);
+  const idx = bytes.findIndex((b, i) => b === '41' && bytes[i + 1] === '5E');
+  if (idx < 0 || !bytes[idx + 2] || !bytes[idx + 3]) return null;
+  const a = Number.parseInt(bytes[idx + 2], 16);
+  const b = Number.parseInt(bytes[idx + 3], 16);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.round((((a * 256) + b) * 0.05) * 100) / 100;
+}
+
+function estimateGasolineFuelRateFromMaf(mafGps: number | null): number | null {
+  if (mafGps == null || mafGps <= 0) return null;
+  const gasolineStoichAfr = 14.7;
+  const gasolineDensityGramsPerLiter = 745;
+  const litersPerHour = (mafGps * 3600) / (gasolineStoichAfr * gasolineDensityGramsPerLiter);
+  return Math.round(litersPerHour * 100) / 100;
+}
+
+function calculateFuelConsumption(fuelRateLph: number | null, speedKph: number | null): number | null {
+  if (fuelRateLph == null || speedKph == null || speedKph <= 0) return null;
+  return Math.round(((fuelRateLph / speedKph) * 100) * 10) / 10;
+}
+
 function decodeVoltage(frame: string): number | null {
   const clean = frame.toUpperCase().trim();
   const direct = Number.parseFloat(clean.replace(/[^\d.]/g, ''));
@@ -173,12 +210,14 @@ const DTC_DESCRIPTIONS: Record<string, string> = {
   P0113: 'Intake air temperature sensor high input',
   P0128: 'Coolant thermostat below regulating temperature',
   P0171: 'System too lean (Bank 1)',
+  P0221: 'Throttle/pedal position sensor B circuit range/performance',
   P0300: 'Random or multiple cylinder misfire detected',
   P0301: 'Cylinder 1 misfire detected',
   P0420: 'Catalyst system efficiency below threshold',
   P0442: 'Evaporative emission control small leak',
   P0500: 'Vehicle speed sensor malfunction',
   P0700: 'Transmission control system malfunction',
+  B1622: 'Toyota SRS: lost communication with right side airbag sensor',
 };
 
 function describeDtc(code: string): string {
@@ -200,6 +239,8 @@ class SimulatedObdTransport implements ObdTransport {
     if (cmd === '0105') return '41 05 64';
     if (cmd === '010D') return '41 0D 3C';
     if (cmd === '0104') return '41 04 7F';
+    if (cmd === '0110') return '41 10 05 DC';
+    if (cmd === '015E') return '41 5E 00 78';
     return 'NO DATA';
   }
 
@@ -316,9 +357,17 @@ class ObdService {
       const tempFrame = await transport.readPid('0105');
       const speedFrame = await transport.readPid('010D');
       const loadFrame = await transport.readPid('0104');
+      const mafFrame = await this.readOptionalPid(transport, '0110');
+      const fuelRateFrame = await this.readOptionalPid(transport, '015E');
       const dtcFrame = await transport.readStoredDtcs();
       const voltageFrame = await (transport.readBatteryVoltage?.() ?? Promise.resolve(''));
 
+      const speedKph = decodeSpeed(speedFrame);
+      const massAirFlowGps = decodeMassAirFlow(mafFrame);
+      const directFuelRateLph = decodeFuelRate(fuelRateFrame);
+      const estimatedFuelRateLph = estimateGasolineFuelRateFromMaf(massAirFlowGps);
+      const fuelRateLph = directFuelRateLph ?? estimatedFuelRateLph;
+      const fuelRateSource = directFuelRateLph != null ? 'pid_015e' : estimatedFuelRateLph != null ? 'maf_estimate' : null;
       const dtcs = decodeStoredDtcs(dtcFrame).map((code) => ({
         code,
         description: describeDtc(code),
@@ -330,9 +379,13 @@ class ObdService {
         metrics: {
           rpm: decodeRpm(rpmFrame),
           coolantTempC: decodeCoolantTemp(tempFrame),
-          speedKph: decodeSpeed(speedFrame),
+          speedKph,
           engineLoadPct: decodeEngineLoad(loadFrame),
           batteryVoltage: decodeVoltage(voltageFrame),
+          fuelRateLph,
+          fuelConsumptionL100km: calculateFuelConsumption(fuelRateLph, speedKph),
+          massAirFlowGps,
+          fuelRateSource,
         },
         dtcs,
       };
@@ -344,6 +397,17 @@ class ObdService {
         console.log('[OBD] Native transport failed:', err?.message ?? err);
       }
       throw err;
+    }
+  }
+
+  private async readOptionalPid(transport: ObdTransport, modeAndPid: string): Promise<string> {
+    try {
+      return await transport.readPid(modeAndPid);
+    } catch (err: any) {
+      if (!(transport instanceof SimulatedObdTransport)) {
+        console.log(`[OBD] Optional PID ${modeAndPid} failed:`, err?.message ?? err);
+      }
+      return 'NO DATA';
     }
   }
 }

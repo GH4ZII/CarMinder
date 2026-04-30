@@ -427,7 +427,14 @@ function ServiceStatusCard({ service }: { service: ServiceDueStatus }) {
 
 type ObdMetricChartProps = {
   readings: ObdReadingResponse[];
-  field: 'rpm' | 'coolant_temp_c' | 'speed_kph' | 'engine_load_pct';
+  field:
+    | 'rpm'
+    | 'coolant_temp_c'
+    | 'speed_kph'
+    | 'engine_load_pct'
+    | 'fuel_consumption_l_100km'
+    | 'fuel_rate_lph'
+    | 'mass_air_flow_gps';
   label: string;
   unit: string;
   color: string;
@@ -561,6 +568,18 @@ function ObdDiagnosticsCard({ reading, readings }: { reading: ObdReadingResponse
             <span className="obd-metric__label">Battery</span>
             <span className="obd-metric__value">{fmtVal(reading.battery_voltage, 'V')}</span>
           </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">Fuel Use</span>
+            <span className="obd-metric__value">{fmtVal(reading.fuel_consumption_l_100km, 'L/100km')}</span>
+          </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">Fuel Rate</span>
+            <span className="obd-metric__value">{fmtVal(reading.fuel_rate_lph, 'L/h')}</span>
+          </div>
+          <div className="obd-metric">
+            <span className="obd-metric__label">MAF</span>
+            <span className="obd-metric__value">{fmtVal(reading.mass_air_flow_gps, 'g/s')}</span>
+          </div>
         </div>
         <div className="obd-card__dtcs">
           <h4>Error Codes ({reading.dtcs.length})</h4>
@@ -585,6 +604,9 @@ function ObdDiagnosticsCard({ reading, readings }: { reading: ObdReadingResponse
             <ObdMetricChart readings={readings} field="coolant_temp_c" label="Coolant Temperature" unit="°C" color="#34C759" />
             <ObdMetricChart readings={readings} field="speed_kph" label="Speed" unit="km/h" color="#2DD4BF" />
             <ObdMetricChart readings={readings} field="engine_load_pct" label="Engine Load" unit="%" color="#FF9500" />
+            <ObdMetricChart readings={readings} field="fuel_consumption_l_100km" label="Fuel Consumption" unit="L/100km" color="#5856D6" />
+            <ObdMetricChart readings={readings} field="fuel_rate_lph" label="Fuel Rate" unit="L/h" color="#0A84FF" />
+            <ObdMetricChart readings={readings} field="mass_air_flow_gps" label="Mass Air Flow" unit="g/s" color="#FF2D55" />
           </div>
         </div>
       </Card>

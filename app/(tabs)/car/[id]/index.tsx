@@ -370,6 +370,10 @@ export default function CarTimelineScreen() {
             speedKph: backendReading.speed_kph,
             engineLoadPct: backendReading.engine_load_pct,
             batteryVoltage: backendReading.battery_voltage,
+            fuelRateLph: backendReading.fuel_rate_lph,
+            fuelConsumptionL100km: backendReading.fuel_consumption_l_100km,
+            massAirFlowGps: backendReading.mass_air_flow_gps,
+            fuelRateSource: backendReading.fuel_rate_source,
           },
           dtcs: backendReading.dtcs,
         };
@@ -527,6 +531,10 @@ export default function CarTimelineScreen() {
                 <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
                   <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>Battery</ThemedText>
                   <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.batteryVoltage, 'V')}</ThemedText>
+                </View>
+                <View style={[styles.obdMetricItem, isLight && styles.obdMetricItemLight]}>
+                  <ThemedText style={[styles.obdMetricLabel, isLight && styles.obdMetricLabelLight]}>Fuel Use</ThemedText>
+                  <ThemedText style={[styles.obdMetricValue, isLight && { color: '#102016' }]}>{formatObdValue(obdSnapshot.metrics.fuelConsumptionL100km, 'L/100km')}</ThemedText>
                 </View>
               </View>
 

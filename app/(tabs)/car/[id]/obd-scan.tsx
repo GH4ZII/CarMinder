@@ -422,6 +422,24 @@ export default function ObdScanScreen() {
                   {formatObdValue(snapshot.metrics.batteryVoltage, 'V')}
                 </ThemedText>
               </View>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>Fuel Use</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.fuelConsumptionL100km, 'L/100km')}
+                </ThemedText>
+              </View>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>Fuel Rate</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.fuelRateLph, 'L/h')}
+                </ThemedText>
+              </View>
+              <View style={[styles.metricItem, isLight && styles.metricItemLight]}>
+                <ThemedText style={[styles.metricLabel, isLight && styles.metricLabelLight]}>MAF</ThemedText>
+                <ThemedText style={[styles.metricValue, isLight && { color: '#102016' }]}>
+                  {formatObdValue(snapshot.metrics.massAirFlowGps, 'g/s')}
+                </ThemedText>
+              </View>
             </View>
 
             <ThemedText style={styles.dtcTitle}>
