@@ -155,9 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const effectiveToken = shouldUseBiometrics && secureToken ? secureToken : t;
       if (effectiveToken && u) {
         if (isTokenExpired(effectiveToken)) {
-          await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
           await clearPersistedAuth();
-          setBiometricsEnabledState(false);
           setToken(null);
           setUser(null);
           return;
@@ -363,8 +361,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setToken(null);
     setUser(null);
-    setBiometricsEnabledState(false);
-    await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
+    // Keep the user's biometrics preference across sign-out so they are not
+    // prompted again on next sign-in. They can change it from Profile.
     await clearPersistedAuth();
   }, [token]);
 
@@ -413,9 +411,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) return null;
     if (!isTokenExpired(token)) return token;
 
-    await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
     await clearPersistedAuth();
-    setBiometricsEnabledState(false);
     setToken(null);
     setUser(null);
     return null;
