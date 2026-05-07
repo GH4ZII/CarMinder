@@ -11,7 +11,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 // Keys used in storage; SecureStore requires alphanumeric + ".", "-", "_"
 const AUTH_TOKEN_KEY = '@auth_token';
@@ -40,6 +40,35 @@ function isTokenExpired(token: string, skewSeconds = 30): boolean {
   if (!exp) return false;
   const nowSeconds = Math.floor(Date.now() / 1000);
   return exp <= nowSeconds + skewSeconds;
+}
+
+// Detect which biometric type the device supports so the prompt copy is correct
+// on iOS (Face ID / Touch ID) and Android (fingerprint).
+async function getBiometricPromptMessage(): Promise<string> {
+  try {
+    const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+    if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+      return 'Logg inn med Face ID';
+    }
+    if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+      return Platform.OS === 'ios' ? 'Logg inn med Touch ID' : 'Logg inn med fingeravtrykk';
+    }
+  } catch {
+    // Fall through to generic copy
+  }
+  return 'Logg inn med biometri';
+}
+
+async function isBiometricHardwareReady(): Promise<boolean> {
+  try {
+    const [hasHardware, isEnrolled] = await Promise.all([
+      LocalAuthentication.hasHardwareAsync(),
+      LocalAuthentication.isEnrolledAsync(),
+    ]);
+    return hasHardware && isEnrolled;
+  } catch {
+    return false;
+  }
 }
 
 // Google Sign-In: native module is missing in Expo Go. `configure()` throws if
@@ -75,6 +104,9 @@ interface AuthContextType {
   updateProfile: (updates: Partial<AuthUser>) => Promise<void>;
   getToken: () => Promise<string | null>;
   forgotPassword: (email: string) => Promise<void>;
+  biometricsEnabled: boolean;
+  isBiometricsAvailable: () => Promise<boolean>;
+  setBiometricsEnabled: (enabled: boolean) => Promise<boolean>;
 }
 
 // React context that will hold auth state and methods; undefined when used outside AuthProvider
@@ -97,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [biometricsEnabled, setBiometricsEnabledState] = useState(false);
   const pushTokenRef = useRef<string | null>(null);
 
   // Register for push notifications and send token to backend
@@ -118,15 +151,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.getItem(BIOMETRICS_ENABLED_KEY),
       ]);
       const shouldUseBiometrics = biometricsFlag === 'true';
+      setBiometricsEnabledState(shouldUseBiometrics);
       const effectiveToken = shouldUseBiometrics && secureToken ? secureToken : t;
       if (effectiveToken && u) {
         if (isTokenExpired(effectiveToken)) {
           await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
           await clearPersistedAuth();
+          setBiometricsEnabledState(false);
           setToken(null);
           setUser(null);
           return;
         }
+
+        // Auto-unlock with Face ID / Touch ID / fingerprint when the user has
+        // opted in. Falling back to the login screen on cancel/failure keeps
+        // the existing JWT untouched so the next app start retries the prompt.
+        if (shouldUseBiometrics) {
+          const ready = await isBiometricHardwareReady();
+          if (!ready) {
+            setToken(null);
+            setUser(null);
+            return;
+          }
+          const promptMessage = await getBiometricPromptMessage();
+          const result = await LocalAuthentication.authenticateAsync({
+            promptMessage,
+            cancelLabel: 'Avbryt',
+            disableDeviceFallback: false,
+          });
+          if (!result.success) {
+            setToken(null);
+            setUser(null);
+            return;
+          }
+        }
+
         setToken(effectiveToken);
         setUser(JSON.parse(u) as AuthUser);
         setupPushNotifications(effectiveToken);
@@ -146,6 +205,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hydrate();
   }, [hydrate]);
 
+  // Ask the user once whether to enable biometric login. Called after a
+  // successful manual sign-in. The flag is tri-state via @use_biometrics:
+  //   null        -> never asked, prompt now
+  //   'true'/'false' -> already answered, do not prompt again
+  const maybePromptToEnableBiometrics = useCallback(async () => {
+    try {
+      if (Platform.OS === 'web') return;
+      const existing = await AsyncStorage.getItem(BIOMETRICS_ENABLED_KEY);
+      if (existing !== null) return;
+      const ready = await isBiometricHardwareReady();
+      if (!ready) return;
+
+      const promptMessage = await getBiometricPromptMessage();
+      const enable = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Aktiver biometrisk innlogging',
+          'Vil du logge inn med Face ID, Touch ID eller fingeravtrykk neste gang?',
+          [
+            { text: 'Nei takk', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Aktiver', onPress: () => resolve(true) },
+          ],
+          { cancelable: false },
+        );
+      });
+
+      if (!enable) {
+        await AsyncStorage.setItem(BIOMETRICS_ENABLED_KEY, 'false');
+        setBiometricsEnabledState(false);
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage,
+        cancelLabel: 'Avbryt',
+        disableDeviceFallback: false,
+      });
+      if (result.success) {
+        await AsyncStorage.setItem(BIOMETRICS_ENABLED_KEY, 'true');
+        setBiometricsEnabledState(true);
+      }
+      // If verification was cancelled/failed, leave the flag unset so the
+      // user is asked again next login.
+    } catch {
+      // Silently ignore — biometric enrollment is optional UX.
+    }
+  }, []);
+
   // Function to sign in with email and password
   const signIn = useCallback(async (email: string, password: string) => {
     const data = await api.authLogin(email, password);
@@ -153,7 +259,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
     await persistAuth(data);
     setupPushNotifications(data.access_token);
-  }, [setupPushNotifications]);
+    await maybePromptToEnableBiometrics();
+  }, [setupPushNotifications, maybePromptToEnableBiometrics]);
 
   // Function to sign up with email and password
   const signUp = useCallback(async (email: string, password: string, name: string) => {
@@ -162,7 +269,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
     await persistAuth(data);
     setupPushNotifications(data.access_token);
-  }, [setupPushNotifications]);
+    await maybePromptToEnableBiometrics();
+  }, [setupPushNotifications, maybePromptToEnableBiometrics]);
 
   // Function to sign in with Google
   const signInWithGoogle = useCallback(async () => {
@@ -186,13 +294,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       await persistAuth(data);
       setupPushNotifications(data.access_token);
+      await maybePromptToEnableBiometrics();
     } catch (e: any) {
       if (e?.code === 'sign_in_cancelled') throw new Error('Google Sign-In avbrutt');
       if (e?.code === 'in_progress') throw new Error('Google Sign-In pågår allerede');
       if (e?.code === 'play_services_not_available') throw new Error('Google Play Services ikke tilgjengelig');
       throw e;
     }
-  }, [setupPushNotifications]);
+  }, [setupPushNotifications, maybePromptToEnableBiometrics]);
 
   const signInWithApple = useCallback(async () => {
     if (Platform.OS !== 'ios') {
@@ -231,13 +340,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       await persistAuth(data);
       setupPushNotifications(data.access_token);
+      await maybePromptToEnableBiometrics();
     } catch (e: any) {
       if (e?.code === 'ERR_CANCELED') {
         throw new Error('Apple-innlogging avbrutt');
       }
       throw e;
     }
-  }, [setupPushNotifications]);
+  }, [setupPushNotifications, maybePromptToEnableBiometrics]);
 
   const signOut = useCallback(async () => {
     // Remove push token from backend before clearing auth
@@ -253,9 +363,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setToken(null);
     setUser(null);
+    setBiometricsEnabledState(false);
     await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
     await clearPersistedAuth();
   }, [token]);
+
+  const isBiometricsAvailable = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') return false;
+    return isBiometricHardwareReady();
+  }, []);
+
+  // Toggles the persisted biometrics flag. Enabling requires a successful
+  // biometric prompt so we know the user can actually unlock with it.
+  // Returns the resulting enabled state.
+  const setBiometricsEnabled = useCallback(async (enabled: boolean): Promise<boolean> => {
+    if (!enabled) {
+      await AsyncStorage.setItem(BIOMETRICS_ENABLED_KEY, 'false');
+      setBiometricsEnabledState(false);
+      return false;
+    }
+    const ready = await isBiometricHardwareReady();
+    if (!ready) {
+      throw new Error('Biometrisk innlogging er ikke tilgjengelig på denne enheten.');
+    }
+    const promptMessage = await getBiometricPromptMessage();
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage,
+      cancelLabel: 'Avbryt',
+      disableDeviceFallback: false,
+    });
+    if (!result.success) {
+      return false;
+    }
+    await AsyncStorage.setItem(BIOMETRICS_ENABLED_KEY, 'true');
+    setBiometricsEnabledState(true);
+    return true;
+  }, []);
 
   const updateProfile = useCallback(async (updates: Partial<AuthUser>) => {
     setUser((prev) => {
@@ -272,6 +415,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     await AsyncStorage.removeItem(BIOMETRICS_ENABLED_KEY);
     await clearPersistedAuth();
+    setBiometricsEnabledState(false);
     setToken(null);
     setUser(null);
     return null;
@@ -294,6 +438,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateProfile,
         getToken,
         forgotPassword,
+        biometricsEnabled,
+        isBiometricsAvailable,
+        setBiometricsEnabled,
       }}
     >
       {children}
