@@ -18,6 +18,7 @@
         "NSBluetoothPeripheralUsageDescription": "CarMinder uses Bluetooth to connect to your OBD-II adapter and read vehicle diagnostics.",
         "NSCameraUsageDescription": "CarMinder uses the camera to scan receipt details for maintenance events.",
         "NSPhotoLibraryUsageDescription": "CarMinder can access photos if you choose a receipt image from your library.",
+        "NSFaceIDUsageDescription": "CarMinder bruker Face ID for rask innlogging.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [

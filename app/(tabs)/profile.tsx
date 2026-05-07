@@ -5,10 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
-import * as LocalAuthentication from 'expo-local-authentication';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -29,7 +27,16 @@ import { api, ApiError, CarInfo } from '../../frontendServices/apiCall';
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, loading: authLoading, signOut, getToken, updateProfile } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    signOut,
+    getToken,
+    updateProfile,
+    biometricsEnabled,
+    isBiometricsAvailable,
+    setBiometricsEnabled,
+  } = useAuth();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const isLight = scheme === 'light';
@@ -37,7 +44,6 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [biometricsSupported, setBiometricsSupported] = useState(false);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [editingMileageId, setEditingMileageId] = useState<string | null>(null);
   const [mileageInput, setMileageInput] = useState('');
   const [savingMileage, setSavingMileage] = useState(false);
@@ -50,23 +56,16 @@ export default function ProfileScreen() {
   const [claimCodeInput, setClaimCodeInput] = useState('');
   const [claimLoading, setClaimLoading] = useState(false);
 
-  const SECURE_AUTH_TOKEN_KEY = 'auth_token_secure';
-  const SECURE_BIOMETRICS_ENABLED_KEY = 'use_biometrics_flag';
-
   useEffect(() => {
-    const checkBiometrics = async () => {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      setBiometricsSupported(hasHardware && isEnrolled);
-
-      if (hasHardware && isEnrolled) {
-        const stored = await SecureStore.getItemAsync(SECURE_BIOMETRICS_ENABLED_KEY);
-        setBiometricsEnabled(stored === 'true');
-      }
+    let active = true;
+    (async () => {
+      const available = await isBiometricsAvailable();
+      if (active) setBiometricsSupported(available);
+    })();
+    return () => {
+      active = false;
     };
-
-    checkBiometrics();
-  }, []);
+  }, [isBiometricsAvailable]);
 
   useEffect(() => {
     setDisplayName(user?.displayName ?? '');
@@ -124,19 +123,19 @@ export default function ProfileScreen() {
       Alert.alert('Ikke tilgjengelig', 'Biometrisk innlogging er ikke tilgjengelig på denne enheten.');
       return;
     }
-    if (value) {
-      const token = await getToken();
-      if (!token) {
-        Alert.alert('Feil', 'Kunne ikke aktivere biometri uten gyldig innlogging.');
-        return;
+    try {
+      if (value) {
+        const token = await getToken();
+        if (!token) {
+          Alert.alert('Feil', 'Kunne ikke aktivere biometri uten gyldig innlogging.');
+          return;
+        }
+        await setBiometricsEnabled(true);
+      } else {
+        await setBiometricsEnabled(false);
       }
-      await SecureStore.setItemAsync(SECURE_AUTH_TOKEN_KEY, token);
-      await SecureStore.setItemAsync(SECURE_BIOMETRICS_ENABLED_KEY, 'true');
-      setBiometricsEnabled(true);
-    } else {
-      await SecureStore.deleteItemAsync(SECURE_AUTH_TOKEN_KEY);
-      await SecureStore.deleteItemAsync(SECURE_BIOMETRICS_ENABLED_KEY);
-      setBiometricsEnabled(false);
+    } catch (e: any) {
+      Alert.alert('Feil', e?.message ?? 'Kunne ikke oppdatere biometrisk innlogging.');
     }
   };
 
