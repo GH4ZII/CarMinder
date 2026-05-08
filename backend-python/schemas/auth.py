@@ -1,23 +1,28 @@
-from pydantic import BaseModel, EmailStr
+from typing import Annotated
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+NonEmptyStr = Annotated[str, Field(min_length=1)]
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: NonEmptyStr
 
 
 class SignupRequest(BaseModel):
-    email: str
-    password: str
-    name: str
+    email: EmailStr
+    password: NonEmptyStr
+    name: NonEmptyStr
 
 
 class GoogleRequest(BaseModel):
-    id_token: str
+    id_token: NonEmptyStr
 
 
 class AppleRequest(BaseModel):
-    identity_token: str
+    identity_token: NonEmptyStr
     email: EmailStr | None = None
     full_name: str | None = None
 

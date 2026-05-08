@@ -4,6 +4,7 @@ Service interval router - provides computed maintenance due dates.
 from fastapi import APIRouter, Depends, HTTPException
 
 from config.auth import get_current_user_uid
+from config.responses import AUTH_RESPONSES, NOT_FOUND_RESPONSE
 from exceptions import NotFoundError
 from schemas.service_interval import AllCarsServiceStatus, CarServiceStatus
 from services import service_interval_service
@@ -11,7 +12,11 @@ from services import service_interval_service
 router = APIRouter(tags=["service-intervals"])
 
 
-@router.get("/cars/{car_id}/service-status", response_model=CarServiceStatus)
+@router.get(
+    "/cars/{car_id}/service-status",
+    response_model=CarServiceStatus,
+    responses={**AUTH_RESPONSES, **NOT_FOUND_RESPONSE},
+)
 def get_car_service_status(car_id: str, uid: str = Depends(get_current_user_uid)):
     """
     Get computed service intervals and due dates for a specific car.
@@ -25,7 +30,11 @@ def get_car_service_status(car_id: str, uid: str = Depends(get_current_user_uid)
         raise HTTPException(status_code=404, detail=e.message)
 
 
-@router.get("/service-status", response_model=AllCarsServiceStatus)
+@router.get(
+    "/service-status",
+    response_model=AllCarsServiceStatus,
+    responses=AUTH_RESPONSES,
+)
 def get_all_service_status(uid: str = Depends(get_current_user_uid)):
     """
     Get service status overview for ALL of the user's cars.

@@ -33,7 +33,7 @@ jobs:
         working-directory: backend-python
         run: pytest
 
-  web-build:
+  web-build: 
     name: Web Build
     runs-on: ubuntu-latest
 

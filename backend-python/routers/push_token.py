@@ -6,13 +6,18 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from config.auth import get_current_user_uid
+from config.responses import AUTH_RESPONSES, BAD_REQUEST_RESPONSE, FORBIDDEN_RESPONSE
 from schemas.push_token import PushTokenRegister, PushTokenResponse
 from services import push_token_service
 
 router = APIRouter(tags=["notifications"])
 
 
-@router.post("/push-tokens", response_model=PushTokenResponse)
+@router.post(
+    "/push-tokens",
+    response_model=PushTokenResponse,
+    responses={**AUTH_RESPONSES, **BAD_REQUEST_RESPONSE},
+)
 def register_push_token(
     body: PushTokenRegister,
     uid: str = Depends(get_current_user_uid),
@@ -22,7 +27,7 @@ def register_push_token(
     return PushTokenResponse(success=True, message="Push token registered")
 
 
-@router.delete("/push-tokens")
+@router.delete("/push-tokens", responses={**AUTH_RESPONSES, **BAD_REQUEST_RESPONSE})
 def unregister_push_token(
     body: PushTokenRegister,
     uid: str = Depends(get_current_user_uid),
@@ -32,7 +37,7 @@ def unregister_push_token(
     return {"success": True, "message": "Push token removed"}
 
 
-@router.post("/notifications/check-deadlines")
+@router.post("/notifications/check-deadlines", responses=FORBIDDEN_RESPONSE)
 async def check_deadlines(
     x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret"),
 ):

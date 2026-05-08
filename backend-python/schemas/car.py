@@ -1,18 +1,22 @@
-from pydantic import BaseModel
-from typing import Optional
+from typing import Annotated, Optional
+
+from pydantic import BaseModel, Field
 from datetime import datetime
 
+
+NonEmptyStr = Annotated[str, Field(min_length=1)]
+
 class CarBase(BaseModel):
-    registreringsnummer: str
-    merke: str
-    modell: str
-    arsmodell: str
-    farge: str
+    registreringsnummer: NonEmptyStr
+    merke: NonEmptyStr
+    modell: NonEmptyStr
+    arsmodell: NonEmptyStr
+    farge: NonEmptyStr
     kilometer: int = 0
-    forstegangregistrert: str
-    chassisnummer: str
-    drivstoff: str
-    girkasse: str
+    forstegangregistrert: NonEmptyStr
+    chassisnummer: NonEmptyStr
+    drivstoff: NonEmptyStr
+    girkasse: NonEmptyStr
     motoreffekt: int
     slagvolum: int
     co2utslipp: int
@@ -21,8 +25,8 @@ class CarBase(BaseModel):
     totalvekt: int
     antallseter: int
     antalldorer: int
-    karosseri: str
-    eukontrollfrist: str
+    karosseri: NonEmptyStr
+    eukontrollfrist: NonEmptyStr
     makshastighet: int
     public_history: bool = False
 
@@ -49,7 +53,7 @@ class KilometerUpdate(BaseModel):
     kilometer: int
 
 class VehicleLookupRequest(BaseModel):
-    registration_number: str
+    registration_number: NonEmptyStr
 
 class VehicleLookupResponse(BaseModel):
     success: bool
@@ -63,4 +67,4 @@ class TransferResponse(BaseModel):
 
 
 class ClaimRequest(BaseModel):
-    transfer_code: str
+    transfer_code: NonEmptyStr

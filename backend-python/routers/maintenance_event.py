@@ -4,6 +4,11 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 
 from config.auth import get_current_user_uid
+from config.responses import (
+    AUTH_RESPONSES,
+    PROTECTED_RESPONSES,
+    SERVER_ERROR_RESPONSE,
+)
 from exceptions import NotFoundError, ValidationError
 from schemas.maintenance_event import (
     EVENT_TYPES,
@@ -23,7 +28,15 @@ def get_event_types():
     return {"event_types": EVENT_TYPES}
 
 
-@router.get("/{car_id}/events", response_model=List[MaintenanceEventResponse])
+@router.get(
+    "/{car_id}/events",
+    response_model=List[MaintenanceEventResponse],
+    responses={
+        **AUTH_RESPONSES,
+        404: {"description": "Car not found"},
+        **SERVER_ERROR_RESPONSE,
+    },
+)
 def list_events(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:
         return maintenance_service.list_events(uid, car_id)
@@ -34,8 +47,16 @@ def list_events(car_id: str, uid: str = Depends(get_current_user_uid)):
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
 
-@router.post("/{car_id}/events", response_model=MaintenanceEventResponse)
-def create_event(car_id: str, payload: MaintenanceEventCreate, uid: str = Depends(get_current_user_uid)):
+@router.post(
+    "/{car_id}/events",
+    response_model=MaintenanceEventResponse,
+    responses={**PROTECTED_RESPONSES, **SERVER_ERROR_RESPONSE},
+)
+def create_event(
+    car_id: str,
+    payload: MaintenanceEventCreate,
+    uid: str = Depends(get_current_user_uid),
+):
     try:
         return maintenance_service.create_event(uid, car_id, payload)
     except NotFoundError as e:

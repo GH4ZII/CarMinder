@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 import logging
 
+from config.responses import AUTH_RESPONSES, BAD_REQUEST_RESPONSE
 from exceptions import AuthenticationError, ValidationError
 from schemas.auth import (
     AppleRequest,
@@ -22,15 +23,19 @@ from services.jwt_auth import create_access_token
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+AUTH_ROUTE_RESPONSES = {**BAD_REQUEST_RESPONSE, **AUTH_RESPONSES}
+
+router = APIRouter(prefix="/auth", tags=["auth"], responses=BAD_REQUEST_RESPONSE)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, responses=AUTH_ROUTE_RESPONSES)
 def login(req: LoginRequest):
     try:
         uid, email, display_name = login_email_password(req.email, req.password)
     except AuthenticationError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e.message)
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
     token = create_access_token(uid, email, display_name)
     return TokenResponse(
         access_token=token,
@@ -38,7 +43,7 @@ def login(req: LoginRequest):
     )
 
 
-@router.post("/signup", response_model=TokenResponse)
+@router.post("/signup", response_model=TokenResponse, responses=AUTH_ROUTE_RESPONSES)
 def signup(req: SignupRequest):
     try:
         uid, email, display_name = signup_email_password(
@@ -55,7 +60,7 @@ def signup(req: SignupRequest):
     )
 
 
-@router.post("/google", response_model=TokenResponse)
+@router.post("/google", response_model=TokenResponse, responses=AUTH_ROUTE_RESPONSES)
 def google(req: GoogleRequest):
     if not req.id_token or not req.id_token.strip():
         raise HTTPException(
@@ -73,7 +78,7 @@ def google(req: GoogleRequest):
     )
 
 
-@router.post("/apple", response_model=TokenResponse)
+@router.post("/apple", response_model=TokenResponse, responses=AUTH_ROUTE_RESPONSES)
 def apple(req: AppleRequest):
     if not req.identity_token or not req.identity_token.strip():
         raise HTTPException(

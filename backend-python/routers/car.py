@@ -2,12 +2,19 @@ import logging
 from io import BytesIO
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from xhtml2pdf import pisa
 
 from config.auth import get_current_user_uid
+from config.responses import (
+    AUTH_RESPONSES,
+    BAD_REQUEST_RESPONSE,
+    NOT_FOUND_RESPONSE,
+    PROTECTED_RESPONSES,
+    SERVER_ERROR_RESPONSE,
+)
 from exceptions import AlreadyExistsError, NotFoundError, ValidationError
 from schemas.car import (
     CarCreate,
@@ -24,7 +31,11 @@ from services import car_report_service, car_service
 router = APIRouter(prefix="/cars", tags=["cars"])
 
 
-@router.post("/lookup", response_model=VehicleLookupResponse)
+@router.post(
+    "/lookup",
+    response_model=VehicleLookupResponse,
+    responses=BAD_REQUEST_RESPONSE,
+)
 async def lookup_vehicle_info(request: VehicleLookupRequest):
     try:
         car = await car_service.lookup(request.registration_number)
@@ -35,7 +46,19 @@ async def lookup_vehicle_info(request: VehicleLookupRequest):
         return VehicleLookupResponse(success=False, error=str(e))
 
 
-@router.post("/", response_model=CarResponse)
+@router.api_route(
+    "/lookup",
+    methods=["GET", "PUT", "PATCH", "DELETE"],
+    include_in_schema=False,
+)
+def unsupported_lookup_method():
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Method Not Allowed",
+    )
+
+
+@router.post("/", response_model=CarResponse, responses=PROTECTED_RESPONSES)
 def create_car(car: CarCreate, uid: str = Depends(get_current_user_uid)):
     try:
         return car_service.create_car(uid, car)
@@ -45,12 +68,38 @@ def create_car(car: CarCreate, uid: str = Depends(get_current_user_uid)):
         raise HTTPException(status_code=400, detail=e.message)
 
 
-@router.get("/", response_model=List[CarResponse])
+@router.get("/", response_model=List[CarResponse], responses=AUTH_RESPONSES)
 def get_user_cars(uid: str = Depends(get_current_user_uid)):
     return car_service.get_user_cars(uid)
 
 
-@router.get("/{car_id}", response_model=CarResponse)
+@router.post("/claim", response_model=CarResponse, responses=PROTECTED_RESPONSES)
+def claim_car(body: ClaimRequest, uid: str = Depends(get_current_user_uid)):
+    try:
+        return car_service.claim_car(uid, body.transfer_code)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
+
+
+@router.api_route(
+    "/claim",
+    methods=["GET", "PUT", "PATCH", "DELETE"],
+    include_in_schema=False,
+)
+def unsupported_claim_method():
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Method Not Allowed",
+    )
+
+
+@router.get(
+    "/{car_id}",
+    response_model=CarResponse,
+    responses={**AUTH_RESPONSES, **NOT_FOUND_RESPONSE},
+)
 def get_car_by_id(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:
         return car_service.get_car(uid, car_id)
@@ -58,8 +107,12 @@ def get_car_by_id(car_id: str, uid: str = Depends(get_current_user_uid)):
         raise HTTPException(status_code=404, detail=e.message)
 
 
-@router.patch("/{car_id}", response_model=CarResponse)
-def update_car(car_id: str, updates: CarUpdate, uid: str = Depends(get_current_user_uid)):
+@router.patch("/{car_id}", response_model=CarResponse, responses=PROTECTED_RESPONSES)
+def update_car(
+    car_id: str,
+    updates: CarUpdate,
+    uid: str = Depends(get_current_user_uid),
+):
     try:
         return car_service.update_car(uid, car_id, updates)
     except NotFoundError as e:
@@ -68,8 +121,16 @@ def update_car(car_id: str, updates: CarUpdate, uid: str = Depends(get_current_u
         raise HTTPException(status_code=400, detail=e.message)
 
 
-@router.patch("/{car_id}/kilometer", response_model=CarResponse)
-def update_kilometer(car_id: str, data: KilometerUpdate, uid: str = Depends(get_current_user_uid)):
+@router.patch(
+    "/{car_id}/kilometer",
+    response_model=CarResponse,
+    responses=PROTECTED_RESPONSES,
+)
+def update_kilometer(
+    car_id: str,
+    data: KilometerUpdate,
+    uid: str = Depends(get_current_user_uid),
+):
     try:
         return car_service.update_kilometer(uid, car_id, data)
     except NotFoundError as e:
@@ -78,7 +139,7 @@ def update_kilometer(car_id: str, data: KilometerUpdate, uid: str = Depends(get_
         raise HTTPException(status_code=400, detail=e.message)
 
 
-@router.delete("/{car_id}")
+@router.delete("/{car_id}", responses={**AUTH_RESPONSES, **NOT_FOUND_RESPONSE})
 def delete_car(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:
         car_service.delete_car(uid, car_id)
@@ -87,8 +148,14 @@ def delete_car(car_id: str, uid: str = Depends(get_current_user_uid)):
         raise HTTPException(status_code=404, detail=e.message)
 
 
-@router.get("/{car_id}/report.pdf")
-def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid)) -> Response:
+@router.get(
+    "/{car_id}/report.pdf",
+    responses={**AUTH_RESPONSES, **NOT_FOUND_RESPONSE, **SERVER_ERROR_RESPONSE},
+)
+def generate_car_report_pdf(
+    car_id: str,
+    uid: str = Depends(get_current_user_uid),
+) -> Response:
     """
     Generate a PDF car report for the given car and authenticated user.
     """
@@ -97,7 +164,10 @@ def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
     except Exception:
-        logging.getLogger(__name__).exception("Report HTML generation failed for car_id=%s", car_id)
+        logging.getLogger(__name__).exception(
+            "Report HTML generation failed for car_id=%s",
+            car_id,
+        )
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
 
     try:
@@ -109,7 +179,10 @@ def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid
     except HTTPException:
         raise
     except Exception:
-        logging.getLogger(__name__).exception("PDF generation failed for car_id=%s", car_id)
+        logging.getLogger(__name__).exception(
+            "PDF generation failed for car_id=%s",
+            car_id,
+        )
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
 
     headers = {
@@ -118,7 +191,7 @@ def generate_car_report_pdf(car_id: str, uid: str = Depends(get_current_user_uid
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
 
-@router.post("/{car_id}/retire", response_model=CarResponse)
+@router.post("/{car_id}/retire", response_model=CarResponse, responses=PROTECTED_RESPONSES)
 def retire_car(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:
         return car_service.retire_car(uid, car_id)
@@ -128,7 +201,11 @@ def retire_car(car_id: str, uid: str = Depends(get_current_user_uid)):
         raise HTTPException(status_code=400, detail=e.message)
 
 
-@router.post("/{car_id}/transfer", response_model=TransferResponse)
+@router.post(
+    "/{car_id}/transfer",
+    response_model=TransferResponse,
+    responses=PROTECTED_RESPONSES,
+)
 def initiate_transfer(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:
         return car_service.initiate_transfer(uid, car_id)
@@ -138,17 +215,7 @@ def initiate_transfer(car_id: str, uid: str = Depends(get_current_user_uid)):
         raise HTTPException(status_code=400, detail=e.message)
 
 
-@router.post("/claim", response_model=CarResponse)
-def claim_car(body: ClaimRequest, uid: str = Depends(get_current_user_uid)):
-    try:
-        return car_service.claim_car(uid, body.transfer_code)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
-
-
-@router.delete("/{car_id}/transfer")
+@router.delete("/{car_id}/transfer", responses=PROTECTED_RESPONSES)
 def cancel_transfer(car_id: str, uid: str = Depends(get_current_user_uid)):
     try:
         car_service.cancel_transfer(uid, car_id)
