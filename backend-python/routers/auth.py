@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 import logging
 
-from config.responses import AUTH_RESPONSES, BAD_REQUEST_RESPONSE
+from config.responses import AUTH_RESPONSES, BAD_REQUEST_RESPONSE, CONFLICT_RESPONSE
 from exceptions import AuthenticationError, ValidationError
 from schemas.auth import (
     AppleRequest,
@@ -24,6 +24,7 @@ from services.jwt_auth import create_access_token
 logger = logging.getLogger(__name__)
 
 AUTH_ROUTE_RESPONSES = {**BAD_REQUEST_RESPONSE, **AUTH_RESPONSES}
+SIGNUP_RESPONSES = {**AUTH_ROUTE_RESPONSES, **CONFLICT_RESPONSE}
 
 router = APIRouter(prefix="/auth", tags=["auth"], responses=BAD_REQUEST_RESPONSE)
 
@@ -43,7 +44,7 @@ def login(req: LoginRequest):
     )
 
 
-@router.post("/signup", response_model=TokenResponse, responses=AUTH_ROUTE_RESPONSES)
+@router.post("/signup", response_model=TokenResponse, responses=SIGNUP_RESPONSES)
 def signup(req: SignupRequest):
     try:
         uid, email, display_name = signup_email_password(
@@ -52,6 +53,8 @@ def signup(req: SignupRequest):
     except AuthenticationError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e.message)
     except ValidationError as e:
+        if e.message == "EMAIL_EXISTS":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
     token = create_access_token(uid, email, display_name)
     return TokenResponse(

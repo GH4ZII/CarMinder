@@ -10,6 +10,10 @@ FORBIDDEN_RESPONSE = {
     403: {"description": "Forbidden"},
 }
 
+CONFLICT_RESPONSE = {
+    409: {"description": "Resource already exists or conflicts with current state"},
+}
+
 NOT_FOUND_RESPONSE = {
     404: {"description": "Requested resource was not found"},
 }
@@ -23,4 +27,3 @@ PROTECTED_RESPONSES = {
     **BAD_REQUEST_RESPONSE,
     **NOT_FOUND_RESPONSE,
 }
-
