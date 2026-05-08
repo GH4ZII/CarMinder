@@ -55,6 +55,7 @@ def unsupported_lookup_method():
     raise HTTPException(
         status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
         detail="Method Not Allowed",
+        headers={"Allow": "POST"},
     )
 
 
@@ -92,6 +93,7 @@ def unsupported_claim_method():
     raise HTTPException(
         status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
         detail="Method Not Allowed",
+        headers={"Allow": "POST"},
     )
 
 

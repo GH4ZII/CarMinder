@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 NonEmptyStr = Annotated[str, Field(min_length=1)]
+SignupPassword = Annotated[str, Field(min_length=6)]
 
 
 class LoginRequest(BaseModel):
@@ -13,7 +14,7 @@ class LoginRequest(BaseModel):
 
 class SignupRequest(BaseModel):
     email: EmailStr
-    password: NonEmptyStr
+    password: SignupPassword
     name: NonEmptyStr
 
 
