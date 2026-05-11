@@ -266,6 +266,54 @@ export async function createIncident(
   return res.json();
 }
 
+export async function uploadIncidentImages(
+  carId: string,
+  incidentId: string,
+  token: string,
+  files: File[]
+): Promise<{ id: string; url?: string | null }[]> {
+  const formData = new FormData();
+  for (const f of files) {
+    formData.append('files', f);
+  }
+
+  const res = await fetch(`${API_URL}/cars/${carId}/incidents/${incidentId}/images`, {
+    method: 'POST',
+    headers: { ...authHeaders(token) },
+    body: formData,
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    const hint404 =
+      res.status === 404
+        ? ' (upload endpoint missing on this API — deploy latest backend or set VITE_API_URL to a server that supports incident photos)'
+        : '';
+    throw new ApiError(
+      (detail ?? `Upload failed (${res.status} ${res.statusText})`) + hint404,
+      res.status,
+      detail
+    );
+  }
+  return res.json();
+}
+
+export async function listIncidentImages(
+  carId: string,
+  incidentId: string,
+  token: string
+): Promise<{ id: string; url?: string | null }[]> {
+  const res = await fetch(`${API_URL}/cars/${carId}/incidents/${incidentId}/images`, {
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new ApiError('Unauthorized', 401);
+    const detail = await parseErrorDetail(res);
+    throw new ApiError(detail ?? 'Failed to list incident images', res.status, detail);
+  }
+  return res.json();
+}
+
 export async function getLatestObdReading(
   carId: string,
   token: string

@@ -39,6 +39,7 @@ export default function AddIncident() {
   const [repairVendor, setRepairVendor] = useState('');
   const [mileage, setMileage] = useState('');
   const [insuranceClaim, setInsuranceClaim] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,7 +83,7 @@ export default function AddIncident() {
         return;
       }
 
-      await carsApi.createIncident(id, token, {
+      const created = await carsApi.createIncident(id, token, {
         incident_date: incidentDate,
         severity,
         description: description.trim(),
@@ -93,6 +94,22 @@ export default function AddIncident() {
         insurance_claim: insuranceClaim,
         mileage: mileage ? parseInt(mileage, 10) : null,
       });
+
+      if (files.length) {
+        try {
+          await carsApi.uploadIncidentImages(id, created.id, token, files);
+        } catch (uploadErr) {
+          const msg =
+            uploadErr instanceof Error ? uploadErr.message : 'Photo upload failed';
+          navigate(`/car/${id}`, {
+            replace: true,
+            state: {
+              incidentImageUploadError: msg,
+            },
+          });
+          return;
+        }
+      }
 
       navigate(`/car/${id}`, { replace: true });
     } catch (err) {
@@ -214,6 +231,29 @@ export default function AddIncident() {
             placeholder="Optional"
             disabled={submitting}
           />
+
+          <div className="input-wrap">
+            <label className="input-label">Photos (optional)</label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={submitting}
+              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            />
+            {files.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                {files.map((f) => (
+                  <img
+                    key={`${f.name}-${f.size}-${f.lastModified}`}
+                    src={URL.createObjectURL(f)}
+                    alt={f.name}
+                    style={{ width: 88, height: 88, objectFit: 'cover', borderRadius: 10 }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
           <label className="incident-checkbox">
             <input

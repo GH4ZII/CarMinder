@@ -7,6 +7,14 @@ SEVERITY_LEVELS = ["minor", "moderate", "severe"]
 REPAIR_STATUSES = ["not_repaired", "partially_repaired", "fully_repaired"]
 
 
+class IncidentImageResponse(BaseModel):
+    id: str
+    url: Optional[str] = None
+    content_type: Optional[str] = None
+    byte_size: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+
 class IncidentReportCreate(BaseModel):
     incident_date: date
     severity: str = Field(..., min_length=1, max_length=32)
@@ -76,6 +84,7 @@ class IncidentReportResponse(BaseModel):
     repair_vendor: Optional[str] = None
     insurance_claim: bool
     mileage: Optional[int] = None
+    images: list[IncidentImageResponse] = []
     created_at: datetime
 
     class Config:
