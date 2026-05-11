@@ -6,7 +6,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { File, Paths } from 'expo-file-system';
-import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -15,12 +14,14 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -276,6 +277,7 @@ function ServiceStatusCard({ status, isLight }: { status: ServiceDueStatus; isLi
 export default function CarTimelineScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { id: carId } = useLocalSearchParams<{ id: string }>();
   const { user, getToken } = useAuth();
   const scheme = useColorScheme() ?? 'light';
@@ -770,23 +772,48 @@ export default function CarTimelineScreen() {
                     incidentPhotoView.images.length === 0 && (
                       <ThemedText style={styles.incidentModalEmpty}>No photos for this incident.</ThemedText>
                     )}
-                  {incidentPhotoView.images.length > 0 && (
-                    <ScrollView style={styles.incidentModalScroll} showsVerticalScrollIndicator={false}>
-                      <View style={styles.incidentModalGrid}>
-                        {incidentPhotoView.images.map((img) =>
-                          img.url ? (
-                            <Image
-                              key={img.id}
-                              source={{ uri: img.url }}
-                              style={styles.incidentModalImage}
-                              contentFit="cover"
-                              accessibilityLabel="Incident photo"
-                            />
-                          ) : null
-                        )}
-                      </View>
-                    </ScrollView>
-                  )}
+                  {incidentPhotoView.images.length > 0 && (() => {
+                    const cardInnerWidth = windowWidth - 40 - 32;
+                    const incidentThumbPx = Math.max(120, Math.floor((cardInnerWidth - 10) / 2));
+                    return (
+                      <ScrollView
+                        style={{ maxHeight: Math.min(400, Math.floor(windowHeight * 0.45)) }}
+                        showsVerticalScrollIndicator={false}
+                        nestedScrollEnabled
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            flexWrap: 'wrap',
+                            gap: 10,
+                            justifyContent: 'flex-start',
+                          }}
+                        >
+                          {incidentPhotoView.images.map((img) =>
+                            img.url ? (
+                              <Image
+                                key={img.id}
+                                source={{ uri: img.url }}
+                                style={{
+                                  width: incidentThumbPx,
+                                  height: incidentThumbPx,
+                                  borderRadius: 10,
+                                  backgroundColor: 'rgba(255,255,255,0.08)',
+                                }}
+                                resizeMode="cover"
+                                accessibilityLabel="Incident photo"
+                                onError={(e) => {
+                                  if (__DEV__) {
+                                    console.warn('Incident image failed to load', img.id, e.nativeEvent.error);
+                                  }
+                                }}
+                              />
+                            ) : null
+                          )}
+                        </View>
+                      </ScrollView>
+                    );
+                  })()}
                 </>
               )}
             </View>
@@ -1003,12 +1030,4 @@ const styles = StyleSheet.create({
   incidentModalSpinner: { marginVertical: 16 },
   incidentModalError: { fontSize: 14, color: '#FF6B6B', marginBottom: 8 },
   incidentModalEmpty: { fontSize: 14, opacity: 0.75 },
-  incidentModalScroll: { maxHeight: 360 },
-  incidentModalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  incidentModalImage: {
-    width: '47%',
-    aspectRatio: 1,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
 });
