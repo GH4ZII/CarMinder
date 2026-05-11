@@ -73,6 +73,7 @@ export interface IncidentReport {
   repair_vendor: string | null;
   insurance_claim: boolean;
   mileage: number | null;
+  images?: { id: string; url?: string | null }[];
   created_at: string;
 }
 

@@ -1,13 +1,17 @@
 from typing import Any
 
 from exceptions import NotFoundError, ValidationError
-from repositories import car_repository, incident_repository
+from repositories import car_repository, incident_image_repository, incident_repository
 from schemas.incident_report import IncidentReportCreate
 
 
 def list_incidents(uid: str, car_id: str) -> list[dict[str, Any]]:
     _ensure_car_ownership(uid, car_id)
-    return incident_repository.list_incidents_for_car(car_id)
+    incidents = incident_repository.list_incidents_for_car(car_id)
+    for inc in incidents:
+        images = incident_image_repository.list_images_for_incident(inc["id"])
+        inc["images"] = [{"id": r["id"]} for r in images]
+    return incidents
 
 
 def create_incident(uid: str, car_id: str, payload: IncidentReportCreate) -> dict[str, Any]:
@@ -33,6 +37,7 @@ def create_incident(uid: str, car_id: str, payload: IncidentReportCreate) -> dic
     result = incident_repository.insert_incident(row)
     if not result:
         raise ValidationError("Failed to create incident report")
+    result["images"] = []
     return result
 
 

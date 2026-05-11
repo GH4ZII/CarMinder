@@ -123,6 +123,12 @@ export interface ReceiptOcrImageInput {
   type?: string;
 }
 
+export interface IncidentImageInput {
+  uri: string;
+  name?: string;
+  type?: string;
+}
+
 /** Service due status computed by backend */
 export interface ServiceDueStatus {
   event_type: string;
@@ -497,6 +503,52 @@ export const api = {
     return res.json();
   },
 
+  /** Upload one or more images for an incident (multipart/form-data) */
+  async uploadIncidentImages(
+    carId: string,
+    incidentId: string,
+    token: string,
+    images: IncidentImageInput[],
+  ): Promise<{ id: string; url?: string | null }[]> {
+    const formData = new FormData();
+    for (const img of images) {
+      formData.append('files', {
+        uri: img.uri,
+        name: img.name ?? 'incident.jpg',
+        type: img.type ?? 'image/jpeg',
+      } as any);
+    }
+
+    const res = await fetch(`${API_URL}/cars/${carId}/incidents/${incidentId}/images`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to upload incident images', res.status, detail);
+    }
+    return res.json();
+  },
+
+  /** List signed URLs for an incident's images */
+  async listIncidentImages(
+    carId: string,
+    incidentId: string,
+    token: string,
+  ): Promise<{ id: string; url?: string | null }[]> {
+    const res = await fetch(`${API_URL}/cars/${carId}/incidents/${incidentId}/images`, {
+      headers: authHeaders(token),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new ApiError('Unauthorized', 401);
+      const detail = await parseErrorDetail(res);
+      throw new ApiError(detail ?? 'Failed to list incident images', res.status, detail);
+    }
+    return res.json();
+  },
+
   /** Lookup public car history by registration number (no auth) */
   async getPublicHistory(regNumber: string): Promise<PublicCarHistory | null> {
     const res = await fetch(`${API_URL}/public/history/${encodeURIComponent(regNumber.trim().toUpperCase())}`);
@@ -690,6 +742,7 @@ export interface IncidentReport {
   repair_vendor: string | null;
   insurance_claim: boolean;
   mileage: number | null;
+  images?: { id: string; url?: string | null }[];
   created_at: string;
 }
 

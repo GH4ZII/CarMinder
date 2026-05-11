@@ -6,6 +6,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -25,7 +27,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, IncidentReportCreate } from '../../../../frontendServices/apiCall';
+import { api, IncidentImageInput, IncidentReportCreate } from '../../../../frontendServices/apiCall';
 
 const SEVERITY_LABELS: Record<string, string> = {
   minor: 'Minor',
@@ -85,6 +87,7 @@ export default function AddIncidentScreen() {
   const [repairVendor, setRepairVendor] = useState('');
   const [mileage, setMileage] = useState('');
   const [insuranceClaim, setInsuranceClaim] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
@@ -196,7 +199,17 @@ export default function AddIncidentScreen() {
       }
       if (repairVendor.trim()) payload.repair_vendor = repairVendor.trim();
 
-      await api.createIncident(carId, token, payload);
+      const created = await api.createIncident(carId, token, payload);
+
+      if (selectedImages.length) {
+        const images: IncidentImageInput[] = selectedImages.map((asset) => ({
+          uri: asset.uri,
+          name: asset.fileName ?? 'incident.jpg',
+          type: asset.mimeType ?? 'image/jpeg',
+        }));
+        await api.uploadIncidentImages(carId, created.id, token, images);
+      }
+
       router.back();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to create incident.';
@@ -205,6 +218,52 @@ export default function AddIncidentScreen() {
       setSubmitting(false);
     }
   };
+
+  const ensurePhotoPermissions = useCallback(async () => {
+    const media = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!media.granted) {
+      Alert.alert('Permission required', 'Please allow photo library access to attach incident images.');
+      return false;
+    }
+    return true;
+  }, []);
+
+  const ensureCameraPermissions = useCallback(async () => {
+    const cam = await ImagePicker.requestCameraPermissionsAsync();
+    if (!cam.granted) {
+      Alert.alert('Permission required', 'Please allow camera access to take incident photos.');
+      return false;
+    }
+    return true;
+  }, []);
+
+  const addFromLibrary = useCallback(async () => {
+    if (!(await ensurePhotoPermissions())) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    if (res.canceled || !res.assets?.length) return;
+    setSelectedImages((prev) => [...prev, ...res.assets].slice(0, 10));
+  }, [ensurePhotoPermissions]);
+
+  const addFromCamera = useCallback(async () => {
+    if (!(await ensureCameraPermissions())) return;
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (res.canceled || !res.assets?.length) return;
+    setSelectedImages((prev) => [...prev, ...res.assets].slice(0, 10));
+  }, [ensureCameraPermissions]);
+
+  const removeImage = useCallback((uri: string) => {
+    setSelectedImages((prev) => prev.filter((a) => a.uri !== uri));
+  }, []);
 
   if (!carId || !user) {
     return (
@@ -429,6 +488,42 @@ export default function AddIncidentScreen() {
             placeholderTextColor={colors.placeholder}
           />
 
+          {/* Images */}
+          <ThemedText style={[styles.label, { color: colors.subtext }]}>Photos (optional)</ThemedText>
+          <View style={styles.imageActionsRow}>
+            <TouchableOpacity
+              style={[styles.imageActionBtn, { borderColor: colors.border }]}
+              onPress={addFromLibrary}
+              disabled={submitting}
+            >
+              <Text style={[styles.imageActionText, { color: colors.text }]}>Add photos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.imageActionBtn, { borderColor: colors.border }]}
+              onPress={addFromCamera}
+              disabled={submitting}
+            >
+              <Text style={[styles.imageActionText, { color: colors.text }]}>Take photo</Text>
+            </TouchableOpacity>
+          </View>
+
+          {selectedImages.length > 0 && (
+            <View style={styles.imageGrid}>
+              {selectedImages.map((asset) => (
+                <View key={asset.uri} style={styles.imageTile}>
+                  <Image source={{ uri: asset.uri }} style={styles.imageThumb} contentFit="cover" />
+                  <TouchableOpacity
+                    style={[styles.imageRemoveBtn, { backgroundColor: 'rgba(0,0,0,0.55)' }]}
+                    onPress={() => removeImage(asset.uri)}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.imageRemoveText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Submit */}
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: colors.success }, submitting && styles.submitBtnDisabled]}
@@ -503,4 +598,42 @@ const styles = StyleSheet.create({
   submitBtn: { padding: 16, borderRadius: 999, alignItems: 'center', marginTop: 8, marginBottom: 32 },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: { color: '#1C5A34', fontSize: 16, fontWeight: '700' },
+  imageActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  imageActionBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  imageActionText: { fontSize: 15, fontWeight: '600' },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  imageTile: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  imageThumb: { width: '100%', height: '100%' },
+  imageRemoveBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageRemoveText: { color: '#fff', fontSize: 18, fontWeight: '700', lineHeight: 20 },
 });
