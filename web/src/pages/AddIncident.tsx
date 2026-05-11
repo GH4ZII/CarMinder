@@ -96,7 +96,19 @@ export default function AddIncident() {
       });
 
       if (files.length) {
-        await carsApi.uploadIncidentImages(id, created.id, token, files);
+        try {
+          await carsApi.uploadIncidentImages(id, created.id, token, files);
+        } catch (uploadErr) {
+          const msg =
+            uploadErr instanceof Error ? uploadErr.message : 'Photo upload failed';
+          navigate(`/car/${id}`, {
+            replace: true,
+            state: {
+              incidentImageUploadError: msg,
+            },
+          });
+          return;
+        }
       }
 
       navigate(`/car/${id}`, { replace: true });

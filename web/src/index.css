@@ -1585,6 +1585,121 @@ a:hover {
   border: 1px solid rgba(255, 149, 0, 0.2);
 }
 
+.incident-card--interactive {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.incident-card--interactive:hover {
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255, 149, 0, 0.35);
+}
+
+.incident-card--interactive:focus-visible {
+  outline: 2px solid var(--color-accent, #1c5a34);
+  outline-offset: 2px;
+}
+
+.incident-card__photo-badge {
+  background: rgba(28, 90, 52, 0.12) !important;
+  border-color: rgba(28, 90, 52, 0.25) !important;
+  color: var(--color-text) !important;
+  font-weight: 600;
+}
+
+.incident-card__tap-hint {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.incident-photo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.incident-photo-modal {
+  background: var(--color-surface, #fff);
+  color: var(--color-text);
+  border-radius: 12px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  box-shadow: var(--shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.2));
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.incident-photo-modal__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.5rem;
+  position: sticky;
+  top: 0;
+  background: var(--color-surface, #fff);
+  z-index: 1;
+}
+
+.incident-photo-modal__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.incident-photo-modal__close {
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: transparent;
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incident-photo-modal__close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.incident-photo-modal__status,
+.incident-photo-modal__error {
+  margin: 0 1rem 1rem;
+  font-size: 0.9rem;
+}
+
+.incident-photo-modal__error {
+  color: #c00;
+}
+
+.incident-photo-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.65rem;
+  padding: 0 1rem 1rem;
+}
+
+.incident-photo-modal__link {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.incident-photo-modal__thumb {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  vertical-align: middle;
+}
+
 .incident-card__header {
   display: flex;
   justify-content: space-between;

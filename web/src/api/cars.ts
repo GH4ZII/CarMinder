@@ -285,7 +285,15 @@ export async function uploadIncidentImages(
   if (!res.ok) {
     if (res.status === 401) throw new ApiError('Unauthorized', 401);
     const detail = await parseErrorDetail(res);
-    throw new ApiError(detail ?? 'Failed to upload incident images', res.status, detail);
+    const hint404 =
+      res.status === 404
+        ? ' (upload endpoint missing on this API — deploy latest backend or set VITE_API_URL to a server that supports incident photos)'
+        : '';
+    throw new ApiError(
+      (detail ?? `Upload failed (${res.status} ${res.statusText})`) + hint404,
+      res.status,
+      detail
+    );
   }
   return res.json();
 }

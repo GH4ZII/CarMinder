@@ -6,6 +6,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { File, Paths } from 'expo-file-system';
+import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -14,7 +15,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -291,6 +294,42 @@ export default function CarTimelineScreen() {
   const [obdOpen, setObdOpen] = useState(false);
   const [incidentsOpen, setIncidentsOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [incidentPhotoView, setIncidentPhotoView] = useState<{
+    incident: IncidentReport;
+    images: { id: string; url?: string | null }[];
+    loading: boolean;
+    error: string | null;
+  } | null>(null);
+
+  const openIncidentPhotos = useCallback(
+    async (inc: IncidentReport) => {
+      setIncidentPhotoView({ incident: inc, images: [], loading: true, error: null });
+      try {
+        const token = await getToken();
+        if (!token) {
+          Alert.alert('Error', 'Not signed in');
+          setIncidentPhotoView(null);
+          return;
+        }
+        const imgs = await api.listIncidentImages(carId, inc.id, token);
+        setIncidentPhotoView({
+          incident: inc,
+          images: imgs.filter((i) => Boolean(i.url)),
+          loading: false,
+          error: null,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Could not load photos';
+        setIncidentPhotoView({
+          incident: inc,
+          images: [],
+          loading: false,
+          error: msg,
+        });
+      }
+    },
+    [carId, getToken]
+  );
 
   const handleExportPdf = useCallback(async () => {
     if (!carId) return;
@@ -582,29 +621,44 @@ export default function CarTimelineScreen() {
           {incidents.length === 0 ? (
             <ThemedText style={styles.noIncidents}>No incidents reported.</ThemedText>
           ) : (
-            incidents.map((inc) => (
-              <View key={inc.id} style={[styles.incidentCard, isLight && { backgroundColor: '#FFF7EB', borderWidth: 1, borderColor: '#F4DDB6' }]}>
-                <View style={styles.incidentHeader}>
-                  <View style={[styles.severityBadge, { backgroundColor: SEVERITY_COLORS[inc.severity] ?? '#8E8E93' }]}>
-                    <Text style={styles.severityText}>{inc.severity.toUpperCase()}</Text>
+            incidents.map((inc) => {
+              const nPhotos = inc.images?.length ?? 0;
+              return (
+                <TouchableOpacity
+                  key={inc.id}
+                  activeOpacity={0.85}
+                  onPress={() => openIncidentPhotos(inc)}
+                  style={[styles.incidentCard, isLight && { backgroundColor: '#FFF7EB', borderWidth: 1, borderColor: '#F4DDB6' }]}
+                >
+                  <View style={styles.incidentHeader}>
+                    <View style={[styles.severityBadge, { backgroundColor: SEVERITY_COLORS[inc.severity] ?? '#8E8E93' }]}>
+                      <Text style={styles.severityText}>{inc.severity.toUpperCase()}</Text>
+                    </View>
+                    <ThemedText style={styles.cardDate}>{formatDate(inc.incident_date)}</ThemedText>
                   </View>
-                  <ThemedText style={styles.cardDate}>{formatDate(inc.incident_date)}</ThemedText>
-                </View>
-                <ThemedText style={styles.incidentDesc}>{inc.description}</ThemedText>
-                {inc.damage_description && (
-                  <ThemedText style={styles.incidentMeta}>Damage: {inc.damage_description}</ThemedText>
-                )}
-                <ThemedText style={styles.incidentMeta}>
-                  Repair: {REPAIR_STATUS_LABELS[inc.repair_status] ?? inc.repair_status}
-                </ThemedText>
-                {inc.mileage != null && (
-                  <ThemedText style={styles.incidentMeta}>{inc.mileage.toLocaleString()} km</ThemedText>
-                )}
-                {inc.insurance_claim && (
-                  <ThemedText style={styles.incidentMeta}>Insurance claim filed</ThemedText>
-                )}
-              </View>
-            ))
+                  <ThemedText style={styles.incidentDesc}>{inc.description}</ThemedText>
+                  {nPhotos > 0 ? (
+                    <ThemedText style={styles.incidentPhotoHint}>
+                      {nPhotos} photo{nPhotos === 1 ? '' : 's'} · tap to view
+                    </ThemedText>
+                  ) : (
+                    <ThemedText style={styles.incidentPhotoHintMuted}>Tap to view details</ThemedText>
+                  )}
+                  {inc.damage_description && (
+                    <ThemedText style={styles.incidentMeta}>Damage: {inc.damage_description}</ThemedText>
+                  )}
+                  <ThemedText style={styles.incidentMeta}>
+                    Repair: {REPAIR_STATUS_LABELS[inc.repair_status] ?? inc.repair_status}
+                  </ThemedText>
+                  {inc.mileage != null && (
+                    <ThemedText style={styles.incidentMeta}>{inc.mileage.toLocaleString()} km</ThemedText>
+                  )}
+                  {inc.insurance_claim && (
+                    <ThemedText style={styles.incidentMeta}>Insurance claim filed</ThemedText>
+                  )}
+                </TouchableOpacity>
+              );
+            })
           )}
         </>
       )}
@@ -674,6 +728,71 @@ export default function CarTimelineScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={fetch} />}
       />
+
+      <Modal
+        visible={incidentPhotoView != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIncidentPhotoView(null)}
+      >
+        <View style={styles.incidentModalRoot}>
+          <TouchableOpacity
+            style={styles.incidentModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIncidentPhotoView(null)}
+          />
+          <View style={styles.incidentModalCenter} pointerEvents="box-none">
+            <View
+              style={[
+                styles.incidentModalCard,
+                isLight && { backgroundColor: '#FFFFFF', borderColor: '#D8E5DD' },
+              ]}
+              pointerEvents="auto"
+            >
+              {incidentPhotoView && (
+                <>
+                  <View style={styles.incidentModalHeader}>
+                    <ThemedText type="subtitle" style={styles.incidentModalTitle} numberOfLines={3}>
+                      {formatDate(incidentPhotoView.incident.incident_date)}
+                      {'\n'}
+                      {incidentPhotoView.incident.description}
+                    </ThemedText>
+                    <TouchableOpacity onPress={() => setIncidentPhotoView(null)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                      <MaterialIcons name="close" size={26} color={isLight ? '#1C5A34' : '#8DA0B8'} />
+                    </TouchableOpacity>
+                  </View>
+                  {incidentPhotoView.loading && <ActivityIndicator style={styles.incidentModalSpinner} />}
+                  {incidentPhotoView.error != null && (
+                    <ThemedText style={styles.incidentModalError}>{incidentPhotoView.error}</ThemedText>
+                  )}
+                  {!incidentPhotoView.loading &&
+                    incidentPhotoView.error == null &&
+                    incidentPhotoView.images.length === 0 && (
+                      <ThemedText style={styles.incidentModalEmpty}>No photos for this incident.</ThemedText>
+                    )}
+                  {incidentPhotoView.images.length > 0 && (
+                    <ScrollView style={styles.incidentModalScroll} showsVerticalScrollIndicator={false}>
+                      <View style={styles.incidentModalGrid}>
+                        {incidentPhotoView.images.map((img) =>
+                          img.url ? (
+                            <Image
+                              key={img.id}
+                              source={{ uri: img.url }}
+                              style={styles.incidentModalImage}
+                              contentFit="cover"
+                              accessibilityLabel="Incident photo"
+                            />
+                          ) : null
+                        )}
+                      </View>
+                    </ScrollView>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -851,6 +970,45 @@ const styles = StyleSheet.create({
   severityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   severityText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   incidentDesc: { fontSize: 14, marginBottom: 4 },
+  incidentPhotoHint: { fontSize: 13, fontWeight: '600', marginBottom: 6, opacity: 0.95 },
+  incidentPhotoHintMuted: { fontSize: 12, marginBottom: 6, opacity: 0.55, fontStyle: 'italic' },
   incidentMeta: { fontSize: 13, opacity: 0.7, marginBottom: 2 },
   noIncidents: { fontSize: 14, opacity: 0.6, marginBottom: 8 },
+  incidentModalRoot: { flex: 1 },
+  incidentModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  incidentModalCenter: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  incidentModalCard: {
+    maxHeight: '85%',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#0A1A37',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#294263',
+  },
+  incidentModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  incidentModalTitle: { flex: 1, fontSize: 15 },
+  incidentModalSpinner: { marginVertical: 16 },
+  incidentModalError: { fontSize: 14, color: '#FF6B6B', marginBottom: 8 },
+  incidentModalEmpty: { fontSize: 14, opacity: 0.75 },
+  incidentModalScroll: { maxHeight: 360 },
+  incidentModalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  incidentModalImage: {
+    width: '47%',
+    aspectRatio: 1,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
 });

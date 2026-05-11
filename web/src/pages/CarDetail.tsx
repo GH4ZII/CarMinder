@@ -19,7 +19,7 @@ import {
   urgencyLabel,
 } from '@/utils/format';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 const GRADE_COLORS: Record<string, string> = {
   A: '#34C759',
@@ -41,10 +41,15 @@ const REPAIR_STATUS_LABELS: Record<string, string> = {
   fully_repaired: 'Fully repaired',
 };
 
+type CarDetailLocationState = {
+  incidentImageUploadError?: string;
+};
+
 export default function CarDetail() {
   const { id } = useParams<{ id: string }>();
   const { getToken, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [car, setCar] = useState<CarInfo | null>(null);
   const [serviceStatus, setServiceStatus] = useState<CarServiceStatus | null>(null);
@@ -57,6 +62,14 @@ export default function CarDetail() {
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [incidentImageUploadWarning, setIncidentImageUploadWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    const msg = (location.state as CarDetailLocationState | null)?.incidentImageUploadError;
+    if (!msg) return;
+    setIncidentImageUploadWarning(msg);
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+  }, [location.pathname, location.search, location.state, navigate]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -196,6 +209,25 @@ export default function CarDetail() {
         </div>
       )}
 
+      {incidentImageUploadWarning && (
+        <div
+          className="error-banner"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff8e6', borderColor: '#f5d90a' }}
+        >
+          <span style={{ flex: 1 }}>
+            <strong>Incident saved</strong>, but photos did not upload: {incidentImageUploadWarning}
+          </span>
+          <button
+            type="button"
+            className="link-button"
+            style={{ flexShrink: 0 }}
+            onClick={() => setIncidentImageUploadWarning(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Car Care Score Card */}
       {careScore && <CarCareScoreCard data={careScore} />}
 
@@ -249,7 +281,7 @@ export default function CarDetail() {
         ) : (
           <div className="incident-list">
             {incidents.map((incident) => (
-              <IncidentCard key={incident.id} incident={incident} />
+              <IncidentCard key={incident.id} carId={id!} incident={incident} />
             ))}
           </div>
         )}
@@ -652,32 +684,140 @@ function EventCard({ event }: { event: MaintenanceEvent }) {
   );
 }
 
-function IncidentCard({ incident }: { incident: IncidentReport }) {
+function IncidentCard({ carId, incident }: { carId: string; incident: IncidentReport }) {
+  const { getToken } = useAuth();
   const severityColor = SEVERITY_COLORS[incident.severity] ?? '#64748b';
+  const photoCount = incident.images?.length ?? 0;
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [images, setImages] = useState<{ id: string; url?: string | null }[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const openViewer = useCallback(async () => {
+    setViewerOpen(true);
+    setPhotoError(null);
+    setLoadingPhotos(true);
+    setImages([]);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setPhotoError('Not signed in');
+        return;
+      }
+      const imgs = await carsApi.listIncidentImages(carId, incident.id, token);
+      setImages(imgs.filter((i) => Boolean(i.url)));
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Could not load photos');
+    } finally {
+      setLoadingPhotos(false);
+    }
+  }, [carId, getToken, incident.id]);
+
+  useEffect(() => {
+    if (!viewerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setViewerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewerOpen]);
 
   return (
-    <Card className="incident-card">
-      <div className="incident-card__header">
-        <span className="incident-card__severity" style={{ backgroundColor: severityColor }}>
-          {incident.severity.toUpperCase()}
-        </span>
-        <span className="incident-card__date">{formatDate(incident.incident_date)}</span>
-      </div>
-      <p className="incident-card__description">{incident.description}</p>
+    <>
+      <Card
+        className="incident-card incident-card--interactive"
+        onClick={openViewer}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            void openViewer();
+          }
+        }}
+        aria-label="View incident details and photos"
+      >
+        <div className="incident-card__header">
+          <span className="incident-card__severity" style={{ backgroundColor: severityColor }}>
+            {incident.severity.toUpperCase()}
+          </span>
+          <span className="incident-card__date">{formatDate(incident.incident_date)}</span>
+        </div>
+        <p className="incident-card__description">{incident.description}</p>
 
-      <div className="incident-card__meta">
-        <span>Repair: {REPAIR_STATUS_LABELS[incident.repair_status] ?? incident.repair_status}</span>
-        {incident.mileage != null && <span>{incident.mileage.toLocaleString()} km</span>}
-        {incident.repair_cost_cents != null && <span>{formatCurrency(incident.repair_cost_cents)}</span>}
-        {incident.repair_vendor && <span>{incident.repair_vendor}</span>}
-        {incident.insurance_claim && <span>Insurance claim filed</span>}
-      </div>
+        <div className="incident-card__meta">
+          <span>Repair: {REPAIR_STATUS_LABELS[incident.repair_status] ?? incident.repair_status}</span>
+          {incident.mileage != null && <span>{incident.mileage.toLocaleString()} km</span>}
+          {incident.repair_cost_cents != null && <span>{formatCurrency(incident.repair_cost_cents)}</span>}
+          {incident.repair_vendor && <span>{incident.repair_vendor}</span>}
+          {incident.insurance_claim && <span>Insurance claim filed</span>}
+          {photoCount > 0 ? (
+            <span className="incident-card__photo-badge">{photoCount} photo{photoCount === 1 ? '' : 's'}</span>
+          ) : (
+            <span className="incident-card__tap-hint">Tap for details</span>
+          )}
+        </div>
 
-      {incident.damage_description && (
-        <p className="incident-card__damage">
-          Damage: {incident.damage_description}
-        </p>
+        {incident.damage_description && (
+          <p className="incident-card__damage">
+            Damage: {incident.damage_description}
+          </p>
+        )}
+      </Card>
+
+      {viewerOpen && (
+        <div
+          className="incident-photo-modal-backdrop"
+          onClick={() => setViewerOpen(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setViewerOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="incident-photo-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="incident-photo-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="incident-photo-modal__top">
+              <h3 id="incident-photo-modal-title" className="incident-photo-modal__title">
+                {formatDate(incident.incident_date)} — {incident.description.slice(0, 80)}
+                {incident.description.length > 80 ? '…' : ''}
+              </h3>
+              <button
+                type="button"
+                className="incident-photo-modal__close"
+                onClick={() => setViewerOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            {loadingPhotos && <p className="incident-photo-modal__status">Loading photos…</p>}
+            {photoError && <p className="incident-photo-modal__error">{photoError}</p>}
+            {!loadingPhotos && !photoError && images.length === 0 && (
+              <p className="incident-photo-modal__status">No photos for this incident.</p>
+            )}
+            {images.length > 0 && (
+              <div className="incident-photo-modal__grid">
+                {images.map((img) =>
+                  img.url ? (
+                    <a
+                      key={img.id}
+                      href={img.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="incident-photo-modal__link"
+                    >
+                      <img src={img.url} alt="" className="incident-photo-modal__thumb" />
+                    </a>
+                  ) : null
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       )}
-    </Card>
+    </>
   );
 }
