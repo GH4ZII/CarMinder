@@ -1,0 +1,568 @@
+﻿
+===== PAGE 6 =====
+3.4.4 External API Contract Testing . . . . . . . . . . . . . . . . . . . . . 12
+3.4.5 Mutation Testing of Scoring Logic . . . . . . . . . . . . . . . . . . . . 13
+3.5 Development Methodology . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+3.6 Requirements Elicitation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+3.7 Method Limitations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+4 Results 15
+4.1 The CarMinder Artefact . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+4.1.1 System Architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+4.1.2 Backend Internal Structure . . . . . . . . . . . . . . . . . . . . . . . . 16
+4.1.3 Client Applications . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+4.1.4 External Integrations . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+4.2 Backend Implementation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.2.1 Database Schema . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.2.2 OBD-II Reading Pipeline . . . . . . . . . . . . . . . . . . . . . . . . . 19
+4.2.3 Service Interval and Urgency Engine . . . . . . . . . . . . . . . . . . 20
+4.2.4 Vehicle Lookup Integration . . . . . . . . . . . . . . . . . . . . . . . . 20
+4.2.5 Notifications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+4.2.6 PDF Export . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+4.3 Client Applications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+4.3.1 Authentication . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+4.3.2 Car Management . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+4.3.3 Car Care Score . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+4.3.4 Maintenance Events . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.3.5 Incident Reports . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.3.6 Calendar . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.3.7 Public History Lookup . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.3.8 Transfer Ownership . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+4.3.9 Vehicle Retirement . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+4.3.10 Platform-Specific Features . . . . . . . . . . . . . . . . . . . . . . . . 25
+4.4 Validation Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+4.4.1 R1: Centralized Domain Logic . . . . . . . . . . . . . . . . . . . . . . 26
+4.4.2 R2: Stable API Contract . . . . . . . . . . . . . . . . . . . . . . . . . 26
+4.4.3 R3: Modular Backend Structure . . . . . . . . . . . . . . . . . . . . . 28
+4.4.4 External API Contract Testing . . . . . . . . . . . . . . . . . . . . . 30
+4.4.5 Mutation Testing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+4.4.6 Requirement Traceability Summary . . . . . . . . . . . . . . . . . . . 32
+5 Discussion 34
+5.1 Answering the Research Question . . . . . . . . . . . . . . . . . . . . . . . . 34
+5.2 Validity of the Validation Approach . . . . . . . . . . . . . . . . . . . . . . . 35
+5.3 Architectural Trade-offs and Limitations . . . . . . . . . . . . . . . . . . . . 36
+5.4 Security Trade-offs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38
+5.5 Generalizability of the Approach . . . . . . . . . . . . . . . . . . . . . . . . . 40
+6 Social Perspective 41
+6.1 Societal and Environmental Perspective . . . . . . . . . . . . . . . . . . . . . 41
+6.1.1 Environmental implications of maintenance transparency . . . . . . . 41
+6.1.2 Transparency, accident reporting, and trust in the second-hand market 41
+7 Conclusions 43
+7.1 Summary of Work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+7.2 Conclusion . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+
+===== PAGE 11 =====
+List of Tables
+2.1 Summary of reviewed applications across observable dimensions relevant to
+the CarMinder research question. CarMinder row reflects design goals, not
+commercially verified features. . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+4.1 Car care score category weights. . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.2 Schemathesis baseline run against the deployed API. . . . . . . . . . . . . . 30
+4.3 Mutation testing results for the backend scoring domain. . . . . . . . . . . . 32
+4.4 Requirement traceability summary mapping each architectural requirement
+to its validation method and result. . . . . . . . . . . . . . . . . . . . . . . . 33
+A.1 Mutation results broken down by source file. . . . . . . . . . . . . . . . . . . 55
+x
+
+===== PAGE 25 =====
+contract tests, and a production build of the web client. This made the validation process
+repeatable and helped detect architectural drift during development.
+3.4.5 Mutation Testing of Scoring Logic
+Mutation testing was applied as a fifth validation method to evaluate the sensitivity of the
+behavioural test suite for the scoring engine. Mutation testing, introduced by DeMillo,
+Lipton, and Sayward [26] and surveyed by Jia and Harman [27], evaluates a test suite by
+introducing small artificial changes to the source code and rerunning the tests. Each modified
+version of the code is called a mutant. If at least one test fails on the mutated code, the
+mutant is killed, indicating that the test suite detected the behavioural change. If all tests
+still pass, the mutant survives, indicating a behavioural change that the tests fail to detect.
+The ratio of killed mutants to the total number of non-equivalent mutants is the mutation
+score. Mutation testing literature reports that mature test suites typically achieve mutation
+scores in the 60 to 80 percent range [27].
+The technique was scoped to the scoring domain on methodological grounds. The scoring do-
+main is deterministic, contains no I/O or external dependencies, and consists of pure business
+logic, which makes it the most reliable target for mutation analysis. It is also the canon-
+ical instance of architectural requirement R1, centralized domain logic. Mutation testing
+therefore complements the other validation methods rather than duplicating them: import-
+linter verifies architectural conformance, the pytest suite verifies functional behaviour, and
+mutation testing probes the strength of the functional tests themselves.
+The tool used wasmutmut. The outcomes are reported in Section 4.4.5.
+3.5 Development Methodology
+The project was managedusingan agile approachbased on the Kanban method [28]. Kanban
+was chosen over Scrum because the workload was non-uniform across the semester. Early
+work focused on problem analysis, literature review, and architectural design, while later
+work focused on implementation, testing, and validation. A continuous flow model was
+therefore more suitable than fixed-length sprints.
+Task management was handled in Linear. Work items moved through five columns:New,
+Ready,In Progress,Ready for Test, andDone. This provided a shared overview of project
+progress and allowed tasks to be reprioritized as architectural understanding developed.
+The agile method was used as a project-execution method, not as the analytical core of
+the thesis. The academic method of the thesis was the design and validation of a software
+artefact.
+3.6 Requirements Elicitation
+User stories were used to translate the problem context into functional scope. They were
+written in the formAs a [user], I want [functionality], so that [benefit]. User stories were
+chosen instead of use case diagrams because the system has one primary actor, the vehi-
+cle owner, and because the thesis focuses on architecture rather than detailed interaction
+modelling.
+The stories were used to distinguish core functionality from exploratory extensions. Core
+stories guided the implemented and validated prototype scope, while exploratory extension
+stories, such as OBD-II integration and receipt scanning, were treated as implemented pro-
+totype extensions rather than fully validated architectural evidence. The complete list of
+user stories is provided in Appendix C.
+13
+
+===== PAGE 31 =====
+incident_reports:
+records damage incidents associated with a car. Fields include incident date, severity, a short
+description, damage description, repair status, repair cost in cents, repair vendor, insurance
+claim status, and mileage at the time of the incident. Theseverityandrepair_status
+columns are each constrained byCHECKconstraints at the database level, mirroring the
+controlled vocabularies enforced by the backend validators. This ensures that invalid values
+are rejected independently of the application layer.
+obd_readings:
+storesOBD-IIdiagnosticsnapshotsuploadedfromthemobileapplication. Eachrowcaptures
+a timestamp, the data source (real BLE scan or simulated), and key vehicle metrics: RPM,
+coolant temperature, speed, engine load, battery voltage, fuel rate (L/h), fuel consumption
+(L/100km), mass air flow (g/s), and a JSON array of decoded diagnostic trouble codes
+(DTCs). The fuel rate source column records whether fuel rate was read directly from PID
+0x5E or derived from mass air flow when the direct PID is unsupported by the vehicle.
+push_tokens:
+stores Expo push notification tokens for authenticated users. Each row associates a
+firebase_user_idwith anexpo_push_token, enabling the backend to deliver push no-
+tifications to specific devices. Tokens are registered on login and removed on sign-out,
+ensuring that notifications are only delivered to active sessions. A unique constraint on
+(firebase_user_id, expo_push_token)preventsduplicatetokenregistrationsforthesame
+device.
+notification_log:
+records which notifications have been sent per car and notification type, preventing duplicate
+deadline notifications from being dispatched by the cron-triggered endpoint.
+All primary keys are UUIDs. Foreign key relationships linkmaintenance_events,
+incident_reports,obd_readings, andnotification_logto thecarstable viacar_id.
+Controlled vocabulary columns acrossmaintenance_eventsandincident_reportsare en-
+forced at both the application and database layers, ensuring data integrity independently of
+the API boundary.
+Input Normalization
+Before the engine is invoked, raw Supabase rows are converted into canonical typed data-
+classes by the normalization layer (domain/scoring/normalize.py). This step maps un-
+known or invalid enum values to safe defaults, parses ISO date strings, and converts all
+monetary values to integer cents. The resultingCarData,MaintenanceEventData, and
+IncidentDatastructures are the only inputs the engine accepts, ensuring that unnecessary
+data from the database cannot reach the scoring logic.
+4.2.2 OBD-II Reading Pipeline
+The OBD-II reading pipeline enables diagnostic data from a vehicleÔÇÖs on-board diagnostics
+port to be captured on the mobile application and persisted to the backend. The pipeline
+consists of three stages, illustrated in Figure 4.4.
+19
+
+===== PAGE 43 =====
+Figure 4.13: Schemathesis final validation run against the deployed Railway API after corrective
+changes. All 36 operations passed across the Coverage, Fuzzing, and Stateful phases, with 4,759
+generated test cases and zero contract violations. The three remaining warnings concern test inputs
+rather than contract correctness.
+ness: 24 operations returned only401or403because the run did not supply a bearer token,
+one operation (the public history endpoint) repeatedly returned404because randomly gen-
+erated registration numbers are unlikely to match seeded production data, and 23 operations
+predominantly rejected generated payloads due to the absence of valid external identity to-
+kens, valid resource identifiers, and a valid cron secret. These limitations are characteristic
+of unauthenticated black-box fuzzing against a production-like deployment and are discussed
+further in Section 5.2.
+The complete Schemathesis run artifacts in JUnit, HAR, and NDJSON formats for both the
+baselineandfinalrunsarearchivedintheprojectrepositoryunderdocs/schemathesis-report/
+anddocs/schemathesis-report-final/. Both runs are reproducible by re-executing the
+commands in Appendix F.1 against the deployed Railway endpoint with seed20260508. A
+condensed deliverable archive containing the run summary and JUnit reports for both runs
+is also archived at docs/schemathesis-deliverable.zip.
+The Schemathesis test cases are reported separately from the project-authored pytest count
+in Section 4.8 because they are generated from the schema rather than authored by the
+project team, and because they exercise the deployed API from outside the implementation
+boundary rather than the in-processTestClient.
+4.4.5 Mutation Testing
+The mutation testing usingmutmutwas applied to the scoring domain to evaluate the sen-
+sitivity of the existing test suite. The standard metric is the mutation score, defined as the
+ratio of killed mutants to the total number of non-equivalent, covered mutants [27].
+Themutationrunusedthe11collectedscoringtestsinbackend-python/tests/test_scoring_engine.py
+as the oracle. Mutation testing did not target the mobile frontend, FastAPI routers, database
+repositories, or external integration logic.
+Results
+The final mutation test run produced the results shown in Table 4.3.
+The conservative mutation score, treating mutants with no associated tests as undetected,
+is: 365
+1185 Ôëê30.8%
+Excluding the 204 mutants for which mutmut could not associate any test case, the score
+31
+
+===== PAGE 44 =====
+Outcome Count
+Total mutants 1185
+Killed mutants 365
+Survived mutants 616
+Mutants with no associated tests 204
+Timeouts 0
+Segfaults 0
+Table 4.3: Mutation testing results for the backend scoring domain.
+rises to approximately 37.2%. A portion of the surviving mutants may also be equivalent
+mutants, semantically identical to the original code and therefore unkillable by any test
+[27]. No equivalent-mutant analysis was performed in this work, so the reported score is a
+lower bound on the true mutation score. A per-file breakdown of the results is provided in
+Appendix A.1.5.
+Interpretation
+The results show that the current scoring tests catch some important behavioral changes,
+but they do not fully specify the detailed scoring model. Mutation testing literature reports
+that mature test suites typically achieve mutation scores in the 60 to 80 percent range [27],
+so the result here indicates a test suite that detects broad behavioral relationships and grade
+boundary checks but does not fully specify detailed business rules. Appendix A.1.2 illustrates
+a detected mutation at the score-90 grade boundary, while Appendix A.1.3 illustrates an
+undetected mutation at the 0.25 confidence threshold. The contrast indicates that grade-
+boundary tests exist, while confidence-threshold tests do not.
+The mutation results revealed weaker test coverage around:
+ÔÇóconfidence threshold boundaries,
+ÔÇónormalization of input data,
+ÔÇómaintenance interval scoring,
+ÔÇódocumentation-quality scoring,
+ÔÇóexact category-score calculations,
+ÔÇóexact overall-score calculations.
+The 204 mutants for which mutmut could not associate any test case fall predominantly in
+normalization code. This indicates that the test-discovery heuristic found no test linked to
+those source files, which in practice means those functions lack direct unit-test coverage.
+Mutation testing does not measure correctness of the scoring model itself. It measures
+only the test suiteÔÇÖs ability to detect changes in that model. The gaps identified here are
+documented as a limitation in Section 7.3 and as a concrete work item in Section 7.4. The
+reproduction command and tooling configuration are provided in Appendix A.1.
+4.4.6 Requirement Traceability Summary
+Table 4.4 summarises the mapping between each architectural requirement, the validation
+method applied, and the outcome.
+32
+
+===== PAGE 47 =====
+combined approach used here is therefore not redundant but complementary, and represents
+a transferable validation pattern beyond the specific domain of vehicle maintenance. Taken
+together, these three findings establish that a layered FastAPI backend with enforced module
+boundaries is a viable and verifiable solution to the problem identified in Chapter 1. The
+related work review in Section 2.9 identified that existing applications restrict users to a
+single platform or operate within closed proprietary systems not designed for independently
+developed clients. CarMinderÔÇÖs thin-client architecture addresses this limitation, and the
+validation evidence supports the claim structurally rather than anecdotally.
+5.2 Validity of the Validation Approach
+The conclusions in Section 5.1 depend on the validity of the validation approach itself. Three
+threats to validity are present, and they differ in severity.
+The most serious threat is that the architectural requirements, design decisions, and valida-
+tioninstrumentswereallproducedandevaluatedbythesameteam, whichintroducestherisk
+that the validation methods were designed to confirm the architecture rather than to chal-
+lenge it. Two partial mitigations apply. First, the structural validation tools, import-linter
+and AST-based analysis, operate through independent mechanisms and were configured sep-
+arately, so a false positive from confirmation bias would have to appear in both parallel
+sets of contracts, which is substantially harder than in one. Second, the Schemathesis run
+reported in Section 4.4.4 derives test cases from the OpenAPI document using an externally
+authored tool, so for R2 specifically the tests themselves are not products of the team. Nei-
+ther mitigation eliminates the underlying risk, because the team still selected which tools
+to apply and which contracts to encode; a stronger study would have an external software
+architect define the contracts before implementation began.
+The second threat concerns the behavioural test suite that supports R1. The suite covers
+seven distinct properties of the scoring engine but does not constitute exhaustive coverage of
+all domain logic in the system. The service interval engine and the normalization layer were
+not subjected to the same level of behavioural testing. This is a coverage gap rather than
+a methodological flaw: the tests that exist are valid, but additional tests would strengthen
+the evidence for R1 across all backend components. Mutation testing of the scoring do-
+main (Section 4.4.5) both strengthens and qualifies this part of the validity argument. It
+strengthens the argument because the behavioural tests are themselves probed rather than
+trusted: 365 of 1185 mutants were detected, providing direct evidence that the tests respond
+to behavioural change in the scoring logic. It qualifies the argument because the resulting
+mutation score of 30.8 percent is below the 60 to 80 percent range reported as typical of
+mature test suites. Two considerations frame how this result should be interpreted. First,
+the behavioural test suite was scoped to verify the seven specific properties listed in Sec-
+tion 3.4.2: determinism, runtime isolation, grade-boundary mapping, confidence dampening,
+the directional effect of good maintenance, the effect of severe unrepaired incidents, and the
+relative penalty for repaired versus unrepaired incidents. The suite was therefore designed as
+a property-based check on R1 rather than as an exhaustive functional specification of every
+scoring rule. The mutation score reflects this scope: the tests detect changes that affect
+the properties they target, and survive changes that do not. Second, extending the suite to
+raise the mutation score was not pursued in the available project time. Strengthening the
+suite is a direct continuation of the existing approach and would not require any architec-
+tural change, since the scoring engine is already isolated as a pure domain module. This
+extension is identified as future work in Section 7.4. The overall threat is acceptable for a
+bachelor-scope prototype and represents a direct extension for future work.
+The third threat is that thin-client validation relies on a combination of independent client
+development, runtime observation of two specific dependency patterns, and pattern-based
+35
+
+===== PAGE 56 =====
+here is not specific to vehicle maintenance and represents a transferable approach for software
+systems facing the same recurring problem.
+7.3 Limitations
+The OBD-II reading pipeline was implemented and validated on two physical vehicles, a
+Mazda 3 and a Toyota Yaris, using a real ELM327 Bluetooth adapter. Signal decoding is per-
+formed on-device prior to backend upload, as the BLE transport does not permit raw frame
+forwarding to a remote endpoint. The DTC description lookup is currently implemented
+as a hardcoded client-side map; codes absent from the map are displayed as ÔÇ£Unknown di-
+agnostic trouble code,ÔÇØ as encountered with codes P0221 and B1622 during testing on the
+Toyota Yaris. Relocating the DTC lookup to the backend remains an identified direction for
+future work.
+Receipt scanning was implemented as an exploratory prototype extension in which receipt
+images are uploaded from the mobile client and processed by the backend using OCR to sug-
+gest candidate maintenance fields for user review. However, this feature was not included in
+the formal validation of unified multi-source maintenance history, and manual entry remains
+the primary validated non-diagnostic input source in the current prototype.
+No usability testing was conducted with real users, which means the systemÔÇÖs effectiveness
+from a user experience perspective remains unevaluated. The architectural requirements,
+design decisions, and validation instruments were all produced and evaluated by the same
+team, introducing the risk that the validation approach was designed to confirm the archi-
+tecture rather than to challenge it. Additionally, the system does not enforce verification of
+vehicle ownership at registration.
+Mutation testing of the scoring domain achieved a mutation score of 30.8 percent. The
+behavioural test suite detects grade-boundary changes and broad directional properties but
+does not fully specify confidence-threshold behaviour, normalization behaviour, maintenance
+interval scoring, documentation-quality scoring, or the exact category and overall score cal-
+culations. A total of 204 mutants had no associated tests. Of these, 202 were in normalize.py
+and 2 were in engine.py. The implications of this for R1 validity are discussed in Section 5.2,
+and the concrete extension is identified in Section 7.4.
+7.4 Future Work
+Relocating the DTC description lookup from the mobile client to a dedicated backend service
+would restore full thin client conformance for the OBD-II feature and allow the diagnostic
+code database to be extended without requiring a client release. Two approaches are vi-
+able. The first is a static backend DTC database mapping standard SAE and manufacturer
+codes to plain-language descriptions; this approach guarantees deterministic output and is
+straightforward to extend incrementally. The second is an LLM-powered diagnostic service
+that receives the decoded DTC codes alongside relevant vehicle metadata such as make,
+model, year, and engine type, and generates contextual explanations either from training
+data or via retrieval-augmented search. Such a service could produce richer, vehicle-specific
+descriptions than a static map, but introduces non-determinism and dependency on an ex-
+ternal model. A static database is the more appropriate first step given the accuracy require-
+ments of diagnostic information; an LLM-based service represents a viable extension once
+a reliable baseline is established. Because the backend is already organised as a modular
+layered system, either approach could be introduced as an isolated domain service without
+affecting the existing API contract or client applications.
+Strengthening the scoring test suite to address the gaps revealed by mutation testing in
+44
+
+===== PAGE 57 =====
+Section 4.4.5 is a second direction for future work. The mutation results identified weaker
+coverage around confidence-threshold boundaries (in particular the 0.25 and 0.5 thresholds),
+the normalization layer innormalize.pywhere 202 mutants had no associated tests, main-
+tenance interval scoring, documentation-quality scoring, and the exact category-score and
+overall-score calculations. Adding direct unit tests targeting these areas would raise the
+mutation score toward the 60 to 80 percent range reported as typical of mature test suites
+and would in turn provide stronger evidence for R1. Because the scoring engine is already
+isolated as a pure domain module with no infrastructure dependencies, extending its test
+suite does not require changes to any other part of the system.
+A further direction for future work is to examine the broader societal effect of the sys-
+tem empirically. The present thesis argues that CarMinder may support more transparent
+maintenance documentation, stronger trust in second-hand sales, and potentially more re-
+sponsible long-term vehicle use, but these implications have not been tested with real users.
+Future studies could therefore investigate whether the system changes how owners document
+maintenance, whether buyers recognize public accident and maintenance history as useful
+and trustworthy, and how the system affects the social dynamics of used-car transactions.
+Finally, the architectural pattern demonstrated in this thesis is not specific to automotive
+maintenance. Applying the same layered backend structure, enforced module boundaries,
+and automated conformance testing approach to other domains such as medical record man-
+agement or logistics tracking represents a natural direction for future instantiations of the
+pattern.
+45
+
+===== PAGE 66 =====
+cache: pip
+cache-dependency-path: backend-python/requirements.txt
+- name: Install backend dependencies
+run: |
+python -m pip install --upgrade pip
+pip install -r backend-python/requirements.txt pytest import-linter
+- name: Run backend test suite
+working-directory: backend-python
+run: pytest
+web-build:
+name: Web Build
+runs-on: ubuntu-latest
+steps:
+- name: Checkout
+uses: actions/checkout@v4
+- name: Set up Node
+uses: actions/setup-node@v4
+with:
+node-version: "20"
+cache: npm
+cache-dependency-path: web/package-lock.json
+- name: Install web dependencies
+working-directory: web
+run: npm ci
+- name: Build web app
+working-directory: web
+run: npm run build
+A.1 Mutation Testing Artifacts
+A.1.1 Reproduction Command
+Listing A.15: Mutation testing reproduction command
+cd backend-python
+sh scripts/run-mutmut.sh
+A.1.2 Killed Mutant Example
+Listing A.16: Example of a killed grade-boundary mutant
+# Original
+def _score_to_grade(score: int) -> str:
+if score >= 90:
+return "A"
+if score >= 75:
+return "B"
+# Mutant generated by mutmut
+def _score_to_grade(score: int) -> str:
+if score > 90:
+return "A"
+54
+
+===== PAGE 67 =====
+if score >= 75:
+return "B"
+A.1.3 Survived Mutant Example
+Listing A.17: Example of a surviving mutant
+# Original
+if confidence < 0.25:
+return "very_low"
+# Mutant
+if confidence <= 0.25:
+return "very_low"
+A.1.4 Mutation Testing Wrapper Script
+Listing A.18: Mutation testing wrapper script
+#!/usr/bin/env sh
+set -eu
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+backend_dir=$(dirname "$script_dir")
+cd "$backend_dir"
+export ...
+PYTHONPATH="$backend_dir/tools/mutmut_no_setproctitle${PYTHONPATH:+:$PYTHONPATH}"
+exec "$backend_dir/.venv/bin/mutmut" run --max-children 1 "$@"
+A.1.5 Per-File Mutation Breakdown
+File Killed Survived No tests
+engine.py365 616 2
+normalize.py0 0 202
+Total 365 616 204
+Table A.1: Mutation results broken down by source file.
+The breakdown shows that nearly all evaluated mutations were generated inengine.py,
+where the scoring logic is implemented. Theengine.pyresults include both killed and
+surviving mutants, meaning the current tests exercise this file but do not fully specify all
+scoring behavior. In contrast, all 202 mutants innormalize.pywere classified as having no
+associated tests. This indicates that the normalization layer was not directly exercised by
+the mutation-test oracle and should be prioritized for additional unit tests.
+55
+
+===== PAGE 93 =====
+Car Care Scoring Logic
+I implemented the car care scoring functionality. This included the backend scoring route,
+schema, service, calculation logic, domain separation, scoring documentation, and related
+tests. I also worked on restructuring the scoring logic so that it followed the intended backend
+module boundaries and supported the thesis claim that domain reasoning is centralized.
+OBD-II Implementation and Real-Device Testing
+I implemented and tested the OBD-II functionality. This included Bluetooth OBD support,
+the dedicated OBD scan screen, ELM327 and iCar Pro adapter handling, OBD service
+logic, diagnostic trouble code handling, mobile and web OBD views, backend upload of
+real readings, and expanded diagnostic reporting. I also tested the scanner on my own
+car, identified failures during real-device testing, debugged the issues, retested fixes, and
+improved the feature based on the results.
+Web and Mobile Client Work
+I contributed to both the web and mobile clients. My work included profile screens, home
+screens, car-managementviews, add-carfunctionality, add-eventfunctionality, calendarviews,
+car-detail pages, incident/reporting screens, layout fixes, and general UI polishing. I also
+worked on connecting the clients to backend responses so that the clients acted mainly as
+presentation layers.
+Validation, Testing, Mutation Testing, and Debugging
+I designed and implemented much of the validation strategy used in the thesis. This included
+researching suitable testing methods, setting up GitHub Actions CI, using Import Linter for
+architecture checks, adding architecture tests, adding scoring tests, running Schemathesis
+contract testing, and using Mutmut mutation testing to evaluate the strength of the scoring-
+domain test suite. I also worked on interpreting mutation-testing results, identifying survived
+mutants, documenting the limitations they revealed, fixing bugs found by test results, and
+documenting the validation evidence. This work was important for verifying that the thesis
+claims were supported by implementation and test results rather than only architectural
+intention.
+Report Writing and Academic Contribution
+I wrote and revised major parts of the report, including the introduction, problem statement,
+related work, method chapter, results chapter, validation sections, discussion of results,
+conclusion, OBD/testingsections, citations, transitions, figures, screenshots, andappendices.
+I also worked on connecting the research question, architecture, implementation, validation
+results, and conclusion into a coherent academic argument.
+Summary
+Overall, my contribution covered the initial idea development, research, architecture, back-
+end implementation, database setup, Vegvesen integration, API contracts, scoring logic,
+OBD-II functionality, real-device testing, debugging, web/mobile UI implementation, vali-
+dation strategy, automated testing, mutation testing with Mutmut, claim verification, and
+major thesis chapters.
+81
+
+===== PAGE 94 =====
+ 
+Detailed report 
+01/01/2026 - 31/12/2026
+ 
+ 
+Total: 562:32:00      Billable: 00:00:00      Amount:  0,00┬áUSD
+ 
+Date Description Duration User
+11/05/2026 going through the report fixing report issue citation errors and
+grammer mistake
+Carminder
+04:30:00
+16:00:00 - 20:30:00
+Ivanbilal156
+10/05/2026 running mutmut testing targeting the scoring engine code and
+test and interpertating the test results and document it in the
+report
+Carminder
+04:30:00
+11:30:00 - 16:00:00
+Ivanbilal156
+09/05/2026 writing about the Schemathesis  in the report and fixing
+Carminder
+06:00:00
+10:00:00 - 16:00:00
+Ivanbilal156
+08/05/2026 pushed  more fixes after the result of Schemathesis   testing
+Carminder
+01:00:00
+20:00:00 - 21:00:00
+Ivanbilal156
+08/05/2026 found Schemathesis  and mutmut for testing  running the
+Schemathesis  test and got bugs and failure test
+Carminder
+02:08:00
+18:00:00 - 20:08:00
+Ivanbilal156
+08/05/2026 after meeting reseaching external testing for the backend to
+add credibility
+Carminder
+05:12:00
+13:00:00 - 18:12:00
+Ivanbilal156
+07/05/2026 working on report fixing some isssue with the transation from
+intro to method to result
+Carminder
+04:06:00
+10:00:00 - 14:06:00
+Ivanbilal156
+06/05/2026 shortening and fixing some phrase of all section to make it
+more clear
+Carminder
+04:06:00
+12:00:00 - 16:06:00
+Ivanbilal156
+05/05/2026 worked on report removing screenshot and rewriting each
+section and putting them in appendix
+Carminder
+07:56:00
+12:04:00 - 20:00:00
+Ivanbilal156
+04/05/2026 report working on adding test pictures  results obd section
+and fixing some citation
+Carminder
+05:00:00
+12:00:00 - 17:00:00
+Ivanbilal156
+03/05/2026 writing the report rephrasing  some section and  validation
+Carminder
+04:01:00
+12:00:00 - 16:01:00
+Ivanbilal156
+02/05/2026 working on report reuslts validation sections
+Carminder
+05:00:00
+12:00:00 - 17:00:00
+Ivanbilal156
+01/05/2026 writing report focus on the results chapter client application
+Carminder
+04:00:00
+12:00:00 - 16:00:00
+Ivanbilal156
+Bachelor project       Created with Clockify       1

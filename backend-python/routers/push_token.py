@@ -48,6 +48,6 @@ async def check_deadlines(
     """
     try:
         result = await push_token_service.check_deadlines(x_cron_secret)
-    except PermissionError:
-        raise HTTPException(status_code=403, detail="Invalid cron secret")
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
     return result

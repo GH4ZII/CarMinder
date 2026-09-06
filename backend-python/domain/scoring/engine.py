@@ -550,7 +550,7 @@ def compute_score(
     Compute the full car-care score.
 
     All inputs must already be normalized (canonical enum values, parsed
-    dates).  ``as_of`` controls the reference date for every time-based
+    dates).  ``as_of`` controls the reference date for every time-based 
     calculation.
     """
     # 1. Car age

@@ -108,7 +108,7 @@ async def check_and_send_eu_control_reminders() -> dict[str, Any]:
             reg = car.get("registreringsnummer", "")
 
             for threshold in NOTIFICATION_THRESHOLDS:
-                if days_until > threshold["days"]:
+                if days_until != threshold["days"]:
                     continue
 
                 notification_type = threshold["type"]

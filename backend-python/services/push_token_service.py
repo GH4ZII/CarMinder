@@ -19,7 +19,9 @@ def unregister_push_token(expo_push_token: str) -> None:
 async def check_deadlines(x_cron_secret: Optional[str]) -> dict[str, Any]:
     settings = get_settings()
     expected_secret = settings.get("CRON_SECRET")
-    if expected_secret and x_cron_secret != expected_secret:
+    if not expected_secret:
+        raise PermissionError("Cron secret not configured")
+    if x_cron_secret != expected_secret:
         raise PermissionError("Invalid cron secret")
 
     return await notification_service.check_and_send_eu_control_reminders()

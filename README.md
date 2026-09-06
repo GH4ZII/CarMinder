@@ -5,7 +5,7 @@ A car maintenance and reminder app built with Expo (React Native), a FastAPI bac
 ## Tech stack
 
 - **Mobile:** Expo (React Native), TypeScript, file-based routing via Expo Router
-- **Backend:** FastAPI, Supabase, Firebase Admin — `routers/`, `services/`, `schemas/`, `config/` in `backend-python/`
+- **Backend:** FastAPI, Supabase, Firebase Identity Toolkit (REST) — `routers/`, `services/`, `schemas/`, `config/` in `backend-python/`
 - **Web:** Vite + React in `web/`
 - **API layer:** `frontendServices/` (e.g. `apiCall.ts`, `carApi.ts`, `authApi.ts`)
 
@@ -49,7 +49,7 @@ Open the URL shown (usually `http://localhost:5173`).
 ## Architecture
 
 - **Frontend:** Expo app; API calls live in `frontendServices/` (e.g. `apiCall.ts`, `carApi.ts`, `maintenanceApi.ts`, `authApi.ts`).
-- **Backend:** FastAPI in `backend-python/` with Supabase and Firebase Admin; routers for auth, cars, maintenance, service intervals, car score, incident reports, public history, push tokens.
+- **Backend:** FastAPI in `backend-python/` with Supabase and Firebase Identity Toolkit (REST login); backend-issued JWT for API auth. Routers for auth, cars, maintenance, service intervals, car score, incident reports, public history, push tokens.
 - **Env:** `.env` at repo root (frontend), `backend-python/.env` (backend).
 
 ## Adding new backend features

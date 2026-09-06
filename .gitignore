@@ -57,3 +57,8 @@ backend-python/models/__pycache__/
 backend-python/routers/__pycache__/
 backend-python/schemas/__pycache__/
 backend-python/services/__pycache__/
+
+# Firebase service account keys (never commit)
+backend-python/*firebase-adminsdk*.json
+backend-python/carminder-b2486-firebase-adminsdk-fbsvc-3d94f69eed.json
+**/firebase-adminsdk*.json
